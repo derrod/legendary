@@ -34,6 +34,37 @@ A PyPI package will follow once it has gotten more testing.
 
 The Windows .exe was created with PyInstaller and will run standalone without python being installed.
 
+## Quickstart
+
+To log in:
+````
+$ legendary --auth
+````
+Authentication is a little finicky since we have to go through the Epic website. In the first step you will log in and in the second one you are required to copy an exchange code from a JSON site into the command line.
+On Windows you can add `--import` to attempt to import the session from the Epic Games Launcher, if it is installed and you're logged in.
+
+Listing your games
+````
+$ legendary --list-games
+````
+This will fetch a list of games available on your account, the first time may take a while depending on how many games you have.
+
+Installing a game
+````
+$ legendary --install Anemone
+````
+**Important:** the name used for these commands is the app name, *not* the game's name! The app name is included in the games list after the title.
+
+List installed games and check for updates
+````
+$ legendary --list-installed --check-updates
+````
+
+Launch (run) a game with online authentication
+````
+$ legendary --launch Anemone
+````
+
 ## Usage
 
 ````
