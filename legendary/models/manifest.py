@@ -1,0 +1,509 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+import hashlib
+import logging
+import struct
+import zlib
+from io import BytesIO
+
+logger = logging.getLogger('Manifest')
+
+
+def read_fstring(bio):
+    length = struct.unpack('<i', bio.read(4))[0]
+
+    # if the length is negative the string is UTF-16 encoded, this was a pain to figure out.
+    if length < 0:
+        # utf-16 chars are 2 bytes wide but the length is # of characters, not bytes
+        # todo actually make sure utf-16 characters can't be longer than 2 bytes
+        length *= -2
+        s = bio.read(length - 2).decode('utf-16')
+        bio.seek(2, 1)  # utf-16 strings have two byte null terminators
+    elif length > 0:
+        s = bio.read(length - 1).decode('ascii')
+        bio.seek(1, 1)  # skip string null terminator
+    else:  # empty string, no terminators or anything
+        s = ''
+
+    return s
+
+
+def get_chunk_dir(version):
+    # The lowest version I've ever seen was 12 (Unreal Tournament), but for completeness sake leave all of them in
+    if version >= 15:
+        return 'ChunksV4'
+    elif version >= 6:
+        return 'ChunksV3'
+    elif version >= 3:
+        return 'ChunksV2'
+    else:
+        return 'Chunks'
+
+
+class Manifest:
+    header_magic = 0x44BEC00C
+
+    def __init__(self):
+        self.header_size = 0
+        self.size_compressed = 0
+        self.size_uncompressed = 0
+        self.sha_hash = ''
+        self.stored_as = 0
+        self.version = 0
+        self.data = b''
+
+        # remainder
+        self.meta = None
+        self.chunk_data_list = None
+        self.file_manifest_list = None
+        self.custom_fields = None
+
+    @property
+    def compressed(self):
+        return self.stored_as & 0x1
+
+    @classmethod
+    def read_all(cls, data):
+        _m = cls.read(data)
+        _tmp = BytesIO(_m.data)
+
+        _m.meta = ManifestMeta.read(_tmp)
+        _m.chunk_data_list = CDL.read(_tmp, _m.version)
+        _m.file_manifest_list = FML.read(_tmp)
+        _m.custom_fields = CustomFields.read(_tmp)
+
+        unhandled_data = _tmp.read()
+        if unhandled_data:
+            logger.warning(f'Did not read {len(unhandled_data)} remaining bytes in manifest! '
+                           f'This may not be a problem.')
+
+        return _m
+
+    @classmethod
+    def read(cls, data):
+        bio = BytesIO(data)
+        if struct.unpack('<I', bio.read(4))[0] != cls.header_magic:
+            raise ValueError('No header magic!')
+
+        _manifest = cls()
+        _manifest.header_size = struct.unpack('<I', bio.read(4))[0]
+        _manifest.size_compressed = struct.unpack('<I', bio.read(4))[0]
+        _manifest.size_uncompressed = struct.unpack('<I', bio.read(4))[0]
+        _manifest.sha_hash = bio.read(20)
+        _manifest.stored_as = struct.unpack('B', bio.read(1))[0]
+        _manifest.version = struct.unpack('<I', bio.read(4))[0]
+
+        if bio.tell() != _manifest.header_size:
+            logger.fatal(f'Did not read entire header {bio.tell()} != {_manifest.header_size}! '
+                         f'Header version: {_manifest.version}, please report this on '
+                         f'GitHub along with a sample of the problematic manifest!')
+            raise ValueError('Did not read complete manifest header!')
+
+        data = bio.read()
+        if _manifest.compressed:
+            _manifest.data = zlib.decompress(data)
+            dec_hash = hashlib.sha1(_manifest.data).hexdigest()
+            if dec_hash != _manifest.sha_hash.hex():
+                raise ValueError('Hash does not match!')
+        else:
+            _manifest.data = data
+
+        return _manifest
+
+
+class ManifestMeta:
+    def __init__(self):
+        self.meta_size = 0
+        self.data_version = 0
+        self.feature_level = 0
+        self.is_file_data = False
+        self.app_id = 0
+        self.app_name = ''
+        self.build_version = ''
+        self.launch_exe = ''
+        self.launch_command = ''
+        self.prereq_ids = []
+        self.prereq_name = ''
+        self.prereq_path = ''
+        self.prereq_args = ''
+
+    @classmethod
+    def read(cls, bio):
+        _meta = cls()
+
+        _meta.meta_size = struct.unpack('<I', bio.read(4))[0]
+        _meta.data_version = struct.unpack('B', bio.read(1))[0]  # always 0?
+        _meta.feature_level = struct.unpack('<I', bio.read(4))[0]  # same as manifest version
+        # As far as I can tell this was used for very old manifests that didn't use chunks at all
+        _meta.is_file_data = struct.unpack('B', bio.read(1))[0] == 1
+        _meta.app_id = struct.unpack('<I', bio.read(4))[0]  # always 0?
+        _meta.app_name = read_fstring(bio)
+        _meta.build_version = read_fstring(bio)
+        _meta.launch_exe = read_fstring(bio)
+        _meta.launch_command = read_fstring(bio)
+
+        # This is a list though I've never seen more than one entry
+        entries = struct.unpack('<I', bio.read(4))[0]
+        for i in range(entries):
+            _meta.prereq_ids.append(read_fstring(bio))
+
+        _meta.prereq_name = read_fstring(bio)
+        _meta.prereq_path = read_fstring(bio)
+        _meta.prereq_args = read_fstring(bio)
+
+        if bio.tell() != _meta.meta_size:
+            raise ValueError('Did not read entire meta!')
+
+        # seek to end if not already
+        # bio.seek(0 + _meta.meta_size)
+
+        return _meta
+
+
+class CDL:
+    def __init__(self):
+        self.version = 0
+        self.size = 0
+        self.count = 0
+        self.elements = []
+        self._manifest_version = 17
+        self._guid_map = None
+        self._guid_int_map = None
+
+    def get_chunk_by_guid(self, guid):
+        """
+        Get chunk by GUID string or number, creates index of chunks on first call
+
+        Integer GUIDs are usually faster and require less memory, use those when possible.
+
+        :param guid:
+        :return:
+        """
+        if isinstance(guid, int):
+            return self.get_chunk_by_guid_num(guid)
+        else:
+            return self.get_chunk_by_guid_str(guid)
+
+    def get_chunk_by_guid_str(self, guid):
+        if not self._guid_map:
+            self._guid_map = dict()
+            for index, chunk in enumerate(self.elements):
+                self._guid_map[chunk.guid_str] = index
+
+        index = self._guid_map.get(guid.lower(), None)
+        if index is None:
+            raise ValueError(f'Invalid GUID! {guid}')
+        return self.elements[index]
+
+    def get_chunk_by_guid_num(self, guid_int):
+        if not self._guid_int_map:
+            self._guid_int_map = dict()
+            for index, chunk in enumerate(self.elements):
+                self._guid_int_map[chunk.guid_num] = index
+
+        index = self._guid_int_map.get(guid_int, None)
+        if index is None:
+            raise ValueError(f'Invalid GUID! {hex(guid_int)}')
+        return self.elements[index]
+
+    @classmethod
+    def read(cls, bio, manifest_version=17):
+        cdl_start = bio.tell()
+        _cdl = cls()
+        _cdl._manifest_version = manifest_version
+
+        _cdl.size = struct.unpack('<I', bio.read(4))[0]
+        _cdl.version = struct.unpack('B', bio.read(1))[0]
+        _cdl.count = struct.unpack('<I', bio.read(4))[0]
+
+        # the way this data is stored is rather odd, maybe there's a nicer way to write this...
+
+        for i in range(_cdl.count):
+            _cdl.elements.append(ChunkInfo(manifest_version=manifest_version))
+
+        # guid, doesn't seem to be a standard like UUID but is fairly straightfoward, 4 bytes, 128 bit.
+        for chunk in _cdl.elements:
+            chunk.guid = struct.unpack('<IIII', bio.read(16))
+
+        # hash is a 64 bit integer, no idea how it's calculated but we don't need to know that.
+        for chunk in _cdl.elements:
+            chunk.hash = struct.unpack('<Q', bio.read(8))[0]
+
+        # sha1 hash
+        for chunk in _cdl.elements:
+            chunk.sha_hash = bio.read(20)
+
+        # group number, seems to be part of the download path
+        for chunk in _cdl.elements:
+            chunk.group_num = struct.unpack('B', bio.read(1))[0]
+
+        # window size is the uncompressed size
+        for chunk in _cdl.elements:
+            chunk.window_size = struct.unpack('<I', bio.read(4))[0]
+
+        # file size is the compressed size that will need to be downloaded
+        for chunk in _cdl.elements:
+            chunk.file_size = struct.unpack('<q', bio.read(8))[0]
+
+        if bio.tell() - cdl_start != _cdl.size:
+            raise ValueError('Did not read entire chunk data list!')
+
+        return _cdl
+
+
+class ChunkInfo:
+    def __init__(self, manifest_version=17):
+        self.guid = None
+        self.hash = 0
+        self.sha_hash = b''
+        self.group_num = 0
+        self.window_size = 0
+        self.file_size = 0
+        self._manifest_version = manifest_version
+        # caches for things that are "expensive" to compute
+        self._guid_str = None
+        self._guid_num = None
+
+    def __repr__(self):
+        return '<ChunkInfo (guid={}, hash={}, sha_hash={}, group_num={}, window_size={}, file_size={})>'.format(
+            self.guid_str, self.hash, self.sha_hash.hex(), self.group_num, self.window_size, self.file_size
+        )
+
+    @property
+    def guid_str(self):
+        if not self._guid_str:
+            self._guid_str = '-'.join('{:08x}'.format(g) for g in self.guid)
+
+        return self._guid_str
+
+    @property
+    def guid_num(self):
+        if not self._guid_num:
+            self._guid_num = self.guid[3] + (self.guid[2] << 32) + (self.guid[1] << 64) + (self.guid[0] << 96)
+        return self._guid_num
+
+    @property
+    def path(self):
+        return '{}/{:02d}/{:016X}_{}.chunk'.format(
+            get_chunk_dir(self._manifest_version),
+            # the result of this seems to always match the group number, but this is the "correct way"
+            (zlib.crc32(struct.pack('<I', self.guid[0]) +
+                        struct.pack('<I', self.guid[1]) +
+                        struct.pack('<I', self.guid[2]) +
+                        struct.pack('<I', self.guid[3])) & 0xffffffff) % 100,
+            self.hash, ''.join('{:08X}'.format(g) for g in self.guid)
+        )
+
+
+class FML:
+    def __init__(self):
+        self.version = 0
+        self.size = 0
+        self.count = 0
+        self.elements = []
+
+        self._path_map = dict()
+
+    def get_file_by_path(self, path):
+        if not self._path_map:
+            self._path_map = dict()
+            for index, fm in enumerate(self.elements):
+                self._path_map[fm.filename] = index
+
+        index = self._path_map.get(path, None)
+        if index is None:
+            raise ValueError(f'Invalid path! {path}')
+        return self.elements[index]
+
+    @classmethod
+    def read(cls, bio):
+        fml_start = bio.tell()
+        _fml = cls()
+        _fml.size = struct.unpack('<I', bio.read(4))[0]
+        _fml.version = struct.unpack('B', bio.read(1))[0]
+        _fml.count = struct.unpack('<I', bio.read(4))[0]
+
+        for i in range(_fml.count):
+            _fml.elements.append(FileManifest())
+
+        for fm in _fml.elements:
+            fm.filename = read_fstring(bio)
+
+        # never seen this used in any of the manifests I checked but can't wait for something to break because of it
+        for fm in _fml.elements:
+            fm.symlink_target = read_fstring(bio)
+
+        # For files this is actually the SHA1 instead of whatever it is for chunks...
+        for fm in _fml.elements:
+            fm.hash = bio.read(20)
+
+        # Flags, the only one I've seen is for executables
+        for fm in _fml.elements:
+            fm.flags = struct.unpack('B', bio.read(1))[0]
+
+        # install tags, no idea what they do, I've only seen them in the Fortnite manifest
+        for fm in _fml.elements:
+            _elem = struct.unpack('<I', bio.read(4))[0]
+            for i in range(_elem):
+                fm.install_tags.append(read_fstring(bio))
+
+        # Each file is made up of "Chunk Parts" that can be spread across the "chunk stream"
+        for fm in _fml.elements:
+            _elem = struct.unpack('<I', bio.read(4))[0]
+            for i in range(_elem):
+                chunkp = ChunkPart()
+                _size = struct.unpack('<I', bio.read(4))[0]
+                chunkp.guid = struct.unpack('<IIII', bio.read(16))
+                chunkp.offset = struct.unpack('<I', bio.read(4))[0]
+                chunkp.size = struct.unpack('<I', bio.read(4))[0]
+                fm.chunk_parts.append(chunkp)
+
+        # we have to calculate the actual file size ourselves
+        for fm in _fml.elements:
+            fm.file_size = sum(c.size for c in fm.chunk_parts)
+
+        if bio.tell() - fml_start != _fml.size:
+            raise ValueError('Did not read entire chunk data list!')
+
+        return _fml
+
+
+class FileManifest:
+    def __init__(self):
+        self.filename = ''
+        self.symlink_target = ''
+        self.hash = b''
+        self.flags = 0
+        self.install_tags = []
+        self.chunk_parts = []
+        self.file_size = 0
+
+    @property
+    def executable(self):
+        return self.flags & 0x4
+
+    @property
+    def sha_hash(self):
+        return self.hash
+
+    def __repr__(self):
+        if len(self.chunk_parts) <= 20:
+            cp_repr = ', '.join(repr(c) for c in self.chunk_parts)
+        else:
+            _cp = [repr(cp) for cp in self.chunk_parts[:20]]
+            _cp.append('[...]')
+            cp_repr = ', '.join(_cp)
+
+        return '<FileManifest (filename="{}", symlink_target="{}", hash={}, flags={}, ' \
+               'install_tags=[{}], chunk_parts=[{}], file_size={})>'.format(
+            self.filename, self.symlink_target, self.hash.hex(), self.flags,
+            ', '.join(self.install_tags), cp_repr, self.file_size
+        )
+
+
+class ChunkPart:
+    def __init__(self):
+        self.guid = None
+        self.offset = 0
+        self.size = 0
+        # caches for things that are "expensive" to compute
+        self._guid_str = None
+        self._guid_num = None
+
+    @property
+    def guid_str(self):
+        if not self._guid_str:
+            self._guid_str = '-'.join('{:08x}'.format(g) for g in self.guid)
+        return self._guid_str
+
+    @property
+    def guid_num(self):
+        if not self._guid_num:
+            self._guid_num = self.guid[3] + (self.guid[2] << 32) + (self.guid[1] << 64) + (self.guid[0] << 96)
+        return self._guid_num
+
+    def __repr__(self):
+        guid_readable = '-'.join('{:08x}'.format(g) for g in self.guid)
+        return '<ChunkPart (guid={}, offset={}, size={})>'.format(
+            guid_readable, self.offset, self.size)
+
+
+class CustomFields:  # this could probably be replaced with just a dict
+    def __init__(self):
+        self.size = 0
+        self.version = 0
+        self.count = 0
+
+        self._dict = dict()
+
+    def __getitem__(self, item):
+        return self._dict.get(item, None)
+
+    def __str__(self):
+        return str(self._dict)
+
+    def keys(self):
+        return self._dict.keys()
+
+    def values(self):
+        return self._dict.values()
+
+    @classmethod
+    def read(cls, bio):
+        _cf = cls()
+
+        cf_start = bio.tell()
+        _cf.size = struct.unpack('<I', bio.read(4))[0]
+        _cf.version = struct.unpack('B', bio.read(1))[0]
+        _cf.count = struct.unpack('<I', bio.read(4))[0]
+
+        _keys = []
+        _values = []
+
+        for i in range(_cf.count):
+            _keys.append(read_fstring(bio))
+
+        for i in range(_cf.count):
+            _values.append(read_fstring(bio))
+
+        _cf._dict = dict(zip(_keys, _values))
+
+        if bio.tell() - cf_start != _cf.size:
+            raise ValueError('Did not read entire custom fields list!')
+
+        return _cf
+
+
+class ManifestComparison:
+    def __init__(self):
+        self.added = set()
+        self.removed = set()
+        self.changed = set()
+        self.unchanged = set()
+
+    @classmethod
+    def create(cls, manifest, old_manifest=None):
+        comp = cls()
+
+        if not old_manifest:
+            comp.added = set(fm.filename for fm in manifest.file_manifest_list.elements)
+            return comp
+
+        old_files = {fm.filename: fm.hash for fm in old_manifest.file_manifest_list.elements}
+
+        for fm in manifest.file_manifest_list.elements:
+            old_file_hash = old_files.pop(fm.filename, None)
+            if old_file_hash:
+                if fm.hash == old_file_hash:
+                    comp.unchanged.add(fm.filename)
+                else:
+                    comp.changed.add(fm.filename)
+            else:
+                comp.added.add(fm.filename)
+
+        # any remaining old files were removed
+        if old_files:
+            comp.removed = set(old_files.keys())
+
+        return comp
