@@ -98,7 +98,7 @@ class LegendaryCore:
             td = dt_now - dt_old
 
             # if session still has at least 10 minutes left we can re-use it.
-            if td.total_seconds() < (self.lgd.userdata['expires_in'] - 600):
+            if dt_old > dt_now and td.total_seconds() < (self.lgd.userdata['expires_in'] - 600):
                 self.log.debug('Reusing existing login session...')
                 self.egs.resume_session(self.lgd.userdata)
                 return True
