@@ -162,11 +162,14 @@ class LegendaryCore:
     def get_launch_parameters(self, app_name: str, offline: bool = False,
                               user: str = None, extra_args: list = None) -> (list, str, dict):
         install = self.lgd.get_installed_game(app_name)
+        game = self.lgd.get_game_meta(app_name)
 
         game_token = ''
         if not offline:
             self.log.info('Getting authentication token...')
             game_token = self.egs.get_game_token()['code']
+        elif not install.can_run_offline:
+            self.log.warning('Game is not approved for offline use and may not work correctly.')
 
         user_name = self.lgd.userdata['displayName']
         account_id = self.lgd.userdata['account_id']
@@ -191,7 +194,19 @@ class LegendaryCore:
               f'-AUTH_PASSWORD={game_token}',
               '-AUTH_TYPE=exchangecode',
               f'-epicapp={app_name}',
-              '-epicenv=Prod',
+              '-epicenv=Prod'])
+
+        if install.requires_ot and not offline:
+            self.log.info('Getting ownership token.')
+            ovt = self.egs.get_ownership_token(game.asset_info.namespace,
+                                               game.asset_info.catalog_item_id)
+            ovt_path = os.path.join(self.lgd.get_tmp_path(),
+                                    f'{game.asset_info.namespace}{game.asset_info.catalog_item_id}.ovt')
+            with open(ovt_path, 'wb') as f:
+                f.write(ovt)
+            params.append(f'-epicovt={ovt_path}')
+
+        params.extend([
               '-EpicPortal',
               f'-epicusername={user_name}',
               f'-epicuserid={account_id}',
@@ -333,10 +348,14 @@ class LegendaryCore:
             prereq = dict(ids=new_manifest.meta.prereq_ids, name=new_manifest.meta.prereq_name,
                           path=new_manifest.meta.prereq_path, args=new_manifest.meta.prereq_args)
 
+        offline = game.metadata.get('customAttributes', {}).get('CanRunOffline', {}).get('value', 'true')
+        ot = game.metadata.get('customAttributes', {}).get('OwnershipToken', {}).get('value', 'false')
+
         igame = InstalledGame(app_name=game.app_name, title=game.app_title, version=game.app_version,
                               prereq_info=prereq, manifest_path=override_manifest, base_urls=base_urls,
                               install_path=install_path, executable=new_manifest.meta.launch_exe,
-                              launch_parameters=new_manifest.meta.launch_command)
+                              launch_parameters=new_manifest.meta.launch_command,
+                              can_run_offline=offline == 'true', requires_ot=ot == 'true')
 
         return dlm, anlres, igame
 

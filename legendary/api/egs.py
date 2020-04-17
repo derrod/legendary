@@ -19,6 +19,7 @@ class EPCAPI:
     _launcher_host = 'launcher-public-service-prod06.ol.epicgames.com'
     _entitlements_host = 'entitlement-public-service-prod08.ol.epicgames.com'
     _catalog_host = 'catalog-public-service-prod06.ol.epicgames.com'
+    _ecommerce_host = 'ecommerceintegration-public-service-ecomprod02.ol.epicgames.com'
 
     def __init__(self):
         self.session = requests.session()
@@ -70,6 +71,14 @@ class EPCAPI:
         r = self.session.get(f'https://{self._oauth_host}/account/api/oauth/exchange')
         r.raise_for_status()
         return r.json()
+
+    def get_ownership_token(self, namespace, catalog_item_id):
+        user_id = self.user.get('account_id')
+        r = self.session.post(f'https://{self._ecommerce_host}/ecommerceintegration/api/public/'
+                              f'platforms/EPIC/identities/{user_id}/ownershipToken',
+                              data=dict(nsCatalogItemId=f'{namespace}:{catalog_item_id}'))
+        r.raise_for_status()
+        return r.content
 
     def get_game_assets(self):
         r = self.session.get(f'https://{self._launcher_host}/launcher/api/public/assets/Windows',
