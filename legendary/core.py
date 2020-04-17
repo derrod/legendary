@@ -93,15 +93,22 @@ class LegendaryCore:
             raise ValueError('No saved credentials')
 
         if self.lgd.userdata['expires_at']:
-            dt_old = datetime.fromisoformat(self.lgd.userdata['expires_at'][:-1])
+            dt_exp = datetime.fromisoformat(self.lgd.userdata['expires_at'][:-1])
             dt_now = datetime.utcnow()
-            td = dt_now - dt_old
+            td = dt_now - dt_exp
 
             # if session still has at least 10 minutes left we can re-use it.
-            if dt_old > dt_now and td.total_seconds() < (self.lgd.userdata['expires_in'] - 600):
-                self.log.debug('Reusing existing login session...')
-                self.egs.resume_session(self.lgd.userdata)
-                return True
+            if dt_exp > dt_now and abs(td.total_seconds()) > 600:
+                self.log.debug('Trying to re-use existing login session...')
+                try:
+                    self.egs.resume_session(self.lgd.userdata)
+                    return True
+                except InvalidCredentialsError as e:
+                    self.log.warning(f'Resuming failed due to invalid credentials: {e!r}')
+                except Exception as e:
+                    self.log.warning(f'Resuming failed for unknown reason: {e!r}')
+                # If verify fails just continue the normal authentication process
+                self.log.info('Falling back to using refresh token...')
 
         try:
             userdata = self.egs.start_session(self.lgd.userdata['refresh_token'])

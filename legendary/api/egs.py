@@ -33,8 +33,19 @@ class EPCAPI:
         self.user = None
 
     def resume_session(self, session):
+        self.session.headers['Authorization'] = f'bearer {session["access_token"]}'
+        r = self.session.get(f'https://{self._oauth_host}/account/api/oauth/verify')
+        if r.status_code >= 500:
+            r.raise_for_status()
+
+        j = r.json()
+        if 'errorMessage' in j:
+            self.log.warning(f'Login to EGS API failed with errorCode: {j["errorCode"]}')
+            raise InvalidCredentialsError(j['errorCode'])
+
+        # update other data
+        session.update(j)
         self.user = session
-        self.session.headers['Authorization'] = f'bearer {self.user["access_token"]}'
         return self.user
 
     def start_session(self, refresh_token: str = None, exchange_token: str = None) -> dict:
