@@ -123,9 +123,11 @@ class LGDLFS:
         else:
             return None
 
-    def save_manifest(self, app_name, manifest_data, filename=None):
+    def save_manifest(self, app_name, manifest_data, filename=None, old=False):
         if not filename:
             manifest_file = os.path.join(self.path, 'manifests', f'{app_name}.manifest')
+        elif filename and old:
+            manifest_file = os.path.join(self.path, 'manifests', f'old/{clean_filename(filename)}.manifest')
         else:
             manifest_file = os.path.join(self.path, 'manifests', f'{clean_filename(filename)}.manifest')
 

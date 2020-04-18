@@ -341,7 +341,7 @@ class LegendaryCore:
         self.lgd.save_manifest(game.app_name, new_manifest_data)
         # save manifest with version name in "old" folder as well for testing/downgrading/etc.
         self.lgd.save_manifest(game.app_name, new_manifest_data,
-                               filename=f'old/{game.app_name}_{new_manifest.meta.build_version}')
+                               filename=f'{game.app_name}_{new_manifest.meta.build_version}', old=True)
 
         if not base_path:
             base_path = self.get_default_install_dir()
@@ -388,8 +388,9 @@ class LegendaryCore:
         offline = game.metadata.get('customAttributes', {}).get('CanRunOffline', {}).get('value', 'true')
         ot = game.metadata.get('customAttributes', {}).get('OwnershipToken', {}).get('value', 'false')
 
-        igame = InstalledGame(app_name=game.app_name, title=game.app_title, version=game.app_version,
-                              prereq_info=prereq, manifest_path=override_manifest, base_urls=base_urls,
+        igame = InstalledGame(app_name=game.app_name, title=game.app_title,
+                              version=new_manifest.meta.build_version, prereq_info=prereq,
+                              manifest_path=override_manifest, base_urls=base_urls,
                               install_path=install_path, executable=new_manifest.meta.launch_exe,
                               launch_parameters=new_manifest.meta.launch_command,
                               can_run_offline=offline == 'true', requires_ot=ot == 'true',
