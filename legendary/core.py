@@ -353,15 +353,13 @@ class LegendaryCore:
             base_path = self.get_default_install_dir()
 
         if game.is_dlc:
-            install_path = os.path.join(
-                base_path,
-                base_game.metadata.get('customAttributes', {}).get('FolderName', {}).get('value', game.app_name)
-            )
+            game_folder = base_game.metadata.get('customAttributes', {}).\
+                get('FolderName', {}).get('value', base_game.app_name)
         else:
-            install_path = os.path.join(
-                base_path,
-                game.metadata.get('customAttributes', {}).get('FolderName', {}).get('value', game.app_name)
-            )
+            game_folder = game.metadata.get('customAttributes', {}).\
+                get('FolderName', {}).get('value', game.app_name)
+
+        install_path = os.path.join(base_path, game_folder)
 
         if not os.path.exists(install_path):
             os.makedirs(install_path)
