@@ -151,12 +151,14 @@ def main():
         if not core.login():
             logger.error('Login failed, cannot continue!')
             exit(1)
-        logger.info('Getting game list...')
-        games = core.get_game_list()
+        logger.info('Getting game list... (this may take a while)')
+        games, dlc_list = core.get_game_and_dlc_list()
 
         print('\nAvailable games:')
         for game in sorted(games, key=lambda x: x.app_title):
             print(f'  * {game.app_title} (App name: {game.app_name}, version: {game.app_version})')
+            for dlc in sorted(dlc_list[game.asset_info.catalog_item_id], key=lambda d: d.app_title):
+                print(f'    + {dlc.app_title} (App name: {dlc.app_name}, version: {dlc.app_version})')
 
         print(f'\nTotal: {len(games)}')
 
@@ -183,6 +185,10 @@ def main():
         app_name = args.launch.strip()
         if not core.is_installed(app_name):
             logger.error(f'Game {app_name} is not currently installed!')
+            exit(1)
+
+        if core.is_dlc(app_name):
+            logger.error(f'{app_name} is DLC; please launch the base game instead!')
             exit(1)
 
         if not args.offline and not core.is_offline_game(app_name):
@@ -233,9 +239,23 @@ def main():
             logger.fatal(f'Could not find "{target_app}" in list of available games, did you type the name correctly?')
             exit(1)
 
+        if game.is_dlc:
+            logger.info('Install candidate is DLC')
+            app_name = game.metadata['mainGameItem']['releaseInfo'][0]['appId']
+            base_game = core.get_game(app_name)
+            # check if base_game is actually installed
+            if not core.get_installed_game(app_name):
+                # download mode doesn't care about whether or not something's installed
+                if args.install or args.update:
+                    logger.fatal(f'Base game "{app_name}" is not installed!')
+                    exit(1)
+        else:
+            base_game = None
+
         # todo use status queue to print progress from CLI
-        dlm, analysis, igame = core.prepare_download(game=game, base_path=args.base_path, force=args.force,
-                                                     max_shm=args.shared_memory, max_workers=args.max_workers,
+        dlm, analysis, igame = core.prepare_download(game=game, base_game=base_game, base_path=args.base_path,
+                                                     force=args.force, max_shm=args.shared_memory,
+                                                     max_workers=args.max_workers,
                                                      disable_patching=args.disable_patching,
                                                      override_manifest=args.override_manifest,
                                                      override_base_url=args.override_base_url)
@@ -284,6 +304,15 @@ def main():
             end_t = time.time()
             if args.install or args.update:
                 postinstall = core.install_game(igame)
+
+                dlcs = core.get_dlc_for_game(game.app_name)
+                if dlcs:
+                    print('The following DLCs are available for this game:')
+                    for dlc in dlcs:
+                        print(f' - {dlc.app_title} (App name: {dlc.app_name}, version: {dlc.app_version})')
+                    print('Installing DLCs works the same as the main game, just use the DLC app name instead.')
+                    print('Automatic installation of DLC is currently not supported.')
+
                 if postinstall:
                     logger.info('This game lists the following prequisites to be installed:')
                     logger.info(f'{postinstall["name"]}: {" ".join((postinstall["path"], postinstall["args"]))}')
@@ -307,10 +336,21 @@ def main():
         igame = core.get_installed_game(target_app)
         if not igame:
             logger.error(f'Game {target_app} not installed, cannot uninstall!')
+        if igame.is_dlc:
+            logger.error('Uninstalling DLC is not supported.')
+            exit(1)
 
         try:
             logger.info(f'Removing "{igame.title}" from "{igame.install_path}"...')
             core.uninstall_game(igame)
+
+            dlcs = core.get_dlc_for_game(igame.app_name)
+            for dlc in dlcs:
+                idlc = core.get_installed_game(dlc.app_name)
+                if core.is_installed(dlc.app_name):
+                    logger.info(f'Uninstalling DLC "{dlc.app_name}"...')
+                    core.uninstall_game(idlc, delete_files=False)
+
             logger.info('Game has been uninstalled.')
         except Exception as e:
             logger.warning(f'Removing game failed: {e!r}, please remove {igame.install_path} manually.')

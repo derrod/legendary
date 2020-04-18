@@ -8,10 +8,11 @@ import shlex
 import shutil
 
 from base64 import b64decode
+from collections import defaultdict
 from datetime import datetime
 from random import choice as randchoice
 from requests.exceptions import HTTPError
-from typing import List
+from typing import List, Dict
 
 from legendary.api.egs import EPCAPI
 from legendary.downloader.manager import DLManager
@@ -141,7 +142,11 @@ class LegendaryCore:
         return self.lgd.get_game_meta(app_name)
 
     def get_game_list(self, update_assets=True) -> List[Game]:
+        return self.get_game_and_dlc_list(update_assets=update_assets)[0]
+
+    def get_game_and_dlc_list(self, update_assets=True) -> (List[Game], Dict[str, Game]):
         _ret = []
+        _dlc = defaultdict(list)
 
         for ga in self.get_assets(update_assets=update_assets):
             if ga.namespace == 'ue':  # skip UE demo content
@@ -156,12 +161,24 @@ class LegendaryCore:
                 game = Game(app_name=ga.app_name, app_version=ga.build_version,
                             app_title=eg_meta['title'], asset_info=ga, metadata=eg_meta)
                 self.lgd.set_game_meta(game.app_name, game)
-            _ret.append(game)
 
-        return _ret
+            if game.is_dlc:
+                _dlc[game.metadata['mainGameItem']['id']].append(game)
+            else:
+                _ret.append(game)
+
+        return _ret, _dlc
+
+    def get_dlc_for_game(self, app_name):
+        game = self.get_game(app_name)
+        _, dlcs = self.get_game_and_dlc_list(update_assets=False)
+        return dlcs[game.asset_info.catalog_item_id]
 
     def get_installed_list(self) -> List[InstalledGame]:
-        return self.lgd.get_installed_list()
+        return [g for g in self.lgd.get_installed_list() if not g.is_dlc]
+
+    def get_installed_dlc_list(self) -> List[InstalledGame]:
+        return [g for g in self.lgd.get_installed_list() if g.is_dlc]
 
     def get_installed_game(self, app_name) -> InstalledGame:
         return self.lgd.get_installed_game(app_name)
@@ -254,6 +271,12 @@ class LegendaryCore:
     def is_installed(self, app_name: str) -> bool:
         return self.lgd.get_installed_game(app_name) is not None
 
+    def is_dlc(self, app_name: str) -> bool:
+        meta = self.lgd.get_game_meta(app_name)
+        if not meta:
+            raise ValueError('Game unknown!')
+        return meta.is_dlc
+
     @staticmethod
     def load_manfiest(data: bytes) -> Manifest:
         if data[0:1] == b'{':
@@ -261,7 +284,7 @@ class LegendaryCore:
         else:
             return Manifest.read_all(data)
 
-    def prepare_download(self, game: Game, base_path: str = '',
+    def prepare_download(self, game: Game, base_game: Game = None, base_path: str = '',
                          max_shm: int = 0, max_workers: int = 0, force: bool = False,
                          disable_patching: bool = False, override_manifest: str = '',
                          override_base_url: str = '') -> (DLManager, AnalysisResult, ManifestMeta):
@@ -323,10 +346,17 @@ class LegendaryCore:
         if not base_path:
             base_path = self.get_default_install_dir()
 
-        install_path = os.path.join(
-            base_path,
-            game.metadata.get('customAttributes', {}).get('FolderName', {}).get('value', game.app_name)
-        )
+        if game.is_dlc:
+            install_path = os.path.join(
+                base_path,
+                base_game.metadata.get('customAttributes', {}).get('FolderName', {}).get('value', game.app_name)
+            )
+        else:
+            install_path = os.path.join(
+                base_path,
+                game.metadata.get('customAttributes', {}).get('FolderName', {}).get('value', game.app_name)
+            )
+
         if not os.path.exists(install_path):
             os.makedirs(install_path)
 
@@ -362,7 +392,8 @@ class LegendaryCore:
                               prereq_info=prereq, manifest_path=override_manifest, base_urls=base_urls,
                               install_path=install_path, executable=new_manifest.meta.launch_exe,
                               launch_parameters=new_manifest.meta.launch_command,
-                              can_run_offline=offline == 'true', requires_ot=ot == 'true')
+                              can_run_offline=offline == 'true', requires_ot=ot == 'true',
+                              is_dlc=base_game is not None)
 
         return dlm, anlres, igame
 

@@ -47,6 +47,10 @@ class Game:
         self.app_title = app_title
         self.base_urls = []  # base urls for download, only really used when cached manifest is current
 
+    @property
+    def is_dlc(self):
+        return self.metadata and 'mainGameItem' in self.metadata
+
     @classmethod
     def from_json(cls, json):
         tmp = cls()
@@ -69,7 +73,7 @@ class Game:
 class InstalledGame:
     def __init__(self, app_name='', title='', version='', manifest_path='', base_urls=None,
                  install_path='', executable='', launch_parameters='', prereq_info=None,
-                 can_run_offline=False, requires_ot=False):
+                 can_run_offline=False, requires_ot=False, is_dlc=False):
         self.app_name = app_name
         self.title = title
         self.version = version
@@ -82,6 +86,7 @@ class InstalledGame:
         self.prereq_info = prereq_info
         self.can_run_offline = can_run_offline
         self.requires_ot = requires_ot
+        self.is_dlc = is_dlc
 
     @classmethod
     def from_json(cls, json):
@@ -97,6 +102,7 @@ class InstalledGame:
         tmp.launch_parameters = json.get('launch_parameters', '')
         tmp.prereq_info = json.get('prereq_info', None)
 
-        tmp.can_run_offline = json.get('can_run_offline', True)
+        tmp.can_run_offline = json.get('can_run_offline', False)
         tmp.requires_ot = json.get('requires_ot', False)
+        tmp.is_dlc = json.get('is_dlc', False)
         return tmp
