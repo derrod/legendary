@@ -288,7 +288,11 @@ def main():
             for warn in sorted(res.warnings):
                 logger.warning(warn)
 
-        _ = input('Do you wish to proceed? [Press Enter]')
+        choice = input(f'Do you wish to install "{igame.title}"? [Y/n]: ')
+        if choice and choice.lower()[0] != 'y':
+            print('Aborting...')
+            exit(0)
+
         start_t = time.time()
 
         try:
@@ -336,9 +340,15 @@ def main():
         igame = core.get_installed_game(target_app)
         if not igame:
             logger.error(f'Game {target_app} not installed, cannot uninstall!')
+            exit(0)
         if igame.is_dlc:
             logger.error('Uninstalling DLC is not supported.')
             exit(1)
+
+        choice = input(f'Do you wish to uninstall "{igame.title}"? [y/N]: ')
+        if not choice or choice.lower()[0] != 'y':
+            print('Aborting...')
+            exit(0)
 
         try:
             logger.info(f'Removing "{igame.title}" from "{igame.install_path}"...')
