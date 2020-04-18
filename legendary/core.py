@@ -206,7 +206,11 @@ class LegendaryCore:
         params = []
 
         if os.name != 'nt':
-            params.append(self.lgd.config.get(app_name, 'wine_executable', fallback='wine'))
+            # check if there's a default override
+            wine_binary = self.lgd.config.get('default', 'wine_executable', fallback='wine')
+            # check if there's a game specific override
+            wine_binary = self.lgd.config.get(app_name, 'wine_executable', fallback=wine_binary)
+            params.append(wine_binary)
 
         params.append(game_exe)
 
@@ -247,6 +251,8 @@ class LegendaryCore:
         env = None
         if f'{app_name}.env' in self.lgd.config:
             env = dict(self.lgd.config[f'{app_name}.env'])
+        elif 'default.env' in self.lgd.config:
+            env = dict(self.lgd.config['default.env'])
 
         return params, working_dir, env
 
