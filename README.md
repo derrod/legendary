@@ -6,10 +6,10 @@ Legendary (named after the next highest tier [in item rarity](https://wow.gamepe
 
 Right now it is in an early public pre-release stage and still needs a lot of work to work. But it does work!
 
-**Currently implemented:**
- - Authenticate with Epic (can import authentication from EGS installation [Windows only])
+**What works:**
+ - Authenticate with Epic
  - Download and install games
- - Update installed games (not well tested/potentially buggy)
+ - Update installed games and their DLC
  - Launch games with online authentication
 
 **Planned:**

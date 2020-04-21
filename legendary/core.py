@@ -292,7 +292,8 @@ class LegendaryCore:
 
     def prepare_download(self, game: Game, base_game: Game = None, base_path: str = '',
                          max_shm: int = 0, max_workers: int = 0, force: bool = False,
-                         disable_patching: bool = False, override_manifest: str = '',
+                         disable_patching: bool = False, game_folder: str = '',
+                         override_manifest: str = '', override_old_manifest: str = '',
                          override_base_url: str = '') -> (DLManager, AnalysisResult, ManifestMeta):
 
         # load old manifest
@@ -300,7 +301,16 @@ class LegendaryCore:
         new_manifest_data = b''
 
         # load old manifest if we have one
-        if not disable_patching and not force and self.is_installed(game.app_name):
+        if override_old_manifest:
+            if override_old_manifest.startswith('http'):
+                r = self.egs.unauth_session.get(override_old_manifest)
+                r.raise_for_status()
+                old_manifest_data = r.content
+            else:
+                with open(override_old_manifest, 'rb') as f:
+                    old_manifest_data = f.read()
+            old_manifest = self.load_manfiest(old_manifest_data)
+        elif not disable_patching and not force and self.is_installed(game.app_name):
             if old_bytes := self.lgd.get_manifest(game.app_name):
                 old_manifest = self.load_manfiest(old_bytes)
 
@@ -349,15 +359,16 @@ class LegendaryCore:
         self.lgd.save_manifest(game.app_name, new_manifest_data,
                                filename=f'{game.app_name}_{new_manifest.meta.build_version}', old=True)
 
+        if not game_folder:
+            if game.is_dlc:
+                game_folder = base_game.metadata.get('customAttributes', {}).\
+                    get('FolderName', {}).get('value', base_game.app_name)
+            else:
+                game_folder = game.metadata.get('customAttributes', {}).\
+                    get('FolderName', {}).get('value', game.app_name)
+
         if not base_path:
             base_path = self.get_default_install_dir()
-
-        if game.is_dlc:
-            game_folder = base_game.metadata.get('customAttributes', {}).\
-                get('FolderName', {}).get('value', base_game.app_name)
-        else:
-            game_folder = game.metadata.get('customAttributes', {}).\
-                get('FolderName', {}).get('value', game.app_name)
 
         install_path = os.path.join(base_path, game_folder)
 

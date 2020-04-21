@@ -60,12 +60,16 @@ def main():
     download_group = parser.add_argument_group('Downloading options')
     download_group.add_argument('--base-path', dest='base_path', action='store', metavar='<path>',
                                 help='Path for game installations (defaults to ~/legendary)')
+    download_group.add_argument('--game-folder', dest='game_folder', action='store', metavar='<path>',
+                                help='Folder for game installation (defaults to folder in metadata)')
     download_group.add_argument('--max-shared-memory', dest='shared_memory', action='store', metavar='<size>',
                                 type=int, help='Maximum amount of shared memory to use (in MiB), default: 1 GiB')
     download_group.add_argument('--max-workers', dest='max_workers', action='store', metavar='<num>',
                                 type=int, help='Maximum amount of download workers, default: 2 * logical CPU')
     download_group.add_argument('--manifest', dest='override_manifest', action='store', metavar='<uri>',
                                 help='Manifest URL or path to use instead of the CDN one (e.g. for downgrading)')
+    download_group.add_argument('--old-manifest', dest='override_old_manifest', action='store', metavar='<uri>',
+                                help='Manifest URL or path to use as the old one (e.g. for testing patching)')
     download_group.add_argument('--base-url', dest='override_base_url', action='store', metavar='<url>',
                                 help='Base URL to download from (e.g. to test or switch to a different CDNs)')
     download_group.add_argument('--force', dest='force', action='store_true',
@@ -255,9 +259,10 @@ def main():
         # todo use status queue to print progress from CLI
         dlm, analysis, igame = core.prepare_download(game=game, base_game=base_game, base_path=args.base_path,
                                                      force=args.force, max_shm=args.shared_memory,
-                                                     max_workers=args.max_workers,
+                                                     max_workers=args.max_workers, game_folder=args.game_folder,
                                                      disable_patching=args.disable_patching,
                                                      override_manifest=args.override_manifest,
+                                                     override_old_manifest=args.override_old_manifest,
                                                      override_base_url=args.override_base_url)
 
         # game is either up to date or hasn't changed, so we have nothing to do
