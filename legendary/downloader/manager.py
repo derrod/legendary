@@ -602,10 +602,11 @@ class DLManager(Process):
                 self.log.warning(f'Thread did not terminate! {repr(t)}')
 
         # clean up resume file
-        try:
-            os.remove(self.resume_file)
-        except OSError as e:
-            self.log.warning(f'Failed to remove resume file: {e!r}')
+        if self.resume_file:
+            try:
+                os.remove(self.resume_file)
+            except OSError as e:
+                self.log.warning(f'Failed to remove resume file: {e!r}')
 
         # close up shared memory
         self.shared_memory.close()
