@@ -146,12 +146,16 @@ class DLManager(Process):
                     break
                 continue
 
-            while task.chunk_guid in in_buffer:
-                res = in_buffer[task.chunk_guid]
+            while (task.chunk_guid in in_buffer) or task.chunk_file:
+                if task.chunk_file:  # re-using from an old file
+                    res_shm = None
+                else:
+                    res = in_buffer[task.chunk_guid]
+                    res_shm = res.shm
 
                 try:
                     self.writer_queue.put(WriterTask(
-                        filename=current_file, shared_memory=res.shm,
+                        filename=current_file, shared_memory=res_shm,
                         chunk_offset=task.chunk_offset, chunk_size=task.chunk_size,
                         chunk_guid=task.chunk_guid, release_memory=task.cleanup,
                         old_file=task.chunk_file  # todo on-disk cache
@@ -160,7 +164,7 @@ class DLManager(Process):
                     self.log.warning(f'Adding to queue failed: {e!r}')
                     break
 
-                if task.cleanup:
+                if task.cleanup and not task.chunk_file:
                     del in_buffer[task.chunk_guid]
 
                 try:

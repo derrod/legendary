@@ -172,7 +172,7 @@ class FileWorker(Process):
                             continue
 
                     try:
-                        os.rename(os.path.join(self.base_path, j.temporary_filename), full_path)
+                        os.rename(os.path.join(self.base_path, j.old_filename), full_path)
                     except OSError as e:
                         self.log.error(f'Renaming file failed: {e!r}')
                         self.o_q.put(WriterTaskResult(success=False, filename=j.filename))
@@ -212,7 +212,7 @@ class FileWorker(Process):
                         post_write = time.time()
                     elif j.old_file:
                         pre_write = time.time()
-                        with open(os.path.join(self.base_path, j.cache_file), 'rb') as f:
+                        with open(os.path.join(self.base_path, j.old_file), 'rb') as f:
                             if j.chunk_offset:
                                 f.seek(j.chunk_offset)
                             current_file.write(f.read(j.chunk_size))
