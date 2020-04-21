@@ -5,6 +5,8 @@ import hashlib
 import logging
 import struct
 import zlib
+
+from base64 import b64encode
 from io import BytesIO
 
 logger = logging.getLogger('Manifest')
@@ -127,6 +129,22 @@ class ManifestMeta:
         self.prereq_name = ''
         self.prereq_path = ''
         self.prereq_args = ''
+        # this build id is used for something called "delta file" which I guess I'll have to implement eventually
+        self._build_id = ''
+
+    @property
+    def build_id(self):
+        if self._build_id:
+            return self._build_id
+        # this took a while to figure out and get right and I'm still not sure if it'll work for all games :x
+        s = hashlib.sha1()
+        s.update(struct.pack('<I', self.app_id))
+        s.update(self.app_name.encode('utf-8'))
+        s.update(self.build_version.encode('utf-8'))
+        s.update(self.launch_exe.encode('utf-8'))
+        s.update(self.launch_command.encode('utf-8'))
+        self._build_id = b64encode(s.digest()).replace('+', '-').replace('/', '_').replace('=', '')
+        return self._build_id
 
     @classmethod
     def read(cls, bio):
