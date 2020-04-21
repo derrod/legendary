@@ -10,6 +10,7 @@ import shutil
 from base64 import b64decode
 from collections import defaultdict
 from datetime import datetime
+from multiprocessing import Queue
 from random import choice as randchoice
 from requests.exceptions import HTTPError
 from typing import List, Dict
@@ -291,8 +292,8 @@ class LegendaryCore:
             return Manifest.read_all(data)
 
     def prepare_download(self, game: Game, base_game: Game = None, base_path: str = '',
-                         max_shm: int = 0, max_workers: int = 0, force: bool = False,
-                         disable_patching: bool = False, game_folder: str = '',
+                         status_q: Queue = None, max_shm: int = 0, max_workers: int = 0,
+                         force: bool = False, disable_patching: bool = False, game_folder: str = '',
                          override_manifest: str = '', override_old_manifest: str = '',
                          override_base_url: str = '') -> (DLManager, AnalysisResult, ManifestMeta):
 
@@ -390,7 +391,7 @@ class LegendaryCore:
         if not max_shm:
             max_shm = self.lgd.config.getint('Legendary', 'max_memory', fallback=1024)
 
-        dlm = DLManager(install_path, base_url, resume_file=resume_file,
+        dlm = DLManager(install_path, base_url, resume_file=resume_file, status_q=status_q,
                         max_shared_memory=max_shm * 1024 * 1024, max_workers=max_workers)
         anlres = dlm.run_analysis(manifest=new_manifest, old_manifest=old_manifest,
                                   patch=not disable_patching, resume=not force)
