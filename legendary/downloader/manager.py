@@ -370,7 +370,7 @@ class DLManager(Process):
                     if existing_chunks and (cp.guid_num, cp.offset, cp.size) in existing_chunks:
                         reused += 1
                         ct.chunk_file = current_file.filename
-                        ct.offset = existing_chunks[(cp.guid_num, cp.offset, cp.size)]
+                        ct.chunk_offset = existing_chunks[(cp.guid_num, cp.offset, cp.size)]
                     else:
                         # add to DL list if not already in it
                         if cp.guid_num not in chunks_in_dl_list:
