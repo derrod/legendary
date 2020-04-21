@@ -42,7 +42,7 @@ class DLWorker(Process):
                 continue
 
             if job.kill:  # let worker die
-                self.log.info(f'[{self.name}] Queue Empty, waiting for more...')
+                self.log.info(f'[{self.name}] Worker received kill signal, shutting down...')
                 break
 
             tries = 0
@@ -98,6 +98,8 @@ class DLWorker(Process):
                 self.log.warning(f'[{self.name}] Job failed with: {e!r}, fetching next one...')
                 self.o_q.put(DownloaderTaskResult(success=False, chunk_guid=job.guid, shm=job.shm, url=job.url))
                 continue
+
+        self.shm.close()
 
 
 class FileWorker(Process):
