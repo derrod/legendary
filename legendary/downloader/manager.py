@@ -228,7 +228,11 @@ class DLManager(Process):
 
                 if res.chunk_guid:
                     self.bytes_written_since_last += res.size
+                    # if there's no shared memory we must have read from disk.
+                    if not res.shm:
+                        self.bytes_read_since_last += res.size
                     self.num_processed_since_last += 1
+
             except Empty:
                 continue
             except Exception as e:
