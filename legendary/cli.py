@@ -229,7 +229,7 @@ def main():
 
         target_app = next(i for i in (args.install, args.update, args.download) if i)
         if args.update:
-            if not core.get_installed_game(target_app):
+            if not core.is_installed(target_app):
                 logger.error(f'Update requested for "{target_app}", but app not installed!')
                 exit(1)
 
@@ -244,7 +244,7 @@ def main():
             app_name = game.metadata['mainGameItem']['releaseInfo'][0]['appId']
             base_game = core.get_game(app_name)
             # check if base_game is actually installed
-            if not core.get_installed_game(app_name):
+            if not core.is_installed(app_name):
                 # download mode doesn't care about whether or not something's installed
                 if args.install or args.update:
                     logger.fatal(f'Base game "{app_name}" is not installed!')
