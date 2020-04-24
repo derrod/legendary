@@ -116,8 +116,15 @@ class LGDLFS:
                   open(os.path.join(self.path, 'assets.json'), 'w'),
                   indent=2, sort_keys=True)
 
-    def get_manifest(self, app_name):
-        manifest_file = os.path.join(self.path, 'manifests', f'{app_name}.manifest')
+    def get_manifest(self, app_name, version=''):
+        if not version:
+            manifest_file = os.path.join(self.path, 'manifests', f'{app_name}.manifest')
+        else:
+            # if a version is specified load it from the versioned directory
+            fname = clean_filename(f'{app_name}_{version}')
+            manifest_file = os.path.join(self.path, 'manifests', 'old',
+                                         f'{fname}.manifest')
+
         if os.path.exists(manifest_file):
             return open(manifest_file, 'rb').read()
         else:

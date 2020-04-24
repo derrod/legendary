@@ -312,7 +312,8 @@ class LegendaryCore:
                     old_manifest_data = f.read()
             old_manifest = self.load_manfiest(old_manifest_data)
         elif not disable_patching and not force and self.is_installed(game.app_name):
-            if old_bytes := self.lgd.get_manifest(game.app_name):
+            igame = self.get_installed_game(game.app_name)
+            if old_bytes := self.lgd.get_manifest(game.app_name, igame.version):
                 old_manifest = self.load_manfiest(old_bytes)
 
         base_urls = list(game.base_urls)  # copy list for manipulation
