@@ -133,16 +133,12 @@ def main():
 
         # unfortunately the captcha stuff makes a complete CLI login flow kinda impossible right now...
         print('Please login via the epic web login!')
-        webbrowser.open('https://www.epicgames.com/id/login')
+        webbrowser.open('https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fexchange')
         print('If web page did not open automatically, please navigate '
               'to https://www.epicgames.com/id/login in your web browser')
-        _ = input('Once you\'re logged in press [Enter] to continue.')
-
-        # after logging in we need the user to copy a code from a JSON response, less than ideal :/
-        webbrowser.open('https://www.epicgames.com/id/api/exchange')
-        print('If second web page did not open automatically, please navigate '
-              'to https://www.epicgames.com/id/api/exchange in your web browser')
-        exchange_code = input('Please enter code from response: ')
+        print('- In case you opened the link manually; please now navigate to '
+              'https://www.epicgames.com/id/api/exchange in your web browser.')
+        exchange_code = input('Please enter code from JSON response: ')
         exchange_token = exchange_code.strip().strip('"')
 
         if core.auth_code(exchange_token):
