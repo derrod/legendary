@@ -116,29 +116,23 @@ class LGDLFS:
                   open(os.path.join(self.path, 'assets.json'), 'w'),
                   indent=2, sort_keys=True)
 
-    def get_manifest(self, app_name, version=''):
+    def _get_manifest_filename(self, app_name, version=''):
         if not version:
-            manifest_file = os.path.join(self.path, 'manifests', f'{app_name}.manifest')
+            return os.path.join(self.path, 'manifests', f'{app_name}.manifest')
         else:
             # if a version is specified load it from the versioned directory
             fname = clean_filename(f'{app_name}_{version}')
-            manifest_file = os.path.join(self.path, 'manifests', 'old',
-                                         f'{fname}.manifest')
+            return os.path.join(self.path, 'manifests', 'old', f'{fname}.manifest')
 
-        if os.path.exists(manifest_file):
-            return open(manifest_file, 'rb').read()
-        else:
+    def load_manifest(self, app_name, version=''):
+        try:
+            return open(self._get_manifest_filename(app_name, version), 'rb').read()
+        except FileNotFoundError:  # all other errors should propagate
             return None
 
-    def save_manifest(self, app_name, manifest_data, filename=None, old=False):
-        if not filename:
-            manifest_file = os.path.join(self.path, 'manifests', f'{app_name}.manifest')
-        elif filename and old:
-            manifest_file = os.path.join(self.path, 'manifests', f'old/{clean_filename(filename)}.manifest')
-        else:
-            manifest_file = os.path.join(self.path, 'manifests', f'{clean_filename(filename)}.manifest')
-
-        open(manifest_file, 'wb').write(manifest_data)
+    def save_manifest(self, app_name, manifest_data, version=''):
+        with open(self._get_manifest_filename(app_name, version), 'wb') as f:
+            f.write(manifest_data)
 
     def get_game_meta(self, app_name):
         _meta = self._game_metadata.get(app_name, None)

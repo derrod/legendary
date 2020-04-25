@@ -313,7 +313,7 @@ class LegendaryCore:
             old_manifest = self.load_manfiest(old_manifest_data)
         elif not disable_patching and not force and self.is_installed(game.app_name):
             igame = self.get_installed_game(game.app_name)
-            if old_bytes := self.lgd.get_manifest(game.app_name, igame.version):
+            if old_bytes := self.lgd.load_manifest(game.app_name, igame.version):
                 old_manifest = self.load_manfiest(old_bytes)
 
         base_urls = list(game.base_urls)  # copy list for manipulation
@@ -357,9 +357,9 @@ class LegendaryCore:
         self.log.debug(f'Base urls: {base_urls}')
         new_manifest = self.load_manfiest(new_manifest_data)
         self.lgd.save_manifest(game.app_name, new_manifest_data)
-        # save manifest with version name in "old" folder as well for testing/downgrading/etc.
+        # save manifest with version name as well for testing/downgrading/etc.
         self.lgd.save_manifest(game.app_name, new_manifest_data,
-                               filename=f'{game.app_name}_{new_manifest.meta.build_version}', old=True)
+                               version=new_manifest.meta.build_version)
 
         if not game_folder:
             if game.is_dlc:
@@ -374,6 +374,7 @@ class LegendaryCore:
 
         install_path = os.path.join(base_path, game_folder)
 
+        # todo move this somewhere else so the directory only gets created once the download is started
         if not os.path.exists(install_path):
             os.makedirs(install_path)
 
