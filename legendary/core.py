@@ -427,6 +427,9 @@ class LegendaryCore:
                     results.warnings.append('(Linux) The game uses EasyAntiCheat and may not run on linux')
                     break
 
+        if install.requires_ot:
+            results.warnings.append('This game requires an ownership verification token and likely uses Denuvo DRM.')
+
         # check if enough disk space is free (dl size is the approximate amount the installation will grow)
         min_disk_space = analysis.uncompressed_dl_size + analysis.biggest_file_size
         _, _, free = shutil.disk_usage(install.install_path)
