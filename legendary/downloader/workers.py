@@ -4,9 +4,7 @@
 import os
 import requests
 import time
-import traceback
 import logging
-import gc
 
 from multiprocessing import Process
 from multiprocessing.shared_memory import SharedMemory
