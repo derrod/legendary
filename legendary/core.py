@@ -429,6 +429,8 @@ class LegendaryCore:
 
         if install.requires_ot:
             results.warnings.append('This game requires an ownership verification token and likely uses Denuvo DRM.')
+        if not install.can_run_offline:
+            results.warnings.append('This game is not marked for offline use (may still work).')
 
         # check if enough disk space is free (dl size is the approximate amount the installation will grow)
         min_disk_space = analysis.uncompressed_dl_size + analysis.biggest_file_size
