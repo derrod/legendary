@@ -86,7 +86,7 @@ class DLManager(Process):
 
                 c_guid = self.chunks_to_dl.popleft()
                 chunk = self.chunk_data_list.get_chunk_by_guid(c_guid)
-                self.log.debug(f'Adding {chunk.guid_str} (active: {self.active_tasks})')
+                self.log.debug(f'Adding {chunk.guid_num} (active: {self.active_tasks})')
                 try:
                     self.dl_worker_queue.put(DownloaderTask(url=self.base_url + '/' + chunk.path,
                                                             chunk_guid=c_guid, shm=sms),
@@ -147,11 +147,9 @@ class DLManager(Process):
                 continue
 
             while (task.chunk_guid in in_buffer) or task.chunk_file:
-                if task.chunk_file:  # re-using from an old file
-                    res_shm = None
-                else:
-                    res = in_buffer[task.chunk_guid]
-                    res_shm = res.shm
+                res_shm = None
+                if not task.chunk_file:  # not re-using from an old file
+                    res_shm = in_buffer[task.chunk_guid].shm
 
                 try:
                     self.writer_queue.put(WriterTask(
@@ -194,7 +192,7 @@ class DLManager(Process):
                             self.active_tasks += 1
                         except Exception as e:
                             self.log.warning(f'Failed adding retry task to queue! {e!r}')
-                            # if no reserved memory, add to the beginning of the normal queue
+                            # If this failed for whatever reason, put the chunk at the front of the DL list
                             self.chunks_to_dl.appendleft(res.chunk_guid)
                 except Empty:
                     pass
@@ -351,10 +349,10 @@ class DLManager(Process):
         for next_chunk in chunkstream_starts:
             self.log.debug(f'- Chunkstream start: {next_chunk!r}')
 
-            while file_list := chunk_to_file_map.get(next_chunk.guid_num):
-                current_file = file_list.popleft()
+            while file_deque := chunk_to_file_map.get(next_chunk.guid_num):
+                current_file = file_deque.popleft()
 
-                if len(file_list) == 0:
+                if len(file_deque) == 0:
                     del chunk_to_file_map[next_chunk.guid_num]
 
                 # skip unchanged files
@@ -474,8 +472,7 @@ class DLManager(Process):
         # create the shared memory segments and add them to their respective pools
         for i in range(int(self.shared_memory.size / self.analysis.biggest_chunk)):
             _sms = SharedMemorySegment(offset=i * self.analysis.biggest_chunk,
-                                       end=i * self.analysis.biggest_chunk + self.analysis.biggest_chunk,
-                                       _id=i)
+                                       end=i * self.analysis.biggest_chunk + self.analysis.biggest_chunk)
             self.sms.append(_sms)
 
         self.log.debug(f'Created {len(self.sms)} shared memory segments.')

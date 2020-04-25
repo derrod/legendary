@@ -85,10 +85,9 @@ class SharedMemorySegment:
     Segment of the shared memory used for one Chunk
     """
 
-    def __init__(self, offset=0, end=1024 * 1024, _id=None):
+    def __init__(self, offset=0, end=1024 * 1024):
         self.offset = offset
         self.end = end
-        self._id = _id
 
     @property
     def size(self):
