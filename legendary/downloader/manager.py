@@ -8,6 +8,7 @@ import os
 import time
 
 from collections import Counter, defaultdict, deque
+from logging.handlers import QueueHandler
 from multiprocessing import cpu_count, Process, Queue as MPQueue
 from multiprocessing.shared_memory import SharedMemory
 from queue import Empty
@@ -24,14 +25,15 @@ class DLManager(Process):
                  max_jobs=100, max_failures=5, max_workers=0, update_interval=1.0,
                  max_shared_memory=1024 * 1024 * 1024, resume_file=None):
         super().__init__(name='DLManager')
-        self.log = logging.getLogger('DLManager')
-        self.log_level = self.log.level
+        self.log = logging.getLogger('DLM')
+        self.proc_debug = False
 
         self.base_url = base_url
         self.dl_dir = download_dir
         self.cache_dir = cache_dir if cache_dir else os.path.join(download_dir, '.cache')
 
         # All the queues!
+        self.logging_queue = None
         self.dl_worker_queue = None
         self.writer_queue = None
         self.dl_result_q = None
@@ -63,6 +65,8 @@ class DLManager(Process):
         self.running = True
         self.active_tasks = 0
         self.children = []
+        self.threads = []
+        self.conditions = []
         # bytes downloaded and decompressed since last report
         self.bytes_downloaded_since_last = 0
         self.bytes_decompressed_since_last = 0
@@ -451,19 +455,43 @@ class DLManager(Process):
         if not self.analysis:
             raise ValueError('Did not run analysis before trying to run download!')
 
-        # fix loglevel in subprocess
-        self.log.setLevel(self.log_level)
+        # Subprocess will use its own root logger that logs to a Queue instead
+        _root = logging.getLogger()
+        _root.setLevel(logging.DEBUG if self.proc_debug else logging.INFO)
+        if self.logging_queue:
+            _root.handlers = []
+            _root.addHandler(QueueHandler(self.logging_queue))
+
+        self.log = logging.getLogger('DLMProc')
+        self.log.info(f'Download Manager running with process-id: {os.getpid()}')
 
         try:
             self.run_real()
         except KeyboardInterrupt:
             self.log.warning('Immediate exit requested!')
             self.running = False
-            for proc in self.children:
+
+            # send conditions to unlock threads if they aren't already
+            for cond in self.conditions:
+                with cond:
+                    cond.notify()
+
+            # make sure threads are dead.
+            for t in self.threads:
+                t.join(timeout=5.0)
+                if t.is_alive():
+                    self.log.warning(f'Thread did not terminate! {repr(t)}')
+
+            # clean up all the queues, otherwise this process won't terminate properly
+            for name, q in zip(('Download jobs', 'Writer jobs', 'Download results', 'Writer results'),
+                               (self.dl_worker_queue, self.writer_queue, self.dl_result_q, self.writer_result_q)):
+                self.log.debug(f'Cleaning up queue "{name}"')
                 try:
-                    proc.terminate()
-                except Exception as e:
-                    print(f'Terminating process {repr(proc)} failed: {e!r}')
+                    while True:
+                        _ = q.get_nowait()
+                except Empty:
+                    q.close()
+                    q.join_thread()
 
     def run_real(self):
         self.shared_memory = SharedMemory(create=True, size=self.max_shared_memory)
@@ -478,21 +506,22 @@ class DLManager(Process):
         self.log.debug(f'Created {len(self.sms)} shared memory segments.')
 
         # Create queues
-        self.dl_worker_queue = MPQueue()
-        self.writer_queue = MPQueue()
-        self.dl_result_q = MPQueue()
-        self.writer_result_q = MPQueue()
+        self.dl_worker_queue = MPQueue(-1)
+        self.writer_queue = MPQueue(-1)
+        self.dl_result_q = MPQueue(-1)
+        self.writer_result_q = MPQueue(-1)
 
         self.log.info(f'Starting download workers...')
         for i in range(self.max_workers):
-            w = DLWorker(f'DLWorker {i + 1}', self.dl_worker_queue,
-                         self.dl_result_q, self.shared_memory.name)
+            w = DLWorker(f'DLWorker {i + 1}', self.dl_worker_queue, self.dl_result_q,
+                         self.shared_memory.name, logging_queue=self.logging_queue)
             self.children.append(w)
             w.start()
 
         self.log.info('Starting file writing worker...')
         writer_p = FileWorker(self.writer_queue, self.writer_result_q, self.dl_dir,
-                              self.shared_memory.name, self.cache_dir)
+                              self.shared_memory.name, self.cache_dir, self.logging_queue)
+        self.children.append(writer_p)
         writer_p.start()
 
         num_chunk_tasks = sum(isinstance(t, ChunkTask) for t in self.tasks)
@@ -511,14 +540,15 @@ class DLManager(Process):
         # synchronization conditions
         shm_cond = Condition()
         task_cond = Condition()
+        self.conditions = [shm_cond, task_cond]
 
         # start threads
         s_time = time.time()
-        dlj_e = Thread(target=self.download_job_manager, args=(task_cond, shm_cond))
-        dlr_e = Thread(target=self.dl_results_handler, args=(task_cond,))
-        fwr_e = Thread(target=self.fw_results_handler, args=(shm_cond,))
+        self.threads.append(Thread(target=self.download_job_manager, args=(task_cond, shm_cond)))
+        self.threads.append(Thread(target=self.dl_results_handler, args=(task_cond,)))
+        self.threads.append(Thread(target=self.fw_results_handler, args=(shm_cond,)))
 
-        for t in (dlj_e, dlr_e, fwr_e):
+        for t in self.threads:
             t.start()
 
         last_update = time.time()
@@ -597,7 +627,7 @@ class DLManager(Process):
                 child.terminate()
 
         # make sure all the threads are dead.
-        for t in (dlj_e, dlr_e, fwr_e):
+        for t in self.threads:
             t.join(timeout=5.0)
             if t.is_alive():
                 self.log.warning(f'Thread did not terminate! {repr(t)}')

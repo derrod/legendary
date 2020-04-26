@@ -6,6 +6,7 @@ import requests
 import time
 import logging
 
+from logging.handlers import QueueHandler
 from multiprocessing import Process
 from multiprocessing.shared_memory import SharedMemory
 from queue import Empty
@@ -15,7 +16,7 @@ from legendary.models.downloading import DownloaderTaskResult, WriterTaskResult
 
 
 class DLWorker(Process):
-    def __init__(self, name, queue, out_queue, shm, max_retries=5):
+    def __init__(self, name, queue, out_queue, shm, max_retries=5, logging_queue=None):
         super().__init__(name=name)
         self.q = queue
         self.o_q = out_queue
@@ -25,9 +26,19 @@ class DLWorker(Process):
         })
         self.max_retries = max_retries
         self.shm = SharedMemory(name=shm)
-        self.log = logging.getLogger('DLWorker')
+        self.log_level = logging.getLogger().level
+        self.logging_queue = logging_queue
 
     def run(self):
+        # we have to fix up the logger before we can start
+        _root = logging.getLogger()
+        _root.handlers = []
+        _root.addHandler(QueueHandler(self.logging_queue))
+
+        logger = logging.getLogger(self.name)
+        logger.setLevel(self.log_level)
+        logger.debug(f'Download worker reporting for duty!')
+
         empty = False
         while True:
             try:
@@ -35,12 +46,12 @@ class DLWorker(Process):
                 empty = False
             except Empty:
                 if not empty:
-                    self.log.debug(f'[{self.name}] Queue Empty, waiting for more...')
+                    logger.debug(f'[{self.name}] Queue Empty, waiting for more...')
                 empty = True
                 continue
 
             if job.kill:  # let worker die
-                self.log.info(f'[{self.name}] Worker received kill signal, shutting down...')
+                logger.debug(f'[{self.name}] Worker received kill signal, shutting down...')
                 break
 
             tries = 0
@@ -51,19 +62,19 @@ class DLWorker(Process):
             try:
                 while tries < self.max_retries:
                     # print('Downloading', job.url)
-                    self.log.debug(f'[{self.name}] Downloading {job.url}')
+                    logger.debug(f'[{self.name}] Downloading {job.url}')
                     dl_start = time.time()
 
                     try:
                         r = self.session.get(job.url, timeout=5.0)
                         r.raise_for_status()
                     except Exception as e:
-                        self.log.warning(f'[{self.name}] Chunk download failed ({e!r}), retrying...')
+                        logger.warning(f'[{self.name}] Chunk download failed ({e!r}), retrying...')
                         continue
 
                     dl_end = time.time()
                     if r.status_code != 200:
-                        self.log.warning(f'[{self.name}] Chunk download failed (Status {r.status_code}), retrying...')
+                        logger.warning(f'[{self.name}] Chunk download failed (Status {r.status_code}), retrying...')
                         continue
                     else:
                         compressed = len(r.content)
@@ -72,12 +83,12 @@ class DLWorker(Process):
                 else:
                     raise TimeoutError('Max retries reached')
             except Exception as e:
-                self.log.error(f'[{self.name}] Job failed with: {e!r}, fetching next one...')
+                logger.error(f'[{self.name}] Job failed with: {e!r}, fetching next one...')
                 # add failed job to result queue to be requeued
                 self.o_q.put(DownloaderTaskResult(success=False, chunk_guid=job.guid, shm=job.shm, url=job.url))
 
             if not chunk:
-                self.log.warning(f'[{self.name}] Chunk smoehow None?')
+                logger.warning(f'[{self.name}] Chunk smoehow None?')
                 self.o_q.put(DownloaderTaskResult(success=False, chunk_guid=job.guid, shm=job.shm, url=job.url))
                 continue
 
@@ -85,7 +96,7 @@ class DLWorker(Process):
             try:
                 size = len(chunk.data)
                 if size > job.shm.size:
-                    self.log.fatal(f'Downloaded chunk is longer than SharedMemorySegment!')
+                    logger.fatal(f'Downloaded chunk is longer than SharedMemorySegment!')
 
                 self.shm.buf[job.shm.offset:job.shm.offset + size] = bytes(chunk.data)
                 del chunk
@@ -93,7 +104,7 @@ class DLWorker(Process):
                                                   url=job.url, size=size, compressed_size=compressed,
                                                   time_delta=dl_end - dl_start))
             except Exception as e:
-                self.log.warning(f'[{self.name}] Job failed with: {e!r}, fetching next one...')
+                logger.warning(f'[{self.name}] Job failed with: {e!r}, fetching next one...')
                 self.o_q.put(DownloaderTaskResult(success=False, chunk_guid=job.guid, shm=job.shm, url=job.url))
                 continue
 
@@ -101,16 +112,26 @@ class DLWorker(Process):
 
 
 class FileWorker(Process):
-    def __init__(self, queue, out_queue, base_path, shm, cache_path=None):
-        super().__init__(name='File worker')
+    def __init__(self, queue, out_queue, base_path, shm, cache_path=None, logging_queue=None):
+        super().__init__(name='FileWorker')
         self.q = queue
         self.o_q = out_queue
         self.base_path = base_path
         self.cache_path = cache_path if cache_path else os.path.join(base_path, '.cache')
         self.shm = SharedMemory(name=shm)
-        self.log = logging.getLogger('DLWorker')
+        self.log_level = logging.getLogger().level
+        self.logging_queue = logging_queue
 
     def run(self):
+        # we have to fix up the logger before we can start
+        _root = logging.getLogger()
+        _root.handlers = []
+        _root.addHandler(QueueHandler(self.logging_queue))
+
+        logger = logging.getLogger(self.name)
+        logger.setLevel(self.log_level)
+        logger.debug(f'Download worker reporting for duty!')
+
         last_filename = ''
         current_file = None
 
@@ -119,7 +140,7 @@ class FileWorker(Process):
                 try:
                     j = self.q.get(timeout=10.0)
                 except Empty:
-                    self.log.warning('Writer queue empty!')
+                    logger.warning('Writer queue empty!')
                     continue
 
                 if j.kill:
@@ -141,7 +162,7 @@ class FileWorker(Process):
                     continue
                 elif j.open:
                     if current_file:
-                        self.log.warning(f'Opening new file {j.filename} without closing previous! {last_filename}')
+                        logger.warning(f'Opening new file {j.filename} without closing previous! {last_filename}')
                         current_file.close()
 
                     current_file = open(full_path, 'wb')
@@ -154,27 +175,27 @@ class FileWorker(Process):
                         current_file.close()
                         current_file = None
                     else:
-                        self.log.warning(f'Asking to close file that is not open: {j.filename}')
+                        logger.warning(f'Asking to close file that is not open: {j.filename}')
 
                     self.o_q.put(WriterTaskResult(success=True, filename=j.filename, closed=True))
                     continue
                 elif j.rename:
                     if current_file:
-                        self.log.warning('Trying to rename file without closing first!')
+                        logger.warning('Trying to rename file without closing first!')
                         current_file.close()
                         current_file = None
                     if j.delete:
                         try:
                             os.remove(full_path)
                         except OSError as e:
-                            self.log.error(f'Removing file failed: {e!r}')
+                            logger.error(f'Removing file failed: {e!r}')
                             self.o_q.put(WriterTaskResult(success=False, filename=j.filename))
                             continue
 
                     try:
                         os.rename(os.path.join(self.base_path, j.old_filename), full_path)
                     except OSError as e:
-                        self.log.error(f'Renaming file failed: {e!r}')
+                        logger.error(f'Renaming file failed: {e!r}')
                         self.o_q.put(WriterTaskResult(success=False, filename=j.filename))
                         continue
 
@@ -182,14 +203,14 @@ class FileWorker(Process):
                     continue
                 elif j.delete:
                     if current_file:
-                        self.log.warning('Trying to delete file without closing first!')
+                        logger.warning('Trying to delete file without closing first!')
                         current_file.close()
                         current_file = None
 
                     try:
                         os.remove(full_path)
                     except OSError as e:
-                        self.log.error(f'Removing file failed: {e!r}')
+                        logger.error(f'Removing file failed: {e!r}')
 
                     self.o_q.put(WriterTaskResult(success=True, filename=j.filename))
                     continue
@@ -218,7 +239,7 @@ class FileWorker(Process):
                             current_file.write(f.read(j.chunk_size))
                         post_write = time.time()
                 except Exception as e:
-                    self.log.warning(f'Something in writing a file failed: {e!r}')
+                    logger.warning(f'Something in writing a file failed: {e!r}')
                     self.o_q.put(WriterTaskResult(success=False, filename=j.filename,
                                                   chunk_guid=j.chunk_guid,
                                                   release_memory=j.release_memory,
@@ -231,7 +252,7 @@ class FileWorker(Process):
                                                   shm=j.shm, size=j.chunk_size,
                                                   time_delta=post_write-pre_write))
             except Exception as e:
-                self.log.warning(f'[{self.name}] Job {j.filename} failed with: {e!r}, fetching next one...')
+                logger.warning(f'[{self.name}] Job {j.filename} failed with: {e!r}, fetching next one...')
                 self.o_q.put(WriterTaskResult(success=False, filename=j.filename, chunk_guid=j.chunk_guid))
 
                 try:
@@ -239,7 +260,7 @@ class FileWorker(Process):
                         current_file.close()
                         current_file = None
                 except Exception as e:
-                    self.log.error(f'[{self.name}] Closing file after error failed: {e!r}')
+                    logger.error(f'[{self.name}] Closing file after error failed: {e!r}')
             except KeyboardInterrupt:
                 if current_file:
                     current_file.close()

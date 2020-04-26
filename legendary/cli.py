@@ -3,32 +3,41 @@
 
 import argparse
 import logging
-import multiprocessing
 import os
 import shlex
 import subprocess
 import time
 import webbrowser
 
+from logging.handlers import QueueHandler, QueueListener
+from multiprocessing import freeze_support, Queue as MPQueue
 from sys import exit
 
 from legendary.core import LegendaryCore
 from legendary.models.exceptions import InvalidCredentialsError
 
+# todo custom formatter for cli logger (clean info, highlighted error/warning)
 logging.basicConfig(
-    format='[%(asctime)s] [%(name)s] %(levelname)s: %(message)s',
+    format='[%(name)s] %(levelname)s: %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger('cli')
 
 
-# todo logger with QueueHandler/QueueListener
-# todo custom formatter for cli logger (clean info, highlighted error/warning)
-
 class LegendaryCLI:
     def __init__(self):
         self.core = LegendaryCore()
         self.logger = logging.getLogger('cli')
+        self.logging_queue = None
+
+    def setup_threaded_logging(self):
+        self.logging_queue = MPQueue(-1)
+        shandler = logging.StreamHandler()
+        sformatter = logging.Formatter('[%(asctime)s] [%(name)s] %(levelname)s: %(message)s')
+        shandler.setFormatter(sformatter)
+        ql = QueueListener(self.logging_queue, shandler)
+        ql.start()
+        return ql
 
     def auth(self, args):
         try:
@@ -223,6 +232,10 @@ class LegendaryCLI:
         start_t = time.time()
 
         try:
+            # set up logging stuff (should be moved somewhere else later)
+            dlm.logging_queue = self.logging_queue
+            dlm.proc_debug = args.dlm_debug
+
             dlm.start()
             dlm.join()
         except Exception as e:
@@ -243,7 +256,7 @@ class LegendaryCLI:
                         print(f' - {dlc.app_title} (App name: {dlc.app_name}, version: {dlc.app_version})')
                     # todo recursively call install with modified args to install DLC automatically (after confirm)
                     print('Installing DLCs works the same as the main game, just use the DLC app name instead.')
-                    print('Automatic installation of DLC is currently not supported.')
+                    print('(Automatic installation of DLC is currently not supported.)')
 
                 if postinstall:
                     self._handle_postinstall(postinstall, igame, yes=args.yes)
@@ -354,6 +367,8 @@ def main():
                                 help='Do not mark game as intalled and do not run prereq installers after download.')
     install_parser.add_argument('--update-only', dest='update_pnly', action='store_true',
                                 help='Abort if game is not already installed (for automation)')
+    install_parser.add_argument('--dlm-debug', dest='dlm_debug', action='store_true',
+                                help='Set download manager and worker processes\' loglevel to debug')
 
     launch_parser.add_argument('--offline', dest='offline', action='store_true',
                                default=False, help='Skip login and launch game without online authentication')
@@ -381,6 +396,7 @@ def main():
         return
 
     cli = LegendaryCLI()
+    ql = cli.setup_threaded_logging()
 
     config_ll = cli.core.lgd.config.get('Legendary', 'log_level', fallback='info')
     if config_ll == 'debug' or args.debug:
@@ -391,23 +407,28 @@ def main():
 
     # technically args.func() with setdefaults could work (see docs on subparsers)
     # but that would require all funcs to accept args and extra...
-    if args.subparser_name == 'auth':
-        cli.auth(args)
-    elif args.subparser_name == 'list-games':
-        cli.list_games()
-    elif args.subparser_name == 'list-installed':
-        cli.list_installed(args)
-    elif args.subparser_name == 'launch':
-        cli.launch_game(args, extra)
-    elif args.subparser_name == 'download':
-        cli.install_game(args)
-    elif args.subparser_name == 'uninstall':
-        cli.uninstall_game(args)
+    try:
+        if args.subparser_name == 'auth':
+            cli.auth(args)
+        elif args.subparser_name == 'list-games':
+            cli.list_games()
+        elif args.subparser_name == 'list-installed':
+            cli.list_installed(args)
+        elif args.subparser_name == 'launch':
+            cli.launch_game(args, extra)
+        elif args.subparser_name == 'download':
+            cli.install_game(args)
+        elif args.subparser_name == 'uninstall':
+            cli.uninstall_game(args)
+    except KeyboardInterrupt:
+        logger.info('Command was aborted via KeyboardInterrupt, cleaning up...')
 
     cli.core.exit()
+    ql.stop()
     exit(0)
 
 
 if __name__ == '__main__':
-    multiprocessing.freeze_support()  # required for pyinstaller
+    # required for pyinstaller on Windows, does nothing on other platforms.
+    freeze_support()
     main()
