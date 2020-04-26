@@ -247,8 +247,6 @@ class LegendaryCLI:
         else:
             end_t = time.time()
             if not args.no_install:
-                postinstall = self.core.install_game(igame)
-
                 dlcs = self.core.get_dlc_for_game(game.app_name)
                 if dlcs:
                     print('The following DLCs are available for this game:')
@@ -258,6 +256,7 @@ class LegendaryCLI:
                     print('Installing DLCs works the same as the main game, just use the DLC app name instead.')
                     print('(Automatic installation of DLC is currently not supported.)')
 
+                postinstall = self.core.install_game(igame)
                 if postinstall:
                     self._handle_postinstall(postinstall, igame, yes=args.yes)
 
@@ -319,21 +318,21 @@ class LegendaryCLI:
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Legendary (Game Launcher)')
+    parser = argparse.ArgumentParser(description='Legendary Game Launcher')
 
     # general arguments
     parser.add_argument('-v', dest='debug', action='store_true', help='Set loglevel to debug')
-    parser.add_argument('-y', dest='yes', action='store_true', help='Default to yes for all prompts.')
+    parser.add_argument('-y', dest='yes', action='store_true', help='Default to yes for all prompts')
 
     # all the commands
     subparsers = parser.add_subparsers(title='Commands', dest='subparser_name')
     auth_parser = subparsers.add_parser('auth', help='Authenticate with EPIC')
-    install_parser = subparsers.add_parser('install', help='Download a game',
+    install_parser = subparsers.add_parser('download', help='Download a game',
                                            usage='%(prog)s <App Name> [options]')
     uninstall_parser = subparsers.add_parser('uninstall', help='Uninstall (delete) a game')
     launch_parser = subparsers.add_parser('launch', help='Launch a game', usage='%(prog)s <App Name> [options]',
-                                          description='Note: additional arguments are passed to the game.')
-    _ = subparsers.add_parser('list-games', help='List available (installable) games.')
+                                          description='Note: additional arguments are passed to the game')
+    _ = subparsers.add_parser('list-games', help='List available (installable) games')
     listi_parser = subparsers.add_parser('list-installed', help='List installed games')
 
     install_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
@@ -364,8 +363,8 @@ def main():
     install_parser.add_argument('--disable-patching', dest='disable_patching', action='store_true',
                                 help='Do not attempt to patch existing installations (download entire changed file)')
     install_parser.add_argument('--download-only', dest='no_install', action='store_true',
-                                help='Do not mark game as intalled and do not run prereq installers after download.')
-    install_parser.add_argument('--update-only', dest='update_pnly', action='store_true',
+                                help='Do not mark game as intalled and do not run prereq installers after download')
+    install_parser.add_argument('--update-only', dest='update_only', action='store_true',
                                 help='Abort if game is not already installed (for automation)')
     install_parser.add_argument('--dlm-debug', dest='dlm_debug', action='store_true',
                                 help='Set download manager and worker processes\' loglevel to debug')
@@ -384,7 +383,7 @@ def main():
 
     args, extra = parser.parse_known_args()
 
-    if not args.subparser_name:
+    if args.subparser_name not in ('auth', 'list-games', 'list-installed', 'launch', 'download', 'uninstall'):
         print(parser.format_help())
 
         # Print the main help *and* the help for all of the subcommands. Thanks stackoverflow!
