@@ -1,4 +1,4 @@
-# Legendary (Game Launcher)
+# Legendary Game Launcher
 ### A free and open-source Epic Games Launcher replacement
 [![Discord](https://discordapp.com/api/guilds/695233346627698689/widget.png?style=shield)](https://discord.gg/UJKBwPw) [![Twitter Follow](https://img.shields.io/twitter/follow/legendary_gl?label=Follow%20us%20for%20updates%21&style=social)](https://twitter.com/legendary_gl)
 
@@ -38,79 +38,127 @@ The Windows .exe was created with PyInstaller and will run standalone without py
 
 To log in:
 ````
-$ legendary --auth
+$ legendary auth
 ````
-Authentication is a little finicky since we have to go through the Epic website. In the first step you will log in and in the second one you are required to copy an exchange code from a JSON site into the command line.
-On Windows you can add `--import` to attempt to import the session from the Epic Games Launcher, if it is installed and you're logged in.
+Authentication is a little finicky since we have to go through the Epic website. The login page should open in your browser and after logging in you should be presented with a JSON response that contains a code, just copy and paste the code into your terminal to log in.
 
 Listing your games
 ````
-$ legendary --list-games
+$ legendary list-games
 ````
 This will fetch a list of games available on your account, the first time may take a while depending on how many games you have.
 
 Installing a game
 ````
-$ legendary --install Anemone
+$ legendary download Anemone
 ````
-**Important:** the name used for these commands is the app name, *not* the game's name! The app name is included in the games list after the title.
+**Important:** the name used for these commands is the app name, *not* the game's name! The app name is in the parentheses after the game title in the games list.
 
 List installed games and check for updates
 ````
-$ legendary --list-installed --check-updates
+$ legendary list-installed --check-updates
 ````
 
 Launch (run) a game with online authentication
 ````
-$ legendary --launch Anemone
+$ legendary launch Anemone
 ````
+**Tip:** most games will run fine offline (`--offline`), and thus won't require launching through legendary for online authentication. You can run `legendary launch <App Name> --offline --dry-run` to get a command line that will launch the game with all parameters that would be used by the Epic Launcher. These can then be entered into any other game launcher (e.g. Lutris/Steam) if the game requires them.
 
 ## Usage
 
 ````
-usage: legendary [-h] (--auth | --download <name> | --install <name> | --update <name> | --uninstall <name> | --launch <name> | --list-games | --list-installed) [-v] [--import] [--base-path <path>] [--max-shared-memory <size>] [--max-workers <num>] [--manifest <uri>] [--base-url <url>] [--force]
-                 [--disable-patching] [--offline] [--skip-version-check] [--override-username <username>] [--dry-run] [--check-updates]
+usage: legendary [-h] [-v] [-y] {auth,download,uninstall,launch,list-games,list-installed} ...
 
-Legendary (Game Launcher)
+Legendary Game Launcher
 
 optional arguments:
   -h, --help            show this help message and exit
-  --auth                Authenticate Legendary with your account
-  --download <name>     Download a game's files
-  --install <name>      Download and install a game
-  --update <name>       Update a game (alias for --install)
-  --uninstall <name>    Remove a game
-  --launch <name>       Launch game
-  --list-games          List available games
-  --list-installed      List installed games
   -v                    Set loglevel to debug
+  -y                    Default to yes for all prompts
 
-Authentication options:
-  --import              Import EGS authentication data
+Commands:
+  {auth,download,uninstall,launch,list-games,list-installed}
+    auth                Authenticate with EPIC
+    download            Download a game
+    uninstall           Uninstall (delete) a game
+    launch              Launch a game
+    list-games          List available (installable) games
+    list-installed      List installed games
 
-Downloading options:
+Individual command help:
+
+Command: auth
+usage: legendary.exe auth [-h] [--import]
+
+optional arguments:
+  -h, --help  show this help message and exit
+  --import    Import EGS authentication data
+
+
+Command: download
+usage: legendary.exe download <App Name> [options]
+
+positional arguments:
+  <App Name>            Name of the app
+
+optional arguments:
+  -h, --help            show this help message and exit
   --base-path <path>    Path for game installations (defaults to ~/legendary)
+  --game-folder <path>  Folder for game installation (defaults to folder in metadata)
   --max-shared-memory <size>
                         Maximum amount of shared memory to use (in MiB), default: 1 GiB
   --max-workers <num>   Maximum amount of download workers, default: 2 * logical CPU
   --manifest <uri>      Manifest URL or path to use instead of the CDN one (e.g. for downgrading)
+  --old-manifest <uri>  Manifest URL or path to use as the old one (e.g. for testing patching)
   --base-url <url>      Base URL to download from (e.g. to test or switch to a different CDNs)
   --force               Ignore existing files (overwrite)
+  --disable-patching    Do not attempt to patch existing installations (download entire changed file)
+  --download-only       Do not mark game as intalled and do not run prereq installers after download
+  --update-only         Abort if game is not already installed (for automation)
+  --dlm-debug           Set download manager and worker processes' loglevel to debug
 
-Installation options:
-  --disable-patching    Do not attempt to patch existing installations (download full game)
 
-Game launch options:
-  Note: any additional arguments will be passed to the game.
+Command: uninstall
+usage: legendary.exe uninstall [-h] <App Name>
 
+positional arguments:
+  <App Name>  Name of the app
+
+optional arguments:
+  -h, --help  show this help message and exit
+
+
+Command: launch
+usage: legendary.exe launch <App Name> [options]
+
+Note: additional arguments are passed to the game
+
+positional arguments:
+  <App Name>            Name of the app
+
+optional arguments:
+  -h, --help            show this help message and exit
   --offline             Skip login and launch game without online authentication
   --skip-version-check  Skip version check when launching game in online mode
   --override-username <username>
                         Override username used when launching the game (only works with some titles)
   --dry-run             Print the command line that would have been used to launch the game and exit
 
-Listing options:
-  --check-updates       Check for updates when listing installed games
+
+Command: list-games
+usage: legendary.exe list-games [-h]
+
+optional arguments:
+  -h, --help  show this help message and exit
+
+
+Command: list-installed
+usage: legendary.exe list-installed [-h] [--check-updates]
+
+optional arguments:
+  -h, --help       show this help message and exit
+  --check-updates  Check for updates when listing installed games
 ````
 
 
@@ -125,6 +173,16 @@ max_memory = 1024
 ; default install directory
 install_dir = /mnt/tank/games
 
+; default settings to use (currently limited to WINE executable)
+[default]
+; (linux) specify wine executable to use
+wine_executable = wine
+
+; default environment variables to set (overriden by game specific ones)
+[default.env]
+WINEPREFIX = /home/user/legendary/.wine
+
+; Settings to only use for "AppName"
 [AppName]
 ; launch game without online authentication by default
 offline = true
@@ -132,12 +190,11 @@ offline = true
 skip_update_check = true
 ; start parameters to use (in addition to the required ones)
 start_params = -windowed
-; (linux) specify wine executable to use
-wine_executable = wine
+wine_executable = proton
 
 [AppName.env]
 ; environment variables to set for this game (mostly useful on linux)
-WINEPREFIX = /home/user/legendary/Game/.wine
-DXVK_CONFIG_FILE = /home/user/legendary/Game/dxvk.conf
+WINEPREFIX = /mnt/tank/games/Game/.wine
+DXVK_CONFIG_FILE = /mnt/tank/games/Game/dxvk.conf
 ````
 
