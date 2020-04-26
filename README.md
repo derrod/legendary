@@ -2,37 +2,63 @@
 ### A free and open-source Epic Games Launcher replacement
 [![Discord](https://discordapp.com/api/guilds/695233346627698689/widget.png?style=shield)](https://discord.gg/UJKBwPw) [![Twitter Follow](https://img.shields.io/twitter/follow/legendary_gl?label=Follow%20us%20for%20updates%21&style=social)](https://twitter.com/legendary_gl)
 
-Legendary (named after the next highest tier [in item rarity](https://wow.gamepedia.com/Quality)) is an open-source game launcher that can download and install games from the Epic Games Store on Linux and Windows.
+Legendary is an open-source game launcher that can download and install games from the Epic Games Store on Linux and Windows.
+It's name as a tongue-in-cheek play on tiers of [item rarity in many MMORPGs](https://wow.gamepedia.com/Quality).
 
-Right now it is in an early public pre-release stage and still needs a lot of work to work. But it does work!
+Right now it is in an early public testing stage and still needs a lot of work to work. But it does work!
 
 **What works:**
  - Authenticate with Epic
- - Download and install games
- - Update installed games and their DLC
+ - Download and install games and their DLC
+ - Delta patching/updating of installed games
  - Launch games with online authentication
 
 **Planned:**
- - Better Linux and WINE support
- - Importing installed games from the EGS launcher
- - PyPI distribution
- - Miscellaneous optimizations
+ - PyPI/PPA distribution
  - Simple GUI for managing/launching games
- - Lots and lots of bug fixes and refactoring...
+ - Importing installed games from the EGS launcher
+ - Lots and lots of bug fixes, optimizations, and refactoring...
 
 ## Requirements
 
 - python 3.8+
 - requests
+- setuptools (for installation)
 
-## How to install
+## How to run/install
 
-- Windows (standalone): Download the latest EXE from [GitHub](https://github.com/derrod/legendary/releases/latest)
-- Linux/Windows (requires setuptools to be installed): `python3.8 setup.py install`
+### Standalone
+Download the latest `legendary` or `legendary.exe` binary from [the latest release](https://github.com/derrod/legendary/releases/latest)
+and move it to somewhere in your `$PATH`/`%PATH%`. Don't forget to `chmod +x` it on Linux.
 
-A PyPI package will follow once it has gotten more testing.
+The Windows .exe and Linux executable were created with PyInstaller and will run standalone even without python being installed.
+Note that on Linux glibc >= 2.25 is required, so older distributions such as Ubuntu 16.04 or Debian stretch will not work.
 
-The Windows .exe was created with PyInstaller and will run standalone without python being installed.
+### Python package
+
+(A PyPI package will follow once it has gotten more testing.)
+
+- Install python3.8, setuptools and requests
+- Clone the git repository
+- Run `python3.8 setup.py install`
+
+#### Ubuntu 20.04 example
+
+Ubuntu 20.04's standard repositories include everything needed to install legendary:
+````bash
+sudo apt install python3 python3-requests python3-setuptools-git
+git clone https://github.com/derrod/legendary.git
+cd legendary
+sudo python3 setup.py install
+````
+
+Note that in this example we used `sudo` to install the package on the system, this may not be advisable depending on your setup.
+
+### Directly from the repo (for dev/testing)
+
+- Install python3.8 and requests (optionally in a venv)
+- cd into `legendary/` (the folder with `cli.py`)
+- run `PYTHONPATH=.. python3.8 cli.py`
 
 ## Quickstart
 
@@ -89,7 +115,7 @@ Commands:
 Individual command help:
 
 Command: auth
-usage: legendary.exe auth [-h] [--import]
+usage: legendary auth [-h] [--import]
 
 optional arguments:
   -h, --help  show this help message and exit
@@ -97,7 +123,7 @@ optional arguments:
 
 
 Command: download
-usage: legendary.exe download <App Name> [options]
+usage: legendary download <App Name> [options]
 
 positional arguments:
   <App Name>            Name of the app
@@ -120,7 +146,7 @@ optional arguments:
 
 
 Command: uninstall
-usage: legendary.exe uninstall [-h] <App Name>
+usage: legendary uninstall [-h] <App Name>
 
 positional arguments:
   <App Name>  Name of the app
@@ -130,7 +156,7 @@ optional arguments:
 
 
 Command: launch
-usage: legendary.exe launch <App Name> [options]
+usage: legendary launch <App Name> [options]
 
 Note: additional arguments are passed to the game
 
@@ -147,14 +173,14 @@ optional arguments:
 
 
 Command: list-games
-usage: legendary.exe list-games [-h]
+usage: legendary list-games [-h]
 
 optional arguments:
   -h, --help  show this help message and exit
 
 
 Command: list-installed
-usage: legendary.exe list-installed [-h] [--check-updates]
+usage: legendary list-installed [-h] [--check-updates]
 
 optional arguments:
   -h, --help       show this help message and exit
