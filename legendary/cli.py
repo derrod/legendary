@@ -128,7 +128,9 @@ class LegendaryCLI:
             logger.error(f'{app_name} is DLC; please launch the base game instead!')
             exit(1)
 
-        if not args.offline and not self.core.is_offline_game(app_name):
+        # override with config value
+        args.offline = self.core.is_offline_game(app_name)
+        if not args.offline:
             logger.info('Logging in...')
             if not self.core.login():
                 logger.error('Login failed, cannot continue!')

@@ -253,11 +253,11 @@ class LegendaryCore:
             params.extend(shlex.split(config_args.strip()))
 
         # get environment overrides from config
-        env = None
+        env = os.environ.copy()
         if f'{app_name}.env' in self.lgd.config:
-            env = dict(self.lgd.config[f'{app_name}.env'])
+            env.update(dict(self.lgd.config[f'{app_name}.env']))
         elif 'default.env' in self.lgd.config:
-            env = dict(self.lgd.config['default.env'])
+            env.update(dict(self.lgd.config['default.env']))
 
         return params, working_dir, env
 
