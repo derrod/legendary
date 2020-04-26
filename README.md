@@ -54,6 +54,12 @@ sudo python3 setup.py install
 
 Note that in this example we used `sudo` to install the package on the system, this may not be advisable depending on your setup.
 
+#### Arch linux
+
+```bash
+yay -S legendary
+```
+
 ### Directly from the repo (for dev/testing)
 
 - Install python3.8 and requests (optionally in a venv)
