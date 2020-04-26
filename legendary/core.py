@@ -101,7 +101,7 @@ class LegendaryCore:
 
             # if session still has at least 10 minutes left we can re-use it.
             if dt_exp > dt_now and abs(td.total_seconds()) > 600:
-                self.log.debug('Trying to re-use existing login session...')
+                self.log.info('Trying to re-use existing login session...')
                 try:
                     self.egs.resume_session(self.lgd.userdata)
                     return True
@@ -113,6 +113,7 @@ class LegendaryCore:
                 self.log.info('Falling back to using refresh token...')
 
         try:
+            self.log.info('Logging in...')
             userdata = self.egs.start_session(self.lgd.userdata['refresh_token'])
         except InvalidCredentialsError:
             self.log.error('Stored credentials are no longer valid! Please login again.')
@@ -172,6 +173,9 @@ class LegendaryCore:
 
     def get_dlc_for_game(self, app_name):
         game = self.get_game(app_name)
+        if game.is_dlc:  # dlc shouldn't have DLC
+            return []
+
         _, dlcs = self.get_game_and_dlc_list(update_assets=False)
         return dlcs[game.asset_info.catalog_item_id]
 
