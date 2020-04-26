@@ -73,7 +73,7 @@ class LegendaryCLI:
         )
         print('If web page did not open automatically, please navigate '
               'to https://www.epicgames.com/id/login in your web browser')
-        print('- In case you opened the link manually; please open https://www.epicgames.com/id/api/exchange'
+        print('- In case you opened the link manually; please open https://www.epicgames.com/id/api/exchange '
               'in your web browser after you have finished logging in.')
         exchange_code = input('Please enter code from JSON response: ')
         exchange_token = exchange_code.strip().strip('"')
