@@ -27,6 +27,13 @@ Right now it is in an early public testing stage and still needs a lot of work t
 
 ## How to run/install
 
+### Package Manager
+
+Depending on your Distro legendary may be available via (unofficial) packages that can be directly installed using your package manager.
+Check out the [Available Linux Packages](https://github.com/derrod/legendary/wiki/Available-Linux-Packages) wiki page for details.
+
+Currently this is limited to Arch Linux (AUR) but will hopefully be expanded to other distros rather soon.
+
 ### Standalone
 Download the latest `legendary` or `legendary.exe` binary from [the latest release](https://github.com/derrod/legendary/releases/latest)
 and move it to somewhere in your `$PATH`/`%PATH%`. Don't forget to `chmod +x` it on Linux.
