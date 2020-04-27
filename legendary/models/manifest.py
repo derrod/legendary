@@ -143,7 +143,7 @@ class ManifestMeta:
         s.update(self.build_version.encode('utf-8'))
         s.update(self.launch_exe.encode('utf-8'))
         s.update(self.launch_command.encode('utf-8'))
-        self._build_id = b64encode(s.digest()).replace('+', '-').replace('/', '_').replace('=', '')
+        self._build_id = b64encode(s.digest()).decode('ascii').replace('+', '-').replace('/', '_').replace('=', '')
         return self._build_id
 
     @classmethod
