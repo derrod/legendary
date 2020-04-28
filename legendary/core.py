@@ -126,7 +126,12 @@ class LegendaryCore:
         self.lgd.userdata = userdata
         return True
 
-    def get_assets(self, update_assets=False) -> List[GameAsset]:
+    def get_assets(self, update_assets=False, platform_override=None) -> List[GameAsset]:
+        # do not save and always fetch list when platform is overriden
+        if platform_override:
+            return [GameAsset.from_egs_json(a) for a in
+                    self.egs.get_game_assets(platform=platform_override)]
+
         if not self.lgd.assets or update_assets:
             self.lgd.assets = [GameAsset.from_egs_json(a) for a in self.egs.get_game_assets()]
 
@@ -146,23 +151,28 @@ class LegendaryCore:
     def get_game_list(self, update_assets=True) -> List[Game]:
         return self.get_game_and_dlc_list(update_assets=update_assets)[0]
 
-    def get_game_and_dlc_list(self, update_assets=True) -> (List[Game], Dict[str, Game]):
+    def get_game_and_dlc_list(self, update_assets=True,
+                              platform_override=None,
+                              skip_ue=True) -> (List[Game], Dict[str, Game]):
         _ret = []
         _dlc = defaultdict(list)
 
-        for ga in self.get_assets(update_assets=update_assets):
-            if ga.namespace == 'ue':  # skip UE demo content
+        for ga in self.get_assets(update_assets=update_assets,
+                                  platform_override=platform_override):
+            if ga.namespace == 'ue' and skip_ue:
                 continue
 
             game = self.lgd.get_game_meta(ga.app_name)
-            if not game or (game and game.app_version != ga.build_version):
-                if game and game.app_version != ga.build_version:
+            if not game or (game and game.app_version != ga.build_version and not platform_override):
+                if game and game.app_version != ga.build_version and not platform_override:
                     self.log.info(f'Updating meta for {game.app_name} due to build version mismatch')
 
                 eg_meta = self.egs.get_game_info(ga.namespace, ga.catalog_item_id)
                 game = Game(app_name=ga.app_name, app_version=ga.build_version,
                             app_title=eg_meta['title'], asset_info=ga, metadata=eg_meta)
-                self.lgd.set_game_meta(game.app_name, game)
+
+                if not platform_override:
+                    self.lgd.set_game_meta(game.app_name, game)
 
             if game.is_dlc:
                 _dlc[game.metadata['mainGameItem']['id']].append(game)

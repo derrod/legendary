@@ -84,13 +84,15 @@ class LegendaryCLI:
         else:
             logger.error('Login attempt failed, please see log for details.')
 
-    def list_games(self):
+    def list_games(self, args):
         logger.info('Logging in...')
         if not self.core.login():
             logger.error('Login failed, cannot continue!')
             exit(1)
         logger.info('Getting game list... (this may take a while)')
-        games, dlc_list = self.core.get_game_and_dlc_list()
+        games, dlc_list = self.core.get_game_and_dlc_list(
+            platform_override=args.platform_override, skip_ue=not args.include_ue
+        )
 
         print('\nAvailable games:')
         for game in sorted(games, key=lambda x: x.app_title):
@@ -340,7 +342,7 @@ def main():
     uninstall_parser = subparsers.add_parser('uninstall', help='Uninstall (delete) a game')
     launch_parser = subparsers.add_parser('launch', help='Launch a game', usage='%(prog)s <App Name> [options]',
                                           description='Note: additional arguments are passed to the game')
-    _ = subparsers.add_parser('list-games', help='List available (installable) games')
+    list_parser = subparsers.add_parser('list-games', help='List available (installable) games')
     listi_parser = subparsers.add_parser('list-installed', help='List installed games')
 
     install_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
@@ -388,6 +390,11 @@ def main():
     launch_parser.add_argument('--dry-run', dest='dry_run', action='store_true',
                                help='Print the command line that would have been used to launch the game and exit')
 
+    list_parser.add_argument('--platform', dest='platform_override', action='store', metavar='<Platform>',
+                             type=str, help='Override platform that games are shown for')
+    list_parser.add_argument('--include-ue', dest='include_ue', action='store_true',
+                             help='Also include Unreal Engine content in list')
+
     listi_parser.add_argument('--check-updates', dest='check_updates', action='store_true',
                               help='Check for updates when listing installed games')
 
@@ -424,7 +431,7 @@ def main():
         if args.subparser_name == 'auth':
             cli.auth(args)
         elif args.subparser_name == 'list-games':
-            cli.list_games()
+            cli.list_games(args)
         elif args.subparser_name == 'list-installed':
             cli.list_installed(args)
         elif args.subparser_name == 'launch':
