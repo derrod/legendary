@@ -302,7 +302,8 @@ class LegendaryCore:
                          status_q: Queue = None, max_shm: int = 0, max_workers: int = 0,
                          force: bool = False, disable_patching: bool = False, game_folder: str = '',
                          override_manifest: str = '', override_old_manifest: str = '',
-                         override_base_url: str = '') -> (DLManager, AnalysisResult, ManifestMeta):
+                         override_base_url: str = '', platform_override: str = '',
+                         ) -> (DLManager, AnalysisResult, ManifestMeta):
 
         # load old manifest
         old_manifest = None
@@ -336,9 +337,10 @@ class LegendaryCore:
                     new_manifest_data = f.read()
         else:
             # get latest manifest from API
+            platform = 'Windows' if not platform_override else platform_override
             m_api_r = self.egs.get_game_manifest(game.asset_info.namespace,
                                                  game.asset_info.catalog_item_id,
-                                                 game.app_name)
+                                                 game.app_name, platform)
 
             # never seen this outside the launcher itself, but if it happens: PANIC!
             if len(m_api_r['elements']) > 1:

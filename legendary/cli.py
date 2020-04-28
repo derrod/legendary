@@ -172,6 +172,9 @@ class LegendaryCLI:
                 logger.error(f'Update requested for "{args.app_name}", but app not installed!')
                 exit(1)
 
+        if args.platform_override:
+            args.no_install = True
+
         game = self.core.get_game(args.app_name, update_meta=True)
 
         if not game:
@@ -199,7 +202,8 @@ class LegendaryCLI:
                                                           disable_patching=args.disable_patching,
                                                           override_manifest=args.override_manifest,
                                                           override_old_manifest=args.override_old_manifest,
-                                                          override_base_url=args.override_base_url)
+                                                          override_base_url=args.override_base_url,
+                                                          platform_override=args.platform_override)
 
         # game is either up to date or hasn't changed, so we have nothing to do
         if not analysis.dl_size:
@@ -372,6 +376,8 @@ def main():
                                 help='Abort if game is not already installed (for automation)')
     install_parser.add_argument('--dlm-debug', dest='dlm_debug', action='store_true',
                                 help='Set download manager and worker processes\' loglevel to debug')
+    install_parser.add_argument('--platform', dest='platform_override', action='store', metavar='<Platform>',
+                                type=str, help='Platform override for download (disables install)')
 
     launch_parser.add_argument('--offline', dest='offline', action='store_true',
                                default=False, help='Skip login and launch game without online authentication')
