@@ -2,6 +2,7 @@
 # coding: utf-8
 
 import argparse
+import csv
 import logging
 import os
 import shlex
@@ -11,7 +12,7 @@ import webbrowser
 
 from logging.handlers import QueueHandler, QueueListener
 from multiprocessing import freeze_support, Queue as MPQueue
-from sys import exit
+from sys import exit, stdout
 
 from legendary import __version__, __codename__
 from legendary.core import LegendaryCore
@@ -84,6 +85,7 @@ class LegendaryCLI:
         else:
             logger.error('Login attempt failed, please see log for details.')
 
+
     def list_games(self, args):
         logger.info('Logging in...')
         if not self.core.login():
@@ -94,13 +96,22 @@ class LegendaryCLI:
             platform_override=args.platform_override, skip_ue=not args.include_ue
         )
 
-        print('\nAvailable games:')
-        for game in sorted(games, key=lambda x: x.app_title):
-            print(f'  * {game.app_title} (App name: {game.app_name}, version: {game.app_version})')
-            for dlc in sorted(dlc_list[game.asset_info.catalog_item_id], key=lambda d: d.app_title):
-                print(f'    + {dlc.app_title} (App name: {dlc.app_name}, version: {dlc.app_version})')
+        if args.csv:
+            csv_writer = csv.writer(stdout)
+            csv_writer.writerow(['App title', 'App name', 'App version'])
+            for game in sorted(games, key=lambda x: x.app_title):
+                csv_writer.writerow([game.app_title, game.app_name, game.app_version])
+                for dlc in sorted(dlc_list[game.asset_info.catalog_item_id], key=lambda d: d.app_title):
+                    csv_writer.writerow([dlc.app_title, dlc.app_name, dlc.app_version])
 
-        print(f'\nTotal: {len(games)}')
+        else:
+            print('\nAvailable games:')
+            for game in sorted(games, key=lambda x: x.app_title):
+                print(f'  * {game.app_title} (App name: {game.app_name}, version: {game.app_version})')
+                for dlc in sorted(dlc_list[game.asset_info.catalog_item_id], key=lambda d: d.app_title):
+                    print(f'    + {dlc.app_title} (App name: {dlc.app_name}, version: {dlc.app_version})')
+            print(f'\nTotal: {len(games)}')
+
 
     def list_installed(self, args):
         games = self.core.get_installed_list()
@@ -112,14 +123,22 @@ class LegendaryCLI:
             else:
                 self.core.get_assets(True)
 
-        print('\nInstalled games:')
-        for game in sorted(games, key=lambda x: x.title):
-            print(f'  * {game.title} (App name: {game.app_name}, version: {game.version})')
-            game_asset = self.core.get_asset(game.app_name)
-            if game_asset.build_version != game.version:
-                print(f'    -> Update available! Installed: {game.version}, Latest: {game_asset.build_version}')
+        if args.csv:
+            csv_writer = csv.writer(stdout)
+            csv_writer.writerow(['App title', 'App name', 'App version', 'Available version', 'Update available'])
+            for game in sorted(games, key=lambda x: x.title):
+                game_asset = self.core.get_asset(game.app_name)
+                csv_writer.writerow([game.app_title, game.app_name, game.app_version, game_asset.build_version, game_asset.build_version != game.version])
 
-        print(f'\nTotal: {len(games)}')
+        else:
+            print('\nInstalled games:')
+            for game in sorted(games, key=lambda x: x.title):
+                print(f'  * {game.title} (App name: {game.app_name}, version: {game.version})')
+                game_asset = self.core.get_asset(game.app_name)
+                if game_asset.build_version != game.version:
+                    print(f'    -> Update available! Installed: {game.version}, Latest: {game_asset.build_version}')
+            print(f'\nTotal: {len(games)}')
+
 
     def launch_game(self, args, extra):
         app_name = args.app_name
@@ -343,7 +362,7 @@ def main():
     launch_parser = subparsers.add_parser('launch', help='Launch a game', usage='%(prog)s <App Name> [options]',
                                           description='Note: additional arguments are passed to the game')
     list_parser = subparsers.add_parser('list-games', help='List available (installable) games')
-    listi_parser = subparsers.add_parser('list-installed', help='List installed games')
+    list_installed_parser = subparsers.add_parser('list-installed', help='List installed games')
 
     install_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
     uninstall_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
@@ -394,9 +413,13 @@ def main():
                              type=str, help='Override platform that games are shown for')
     list_parser.add_argument('--include-ue', dest='include_ue', action='store_true',
                              help='Also include Unreal Engine content in list')
+    list_parser.add_argument('--csv', dest='csv', action='store_true',
+                             help='Output list in csv format')
 
-    listi_parser.add_argument('--check-updates', dest='check_updates', action='store_true',
+    list_installed_parser.add_argument('--check-updates', dest='check_updates', action='store_true',
                               help='Check for updates when listing installed games')
+    list_installed_parser.add_argument('--csv', dest='csv', action='store_true',
+                              help='Output list in csv format')
 
     args, extra = parser.parse_known_args()
 
