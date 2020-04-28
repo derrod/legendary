@@ -101,14 +101,15 @@ $ legendary launch Anemone
 ## Usage
 
 ````
-usage: legendary [-h] [-v] [-y] {auth,download,uninstall,launch,list-games,list-installed} ...
+usage: legendary [-h] [-v] [-y] [-V] {auth,download,uninstall,launch,list-games,list-installed} ...
 
-Legendary Game Launcher
+Legendary v0.0.X - "Witty Name"
 
 optional arguments:
   -h, --help            show this help message and exit
   -v                    Set loglevel to debug
   -y                    Default to yes for all prompts
+  -V                    Print version and exit
 
 Commands:
   {auth,download,uninstall,launch,list-games,list-installed}
@@ -150,6 +151,8 @@ optional arguments:
   --download-only       Do not mark game as intalled and do not run prereq installers after download
   --update-only         Abort if game is not already installed (for automation)
   --dlm-debug           Set download manager and worker processes' loglevel to debug
+  --platform <Platform>
+                        Platform override for download (disables install)
 
 
 Command: uninstall
@@ -180,10 +183,13 @@ optional arguments:
 
 
 Command: list-games
-usage: legendary list-games [-h]
+usage: legendary list-games [-h] [--platform <Platform>] [--include-ue]
 
 optional arguments:
-  -h, --help  show this help message and exit
+  -h, --help            show this help message and exit
+  --platform <Platform>
+                        Override platform that games are shown for
+  --include-ue          Also include Unreal Engine content in list
 
 
 Command: list-installed
