@@ -13,6 +13,7 @@ from logging.handlers import QueueHandler, QueueListener
 from multiprocessing import freeze_support, Queue as MPQueue
 from sys import exit
 
+from legendary import __version__, __codename__
 from legendary.core import LegendaryCore
 from legendary.models.exceptions import InvalidCredentialsError
 
@@ -320,11 +321,12 @@ class LegendaryCLI:
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Legendary Game Launcher')
+    parser = argparse.ArgumentParser(description=f'Legendary v{__version__} - "{__codename__}"')
 
     # general arguments
     parser.add_argument('-v', dest='debug', action='store_true', help='Set loglevel to debug')
     parser.add_argument('-y', dest='yes', action='store_true', help='Default to yes for all prompts')
+    parser.add_argument('-V', dest='version', action='store_true', help='Print version and exit')
 
     # all the commands
     subparsers = parser.add_subparsers(title='Commands', dest='subparser_name')
@@ -384,6 +386,10 @@ def main():
                               help='Check for updates when listing installed games')
 
     args, extra = parser.parse_known_args()
+
+    if args.version:
+        print(f'legendary version "{__version__}", codename "{__codename__}"')
+        exit(0)
 
     if args.subparser_name not in ('auth', 'list-games', 'list-installed', 'launch', 'download', 'uninstall'):
         print(parser.format_help())
