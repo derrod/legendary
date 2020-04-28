@@ -39,7 +39,7 @@ class DLManager(Process):
         self.dl_result_q = None
         self.writer_result_q = None
         self.max_jobs = max_jobs
-        self.max_workers = max_workers if max_workers else cpu_count() * 2
+        self.max_workers = max_workers if max_workers else min(cpu_count() * 2, 16)
 
         # Analysis stuff
         self.analysis = None
