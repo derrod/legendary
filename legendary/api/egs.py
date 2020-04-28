@@ -91,16 +91,16 @@ class EPCAPI:
         r.raise_for_status()
         return r.content
 
-    def get_game_assets(self):
-        r = self.session.get(f'https://{self._launcher_host}/launcher/api/public/assets/Windows',
-                             params=dict(label='Live'))
+    def get_game_assets(self, platform='Windows', label='Live'):
+        r = self.session.get(f'https://{self._launcher_host}/launcher/api/public/assets/{platform}',
+                             params=dict(label=label))
         r.raise_for_status()
         return r.json()
 
-    def get_game_manifest(self, namespace, catalog_item_id, app_name):
+    def get_game_manifest(self, namespace, catalog_item_id, app_name, platform='Windows', label='Live'):
         r = self.session.get(f'https://{self._launcher_host}/launcher/api/public/assets/v2/platform'
-                             f'/Windows/namespace/{namespace}/catalogItem/{catalog_item_id}/app'
-                             f'/{app_name}/label/Live')
+                             f'/{platform}/namespace/{namespace}/catalogItem/{catalog_item_id}/app'
+                             f'/{app_name}/label/{label}')
         r.raise_for_status()
         return r.json()
 
