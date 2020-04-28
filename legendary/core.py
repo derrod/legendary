@@ -428,9 +428,13 @@ class LegendaryCore:
         # if on linux, check for eac in the files
         if os.name != 'nt':
             for f in analysis.manifest_comparison.added:
-                if 'easyanticheat' in f.lower():
+                flower = f.lower()
+                if 'easyanticheat' in flower:
                     results.warnings.append('(Linux) The game uses EasyAntiCheat and may not run on linux')
-                    break
+                elif 'beclient' in flower:
+                    results.warnings.append('(Linux) The game uses BattlEye and may not run on linux')
+                elif 'beclient' in flower:
+                    results.warnings.append('(Linux) The game uses BattlEye and may not run on linux')
 
         if install.requires_ot:
             results.warnings.append('This game requires an ownership verification token and likely uses Denuvo DRM.')
