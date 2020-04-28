@@ -321,6 +321,7 @@ class LegendaryCore:
 
         # load old manifest if we have one
         if override_old_manifest:
+            self.log.info(f'Overriding old manifest with "{override_old_manifest}"')
             if override_old_manifest.startswith('http'):
                 r = self.egs.unauth_session.get(override_old_manifest)
                 r.raise_for_status()
@@ -337,6 +338,7 @@ class LegendaryCore:
         base_urls = list(game.base_urls)  # copy list for manipulation
 
         if override_manifest:
+            self.log.info(f'Overriding manifest with "{override_manifest}"')
             if override_manifest.startswith('http'):
                 r = self.egs.unauth_session.get(override_manifest)
                 r.raise_for_status()
@@ -374,6 +376,7 @@ class LegendaryCore:
                 break
 
         if override_base_url:
+            self.log.info(f'Overriding base URL with "{override_base_url}"')
             base_urls = [override_base_url]
 
         self.log.debug(f'Base urls: {base_urls}')
