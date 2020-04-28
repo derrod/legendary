@@ -21,7 +21,7 @@ Right now it is in an early public testing stage and still needs a lot of work t
 
 ## Requirements
 
-- python 3.8+
+- python 3.8+ **(64-bit)**
 - requests
 - setuptools (for installation)
 
