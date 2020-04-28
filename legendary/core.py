@@ -350,13 +350,16 @@ class LegendaryCore:
                 if base_url not in base_urls:
                     base_urls.append(base_url)
 
+                params = dict()
                 if 'queryParams' in manifest:
-                    continue
+                    for param in manifest['queryParams']:
+                        params[param['name']] = param['value']
 
                 self.log.debug(f'Downloading manifest from {manifest["uri"]} ...')
-                r = self.egs.unauth_session.get(manifest['uri'])
+                r = self.egs.unauth_session.get(manifest['uri'], params=params)
                 r.raise_for_status()
                 new_manifest_data = r.content
+                break
 
         if override_base_url:
             base_urls = [override_base_url]
