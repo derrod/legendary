@@ -205,6 +205,9 @@ class LGDLFS:
                   indent=2, sort_keys=True)
 
     def get_installed_list(self):
+        if not self._installed:
+            return []
+
         return [InstalledGame.from_json(i) for i in self._installed.values()]
 
     def save_config(self):
