@@ -136,7 +136,9 @@ class JSONFML(FML):
             _fm = FileManifest()
             _fm.filename = _fmj.pop('Filename', '')
             _fm.hash = blob_to_num(_fmj.pop('FileHash')).to_bytes(160//8, 'little')
-            _fm.flags = int(_fmj.pop('bIsUnixExecutable', False)) << 2
+            _fm.flags |= int(_fmj.pop('bIsReadOnly', False))
+            _fm.flags |= int(_fmj.pop('bIsCompressed', False)) << 1
+            _fm.flags |= int(_fmj.pop('bIsUnixExecutable', False)) << 2
             _fm.file_size = 0
             _fm.chunk_parts = []
             _fm.install_tags = _fmj.pop('InstallTags', list())

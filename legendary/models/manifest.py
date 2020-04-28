@@ -398,6 +398,14 @@ class FileManifest:
         self.file_size = 0
 
     @property
+    def read_only(self):
+        return self.flags & 0x1
+
+    @property
+    def compressed(self):
+        return self.flags & 0x2
+
+    @property
     def executable(self):
         return self.flags & 0x4
 
