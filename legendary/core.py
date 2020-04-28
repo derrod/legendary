@@ -237,6 +237,9 @@ class LegendaryCore:
                                     f'{game.asset_info.namespace}{game.asset_info.catalog_item_id}.ovt')
             with open(ovt_path, 'wb') as f:
                 f.write(ovt)
+            # To access the OVT from WINE we have have to prepend Z: to the path
+            if os.name != 'nt':
+                ovt_path = os.path.join('Z:', ovt_path)
             params.append(f'-epicovt={ovt_path}')
 
         params.extend([
