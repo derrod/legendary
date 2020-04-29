@@ -441,23 +441,23 @@ class LegendaryCore:
     @staticmethod
     def check_installation_conditions(analysis: AnalysisResult, install: InstalledGame) -> ConditionCheckResult:
         # ToDo add more checks in the future
-        results = ConditionCheckResult(failures=list(), warnings=list())
+        results = ConditionCheckResult(failures=set(), warnings=set())
 
         # if on linux, check for eac in the files
         if os.name != 'nt':
             for f in analysis.manifest_comparison.added:
                 flower = f.lower()
                 if 'easyanticheat' in flower:
-                    results.warnings.append('(Linux) The game uses EasyAntiCheat and may not run on linux')
+                    results.warnings.add('(Linux) This game uses EasyAntiCheat and may not run on linux')
                 elif 'beclient' in flower:
-                    results.warnings.append('(Linux) The game uses BattlEye and may not run on linux')
-                elif 'beclient' in flower:
-                    results.warnings.append('(Linux) The game uses BattlEye and may not run on linux')
+                    results.warnings.add('(Linux) This game uses BattlEye and may not run on linux')
+                elif flower == 'fna.dll' or flower == 'xna.dll':
+                    results.warnings.add('(Linux) This game is using XNA/FNA and may not run through WINE')
 
         if install.requires_ot:
-            results.warnings.append('This game requires an ownership verification token and likely uses Denuvo DRM.')
+            results.warnings.add('This game requires an ownership verification token and likely uses Denuvo DRM.')
         if not install.can_run_offline:
-            results.warnings.append('This game is not marked for offline use (may still work).')
+            results.warnings.add('This game is not marked for offline use (may still work).')
 
         # check if enough disk space is free (dl size is the approximate amount the installation will grow)
         min_disk_space = analysis.uncompressed_dl_size + analysis.biggest_file_size
@@ -465,7 +465,7 @@ class LegendaryCore:
         if free < min_disk_space:
             free_mib = free / 1024 / 1024
             required_mib = min_disk_space / 1024 / 1024
-            results.failures.append(f'Not enough available disk space! {free_mib:.02f} MiB < {required_mib:.02f} MiB')
+            results.failures.add(f'Not enough available disk space! {free_mib:.02f} MiB < {required_mib:.02f} MiB')
 
         return results
 
