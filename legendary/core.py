@@ -307,9 +307,10 @@ class LegendaryCore:
 
     def prepare_download(self, game: Game, base_game: Game = None, base_path: str = '',
                          status_q: Queue = None, max_shm: int = 0, max_workers: int = 0,
-                         force: bool = False, disable_patching: bool = False, game_folder: str = '',
-                         override_manifest: str = '', override_old_manifest: str = '',
-                         override_base_url: str = '', platform_override: str = '',
+                         force: bool = False, disable_patching: bool = False,
+                         game_folder: str = '', override_manifest: str = '',
+                         override_old_manifest: str = '', override_base_url: str = '',
+                         platform_override: str = '', file_prefix_filter: str = ''
                          ) -> (DLManager, AnalysisResult, ManifestMeta):
 
         # load old manifest
@@ -418,7 +419,8 @@ class LegendaryCore:
         dlm = DLManager(install_path, base_url, resume_file=resume_file, status_q=status_q,
                         max_shared_memory=max_shm * 1024 * 1024, max_workers=max_workers)
         anlres = dlm.run_analysis(manifest=new_manifest, old_manifest=old_manifest,
-                                  patch=not disable_patching, resume=not force)
+                                  patch=not disable_patching, resume=not force,
+                                  file_prefix_filter=file_prefix_filter)
 
         prereq = None
         if new_manifest.meta.prereq_ids:

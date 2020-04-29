@@ -242,7 +242,7 @@ class DLManager(Process):
         self.log.info('Writer result handler quitting...')
 
     def run_analysis(self, manifest: Manifest, old_manifest: Manifest = None,
-                     patch=True, resume=True) -> AnalysisResult:
+                     patch=True, resume=True, file_prefix_filter=None) -> AnalysisResult:
         """
         Run analysis on manifest and old manifest (if not None) and return a result
         with a summary resources required in order to install the provided manifest.
@@ -251,8 +251,12 @@ class DLManager(Process):
         :param old_manifest: Old manifest to patch from (if applicable)
         :param patch: Patch instead of redownloading the entire file
         :param resume: Continue based on resume file if it exists
+        :param file_prefix_filter: Only download files that start with this prefix
         :return: AnalysisResult
         """
+
+        if file_prefix_filter:
+            file_prefix_filter = file_prefix_filter.lower()
 
         analysis_res = AnalysisResult()
         analysis_res.install_size = sum(fm.file_size for fm in manifest.file_manifest_list.elements)
@@ -275,6 +279,14 @@ class DLManager(Process):
                 self.log.debug(f'Skipped {len(completed_files)} files based on resume data!')
             except Exception as e:
                 self.log.warning(f'Reading resume file failed: {e!r}, continuing as normal...')
+
+        # if prefix has been set: mark all files that are not to be downloaded as unchanged (not removed)
+        if file_prefix_filter:
+            files_to_skip = set(i for i in mc.added | mc.changed if not i.lower().startswith(file_prefix_filter))
+            self.log.info(f'Found {len(files_to_skip)} files to skip based on prefix.')
+            mc.added -= files_to_skip
+            mc.changed -= files_to_skip
+            mc.unchanged |= files_to_skip
 
         if mc.removed:
             analysis_res.removed = len(mc.removed)
