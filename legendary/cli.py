@@ -132,7 +132,7 @@ class LegendaryCLI:
             exit(1)
 
         # override with config value
-        args.offline = self.core.is_offline_game(app_name)
+        args.offline = self.core.is_offline_game(app_name) or args.offline
         if not args.offline:
             logger.info('Logging in...')
             if not self.core.login():
