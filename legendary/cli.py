@@ -9,7 +9,7 @@ import subprocess
 import time
 import webbrowser
 
-from logging.handlers import QueueHandler, QueueListener
+from logging.handlers import QueueListener
 from multiprocessing import freeze_support, Queue as MPQueue
 from sys import exit
 
