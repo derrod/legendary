@@ -170,6 +170,10 @@ class ManifestMeta:
         _meta.prereq_path = read_fstring(bio)
         _meta.prereq_args = read_fstring(bio)
 
+        # apparently there's a newer version that actually stores *a* build id.
+        if _meta.data_version > 0:
+            _meta._build_id = read_fstring(bio)
+        
         if bio.tell() != _meta.meta_size:
             raise ValueError('Did not read entire meta!')
 
