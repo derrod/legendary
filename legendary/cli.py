@@ -94,18 +94,29 @@ class LegendaryCLI:
         games, dlc_list = self.core.get_game_and_dlc_list(
             platform_override=args.platform_override, skip_ue=not args.include_ue
         )
+        # sort games and dlc by name
+        games = sorted(games, key=lambda x: x.app_title)
+        for citem_id in dlc_list.keys():
+            dlc_list[citem_id] = sorted(dlc_list[citem_id], key=lambda d: d.app_title)
+
+        if args.csv or args.tsv:
+            writer = csv.writer(stdout, dialect='excel-tab' if args.tsv else 'excel')
+            writer.writerow(['App name', 'App title', 'Version', 'Is DLC'])
+            for game in games:
+                writer.writerow((game.app_name, game.app_title, game.app_version, False))
+                for dlc in dlc_list[game.asset_info.catalog_item_id]:
+                    writer.writerow((dlc.app_name, dlc.app_title, dlc.app_version, True))
+            return
 
         print('\nAvailable games:')
-        for game in sorted(games, key=lambda x: x.app_title):
-            print(f'  * {game.app_title} (App name: {game.app_name}, version: {game.app_version})')
-            for dlc in sorted(dlc_list[game.asset_info.catalog_item_id], key=lambda d: d.app_title):
-                print(f'    + {dlc.app_title} (App name: {dlc.app_name}, version: {dlc.app_version})')
+        for game in games:
+            print(f' * {game.app_title} (App name: {game.app_name}, version: {game.app_version})')
+            for dlc in dlc_list[game.asset_info.catalog_item_id]:
+                print(f'  + {dlc.app_title} (App name: {dlc.app_name}, version: {dlc.app_version})')
 
         print(f'\nTotal: {len(games)}')
 
     def list_installed(self, args):
-        games = self.core.get_installed_list()
-
         if args.check_updates:
             logger.info('Logging in to check for updates...')
             if not self.core.login():
@@ -113,12 +124,25 @@ class LegendaryCLI:
             else:
                 self.core.get_assets(True)
 
+        games = sorted(self.core.get_installed_list(),
+                       key=lambda x: x.title)
+
+        versions = dict()
+        for game in games:
+            versions[game.app_name] = self.core.get_asset(game.app_name).build_version
+
+        if args.csv or args.tsv:
+            writer = csv.writer(stdout, dialect='excel-tab' if args.tsv else 'excel')
+            writer.writerow(['App name', 'App title', 'Installed version', 'Available version', 'Update available'])
+            writer.writerows((game.app_name, game.title, game.version, versions[game.app_name],
+                              versions[game.app_name] != game.version) for game in games)
+            return
+
         print('\nInstalled games:')
-        for game in sorted(games, key=lambda x: x.title):
-            print(f'  * {game.title} (App name: {game.app_name}, version: {game.version})')
-            game_asset = self.core.get_asset(game.app_name)
-            if game_asset.build_version != game.version:
-                print(f'    -> Update available! Installed: {game.version}, Latest: {game_asset.build_version}')
+        for game in games:
+            print(f' * {game.title} (App name: {game.app_name}, version: {game.version})')
+            if versions[game.app_name] != game.version:
+                print(f'  -> Update available! Installed: {game.version}, Latest: {versions[game.app_name]}')
 
         print(f'\nTotal: {len(games)}')
 
@@ -437,9 +461,15 @@ def main():
                              type=str, help='Override platform that games are shown for')
     list_parser.add_argument('--include-ue', dest='include_ue', action='store_true',
                              help='Also include Unreal Engine content in list')
+    list_parser.add_argument('--csv', dest='csv', action='store_true', help='List games in CSV format')
+    list_parser.add_argument('--tsv', dest='tsv', action='store_true', help='List games in TSV format')
 
     list_installed_parser.add_argument('--check-updates', dest='check_updates', action='store_true',
                                        help='Check for updates when listing installed games')
+    list_installed_parser.add_argument('--csv', dest='csv', action='store_true',
+                                       help='List games in CSV format')
+    list_installed_parser.add_argument('--tsv', dest='tsv', action='store_true',
+                                       help='List games in TSV format')
 
     list_files_parser.add_argument('--force-download', dest='force_download', action='store_true',
                                    help='Always download instead of using on-disk manifest')
