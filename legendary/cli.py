@@ -129,18 +129,19 @@ class LegendaryCLI:
         # check if we even need to log in
         if args.override_manifest:
             logger.info(f'Loading manifest from "{args.override_manifest}"')
-            manifest, _ = self.core.get_uri_manfiest(args.override_manifest)
+            manifest_data, _ = self.core.get_uri_manfiest(args.override_manifest)
         elif self.core.is_installed(args.app_name) and not args.force_download:
             logger.info(f'Loading installed manifest for "{args.app_name}"')
-            manifest, _ = self.core.get_installed_manifest(args.app_name)
+            manifest_data, _ = self.core.get_installed_manifest(args.app_name)
         else:
             logger.info(f'Logging in and downloading manifest for {args.app_name}')
             if not self.core.login():
                 logger.error('Login failed! Cannot continue with download process.')
                 exit(1)
             game = self.core.get_game(args.app_name, update_meta=True)
-            manifest, _ = self.core.get_cdn_manifest(game, platform_override=args.platform_override)
+            manifest_data, _ = self.core.get_cdn_manifest(game, platform_override=args.platform_override)
 
+        manifest = self.core.load_manfiest(manifest_data)
         files = sorted(manifest.file_manifest_list.elements,
                        key=lambda a: a.filename.lower())
 

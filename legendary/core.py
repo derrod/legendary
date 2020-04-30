@@ -308,7 +308,7 @@ class LegendaryCore:
     def get_installed_manifest(self, app_name):
         igame = self.get_installed_game(app_name)
         if old_bytes := self.lgd.load_manifest(app_name, igame.version):
-            return self.load_manfiest(old_bytes), igame.base_urls
+            return old_bytes, igame.base_urls
 
     def get_cdn_manifest(self, game, platform_override=''):
         base_urls = []
@@ -335,7 +335,7 @@ class LegendaryCore:
             self.log.debug(f'Downloading manifest from {manifest["uri"]} ...')
             r = self.egs.unauth_session.get(manifest['uri'], params=params)
             r.raise_for_status()
-            return self.load_manfiest(r.content), base_urls
+            return r.content, base_urls
 
     def get_uri_manfiest(self, uri):
         if uri.startswith('http'):
@@ -348,7 +348,7 @@ class LegendaryCore:
             with open(uri, 'rb') as f:
                 new_manifest_data = f.read()
 
-        return self.load_manfiest(new_manifest_data), base_urls
+        return new_manifest_data, base_urls
 
     def prepare_download(self, game: Game, base_game: Game = None, base_path: str = '',
                          status_q: Queue = None, max_shm: int = 0, max_workers: int = 0,
@@ -360,27 +360,29 @@ class LegendaryCore:
 
         # load old manifest
         old_manifest = None
-        new_manifest_data = b''
 
         # load old manifest if we have one
         if override_old_manifest:
             self.log.info(f'Overriding old manifest with "{override_old_manifest}"')
-            old_manifest, _ = self.get_uri_manfiest(override_old_manifest)
+            old_bytes, _ = self.get_uri_manfiest(override_old_manifest)
+            old_manifest = self.load_manfiest(old_bytes)
         elif not disable_patching and not force and self.is_installed(game.app_name):
-            old_manifest, _ = self.get_installed_manifest(game.app_name)
+            old_bytes, _ = self.get_installed_manifest(game.app_name)
+            old_manifest = self.load_manfiest(old_bytes)
 
         base_urls = list(game.base_urls)  # copy list for manipulation
 
         if override_manifest:
             self.log.info(f'Overriding manifest with "{override_manifest}"')
-            new_manifest, _base_urls = self.get_uri_manfiest(override_manifest)
+            new_manifest_data, _base_urls = self.get_uri_manfiest(override_manifest)
             # if override manifest has a base URL use that instead
             if _base_urls:
                 base_urls = _base_urls
         else:
-            new_manifest, _base_urls = self.get_cdn_manifest(game, platform_override)
+            new_manifest_data, _base_urls = self.get_cdn_manifest(game, platform_override)
             base_urls.extend(i for i in _base_urls if i not in base_urls)
 
+        new_manifest = self.load_manfiest(new_manifest_data)
         self.log.debug(f'Base urls: {base_urls}')
         self.lgd.save_manifest(game.app_name, new_manifest_data)
         # save manifest with version name as well for testing/downgrading/etc.
