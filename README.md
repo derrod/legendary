@@ -43,8 +43,9 @@ Note that on Linux glibc >= 2.25 is required, so older distributions such as Ubu
 
 ### Python package
 
-(A PyPI package will follow once it has gotten more testing.)
+Via PyPI: `pip install legendary-gl`
 
+Manually:
 - Install python3.8, setuptools and requests
 - Clone the git repository
 - Run `python3.8 setup.py install`
