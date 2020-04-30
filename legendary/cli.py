@@ -445,8 +445,8 @@ def main():
                                 help='Set download manager and worker processes\' loglevel to debug')
     install_parser.add_argument('--platform', dest='platform_override', action='store', metavar='<Platform>',
                                 type=str, help='Platform override for download (disables install)')
-    install_parser.add_argument('--prefix-filter', dest='file_prefix', action='store', metavar='<prefix>',
-                                type=str, help='Only fetch files whose path starts with <prefix> (case insensitive)')
+    install_parser.add_argument('--prefix', dest='file_prefix', action='store', metavar='<prefix>', type=str,
+                                help='Only fetch files whose path starts with <prefix> (case insensitive)')
 
     launch_parser.add_argument('--offline', dest='offline', action='store_true',
                                default=False, help='Skip login and launch game without online authentication')

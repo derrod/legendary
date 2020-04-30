@@ -164,9 +164,7 @@ optional arguments:
                         debug
   --platform <Platform>
                         Platform override for download (disables install)
-  --prefix-filter <prefix>
-                        Only fetch files whose path starts with <prefix> (case
-                        insensitive)
+  --prefix <prefix>     Only fetch files whose path starts with <prefix> (case insensitive)
 
 
 Command: uninstall
