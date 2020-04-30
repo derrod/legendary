@@ -150,6 +150,10 @@ class LegendaryCLI:
         if args.platform_override:
             args.force_download = True
 
+        if not args.override_manifest and not args.app_name:
+            print('You must provide either a manifest url/path or app name!')
+            return
+
         # check if we even need to log in
         if args.override_manifest:
             logger.info(f'Loading manifest from "{args.override_manifest}"')
@@ -412,7 +416,7 @@ def main():
     install_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
     uninstall_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
     launch_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
-    list_files_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
+    list_files_parser.add_argument('app_name', nargs='?', help='Name of the app', metavar='<App Name>')
 
     # importing only works on Windows right now
     if os.name == 'nt':
