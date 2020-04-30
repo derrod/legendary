@@ -305,6 +305,51 @@ class LegendaryCore:
         else:
             return Manifest.read_all(data)
 
+    def get_installed_manifest(self, app_name):
+        igame = self.get_installed_game(app_name)
+        if old_bytes := self.lgd.load_manifest(app_name, igame.version):
+            return self.load_manfiest(old_bytes), igame.base_urls
+
+    def get_cdn_manifest(self, game, platform_override=''):
+        base_urls = []
+        platform = 'Windows' if not platform_override else platform_override
+        m_api_r = self.egs.get_game_manifest(game.asset_info.namespace,
+                                             game.asset_info.catalog_item_id,
+                                             game.app_name, platform)
+
+        # never seen this outside the launcher itself, but if it happens: PANIC!
+        if len(m_api_r['elements']) > 1:
+            raise ValueError('Manifest response has more than one element!')
+
+        manifest_info = m_api_r['elements'][0]
+        for manifest in manifest_info['manifests']:
+            base_url = manifest['uri'].rpartition('/')[0]
+            if base_url not in base_urls:
+                base_urls.append(base_url)
+
+            params = dict()
+            if 'queryParams' in manifest:
+                for param in manifest['queryParams']:
+                    params[param['name']] = param['value']
+
+            self.log.debug(f'Downloading manifest from {manifest["uri"]} ...')
+            r = self.egs.unauth_session.get(manifest['uri'], params=params)
+            r.raise_for_status()
+            return self.load_manfiest(r.content), base_urls
+
+    def get_uri_manfiest(self, uri):
+        if uri.startswith('http'):
+            r = self.egs.unauth_session.get(uri)
+            r.raise_for_status()
+            new_manifest_data = r.content
+            base_urls = [r.url.rpartition('/')[0]]
+        else:
+            base_urls = []
+            with open(uri, 'rb') as f:
+                new_manifest_data = f.read()
+
+        return self.load_manfiest(new_manifest_data), base_urls
+
     def prepare_download(self, game: Game, base_game: Game = None, base_path: str = '',
                          status_q: Queue = None, max_shm: int = 0, max_workers: int = 0,
                          force: bool = False, disable_patching: bool = False,
@@ -320,65 +365,23 @@ class LegendaryCore:
         # load old manifest if we have one
         if override_old_manifest:
             self.log.info(f'Overriding old manifest with "{override_old_manifest}"')
-            if override_old_manifest.startswith('http'):
-                r = self.egs.unauth_session.get(override_old_manifest)
-                r.raise_for_status()
-                old_manifest_data = r.content
-            else:
-                with open(override_old_manifest, 'rb') as f:
-                    old_manifest_data = f.read()
-            old_manifest = self.load_manfiest(old_manifest_data)
+            old_manifest, _ = self.get_uri_manfiest(override_old_manifest)
         elif not disable_patching and not force and self.is_installed(game.app_name):
-            igame = self.get_installed_game(game.app_name)
-            if old_bytes := self.lgd.load_manifest(game.app_name, igame.version):
-                old_manifest = self.load_manfiest(old_bytes)
+            old_manifest, _ = self.get_installed_manifest(game.app_name)
 
         base_urls = list(game.base_urls)  # copy list for manipulation
 
         if override_manifest:
             self.log.info(f'Overriding manifest with "{override_manifest}"')
-            if override_manifest.startswith('http'):
-                r = self.egs.unauth_session.get(override_manifest)
-                r.raise_for_status()
-                new_manifest_data = r.content
-                base_urls = [r.url.rpartition('/')[0]]
-            else:
-                with open(override_manifest, 'rb') as f:
-                    new_manifest_data = f.read()
+            new_manifest, _base_urls = self.get_uri_manfiest(override_manifest)
+            # if override manifest has a base URL use that instead
+            if _base_urls:
+                base_urls = _base_urls
         else:
-            # get latest manifest from API
-            platform = 'Windows' if not platform_override else platform_override
-            m_api_r = self.egs.get_game_manifest(game.asset_info.namespace,
-                                                 game.asset_info.catalog_item_id,
-                                                 game.app_name, platform)
-
-            # never seen this outside the launcher itself, but if it happens: PANIC!
-            if len(m_api_r['elements']) > 1:
-                raise ValueError('Manifest response has more than one element!')
-
-            manifest_info = m_api_r['elements'][0]
-            for manifest in manifest_info['manifests']:
-                base_url = manifest['uri'].rpartition('/')[0]
-                if base_url not in base_urls:
-                    base_urls.append(base_url)
-
-                params = dict()
-                if 'queryParams' in manifest:
-                    for param in manifest['queryParams']:
-                        params[param['name']] = param['value']
-
-                self.log.debug(f'Downloading manifest from {manifest["uri"]} ...')
-                r = self.egs.unauth_session.get(manifest['uri'], params=params)
-                r.raise_for_status()
-                new_manifest_data = r.content
-                break
-
-        if override_base_url:
-            self.log.info(f'Overriding base URL with "{override_base_url}"')
-            base_urls = [override_base_url]
+            new_manifest, _base_urls = self.get_cdn_manifest(game, platform_override)
+            base_urls.extend(i for i in _base_urls if i not in base_urls)
 
         self.log.debug(f'Base urls: {base_urls}')
-        new_manifest = self.load_manfiest(new_manifest_data)
         self.lgd.save_manifest(game.app_name, new_manifest_data)
         # save manifest with version name as well for testing/downgrading/etc.
         self.lgd.save_manifest(game.app_name, new_manifest_data,
@@ -409,8 +412,13 @@ class LegendaryCore:
         else:
             resume_file = None
 
-        # randomly select one CDN
-        base_url = randchoice(base_urls)
+        if override_base_url:
+            self.log.info(f'Overriding base URL with "{override_base_url}"')
+            base_url = override_base_url
+        else:
+            # randomly select one CDN
+            base_url = randchoice(base_urls)
+
         self.log.debug(f'Using base URL: {base_url}')
 
         if not max_shm:
