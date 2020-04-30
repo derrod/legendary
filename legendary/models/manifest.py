@@ -80,6 +80,11 @@ class Manifest:
             logger.warning(f'Did not read {len(unhandled_data)} remaining bytes in manifest! '
                            f'This may not be a problem.')
 
+        # Throw this away since the raw data is no longer needed
+        _tmp.close()
+        del _tmp
+        _m.data = b''
+
         return _m
 
     @classmethod

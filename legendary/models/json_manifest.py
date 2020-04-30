@@ -53,6 +53,10 @@ class JSONManifest(Manifest):
         if _tmp.keys():
             print(f'Did not read JSON keys: {_tmp.keys()}!')
 
+        # clear raw data after manifest has been loaded
+        _m.data = b''
+        _m.json_data = None
+
         return _m
 
     @classmethod
