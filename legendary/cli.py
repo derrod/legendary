@@ -204,6 +204,9 @@ class LegendaryCLI:
             logger.error('Login failed! Cannot continue with download process.')
             exit(1)
 
+        if args.file_prefix:
+            args.no_install = True
+
         if args.update_only:
             if not self.core.is_installed(args.app_name):
                 logger.error(f'Update requested for "{args.app_name}", but app not installed!')
