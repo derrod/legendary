@@ -134,3 +134,4 @@ dmypy.json
 # local files (binary test files, images etc.)
 testing/
 stuff/
+dist_pyinstaller/
