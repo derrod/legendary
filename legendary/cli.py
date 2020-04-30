@@ -2,6 +2,7 @@
 # coding: utf-8
 
 import argparse
+import csv
 import logging
 import os
 import shlex
@@ -11,7 +12,7 @@ import webbrowser
 
 from logging.handlers import QueueListener
 from multiprocessing import freeze_support, Queue as MPQueue
-from sys import exit
+from sys import exit, stdout
 
 from legendary import __version__, __codename__
 from legendary.core import LegendaryCore
@@ -120,6 +121,39 @@ class LegendaryCLI:
                 print(f'    -> Update available! Installed: {game.version}, Latest: {game_asset.build_version}')
 
         print(f'\nTotal: {len(games)}')
+
+    def list_files(self, args):
+        if args.platform_override:
+            args.force_download = True
+
+        # check if we even need to log in
+        if args.override_manifest:
+            logger.info(f'Loading manifest from "{args.override_manifest}"')
+            manifest, _ = self.core.get_uri_manfiest(args.override_manifest)
+        elif self.core.is_installed(args.app_name) and not args.force_download:
+            logger.info(f'Loading installed manifest for "{args.app_name}"')
+            manifest, _ = self.core.get_installed_manifest(args.app_name)
+        else:
+            logger.info(f'Logging in and downloading manifest for {args.app_name}')
+            if not self.core.login():
+                logger.error('Login failed! Cannot continue with download process.')
+                exit(1)
+            game = self.core.get_game(args.app_name, update_meta=True)
+            manifest, _ = self.core.get_cdn_manifest(game, platform_override=args.platform_override)
+
+        files = sorted(manifest.file_manifest_list.elements,
+                       key=lambda a: a.filename.lower())
+
+        if args.hashlist:
+            for fm in files:
+                print(f'{fm.hash.hex()} *{fm.filename}')
+        elif args.csv:
+            writer = csv.writer(stdout)
+            writer.writerow(['path', 'hash', 'size'])
+            writer.writerows((fm.filename, fm.hash.hex(), fm.file_size) for fm in files)
+        else:
+            for fm in files:
+                print(fm.filename)
 
     def launch_game(self, args, extra):
         app_name = args.app_name
@@ -344,11 +378,13 @@ def main():
     launch_parser = subparsers.add_parser('launch', help='Launch a game', usage='%(prog)s <App Name> [options]',
                                           description='Note: additional arguments are passed to the game')
     list_parser = subparsers.add_parser('list-games', help='List available (installable) games')
-    listi_parser = subparsers.add_parser('list-installed', help='List installed games')
+    list_installed_parser = subparsers.add_parser('list-installed', help='List installed games')
+    list_files_parser = subparsers.add_parser('list-files', help='List files in manifest')
 
     install_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
     uninstall_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
     launch_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
+    list_files_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
 
     # importing only works on Windows right now
     if os.name == 'nt':
@@ -398,8 +434,18 @@ def main():
     list_parser.add_argument('--include-ue', dest='include_ue', action='store_true',
                              help='Also include Unreal Engine content in list')
 
-    listi_parser.add_argument('--check-updates', dest='check_updates', action='store_true',
-                              help='Check for updates when listing installed games')
+    list_installed_parser.add_argument('--check-updates', dest='check_updates', action='store_true',
+                                       help='Check for updates when listing installed games')
+
+    list_files_parser.add_argument('--force-download', dest='force_download', action='store_true',
+                                   help='Always download instead of using on-disk manifest')
+    list_files_parser.add_argument('--platform', dest='platform_override', action='store', metavar='<Platform>',
+                                   type=str, help='Platform override for download (disables install)')
+    list_files_parser.add_argument('--manifest', dest='override_manifest', action='store', metavar='<uri>',
+                                   help='Manifest URL or path to use instead of the CDN one')
+    list_files_parser.add_argument('--csv', dest='csv', action='store_true', help='Output in CSV format')
+    list_files_parser.add_argument('--hashlist', dest='hashlist', action='store_true',
+                                   help='Output file hash list in hashcheck/sha1sum compatible format')
 
     args, extra = parser.parse_known_args()
 
@@ -407,7 +453,8 @@ def main():
         print(f'legendary version "{__version__}", codename "{__codename__}"')
         exit(0)
 
-    if args.subparser_name not in ('auth', 'list-games', 'list-installed', 'launch', 'download', 'uninstall'):
+    if args.subparser_name not in ('auth', 'list-games', 'list-installed', 'list-files',
+                                   'launch', 'download', 'uninstall'):
         print(parser.format_help())
 
         # Print the main help *and* the help for all of the subcommands. Thanks stackoverflow!
@@ -443,6 +490,8 @@ def main():
             cli.install_game(args)
         elif args.subparser_name == 'uninstall':
             cli.uninstall_game(args)
+        elif args.subparser_name == 'list-files':
+            cli.list_files(args)
     except KeyboardInterrupt:
         logger.info('Command was aborted via KeyboardInterrupt, cleaning up...')
 
