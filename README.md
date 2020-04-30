@@ -101,9 +101,9 @@ $ legendary launch Anemone
 ## Usage
 
 ````
-usage: legendary [-h] [-v] [-y] [-V] {auth,download,uninstall,launch,list-games,list-installed} ...
+usage: legendary [-h] [-v] [-y] [-V] {auth,download,uninstall,launch,list-games,list-installed,list-files} ...
 
-Legendary v0.0.X - "Witty Name"
+Legendary v0.0.X - "Codename"
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -112,13 +112,14 @@ optional arguments:
   -V                    Print version and exit
 
 Commands:
-  {auth,download,uninstall,launch,list-games,list-installed}
+  {auth,download,uninstall,launch,list-games,list-installed,list-files}
     auth                Authenticate with EPIC
     download            Download a game
     uninstall           Uninstall (delete) a game
     launch              Launch a game
     list-games          List available (installable) games
     list-installed      List installed games
+    list-files          List files in manifest
 
 Individual command help:
 
@@ -139,20 +140,33 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   --base-path <path>    Path for game installations (defaults to ~/legendary)
-  --game-folder <path>  Folder for game installation (defaults to folder in metadata)
+  --game-folder <path>  Folder for game installation (defaults to folder in
+                        metadata)
   --max-shared-memory <size>
-                        Maximum amount of shared memory to use (in MiB), default: 1 GiB
-  --max-workers <num>   Maximum amount of download workers, default: 2 * logical CPU
-  --manifest <uri>      Manifest URL or path to use instead of the CDN one (e.g. for downgrading)
-  --old-manifest <uri>  Manifest URL or path to use as the old one (e.g. for testing patching)
-  --base-url <url>      Base URL to download from (e.g. to test or switch to a different CDNs)
+                        Maximum amount of shared memory to use (in MiB),
+                        default: 1 GiB
+  --max-workers <num>   Maximum amount of download workers, default: 2 *
+                        logical CPU
+  --manifest <uri>      Manifest URL or path to use instead of the CDN one
+                        (e.g. for downgrading)
+  --old-manifest <uri>  Manifest URL or path to use as the old one (e.g. for
+                        testing patching)
+  --base-url <url>      Base URL to download from (e.g. to test or switch to a
+                        different CDNs)
   --force               Ignore existing files (overwrite)
-  --disable-patching    Do not attempt to patch existing installations (download entire changed file)
-  --download-only       Do not mark game as intalled and do not run prereq installers after download
-  --update-only         Abort if game is not already installed (for automation)
-  --dlm-debug           Set download manager and worker processes' loglevel to debug
+  --disable-patching    Do not attempt to patch existing installations
+                        (download entire changed file)
+  --download-only       Do not mark game as intalled and do not run prereq
+                        installers after download
+  --update-only         Abort if game is not already installed (for
+                        automation)
+  --dlm-debug           Set download manager and worker processes' loglevel to
+                        debug
   --platform <Platform>
                         Platform override for download (disables install)
+  --prefix-filter <prefix>
+                        Only fetch files whose path starts with <prefix> (case
+                        insensitive)
 
 
 Command: uninstall
@@ -175,29 +189,56 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  --offline             Skip login and launch game without online authentication
+  --offline             Skip login and launch game without online
+                        authentication
   --skip-version-check  Skip version check when launching game in online mode
   --override-username <username>
-                        Override username used when launching the game (only works with some titles)
-  --dry-run             Print the command line that would have been used to launch the game and exit
+                        Override username used when launching the game (only
+                        works with some titles)
+  --dry-run             Print the command line that would have been used to
+                        launch the game and exit
 
 
 Command: list-games
-usage: legendary list-games [-h] [--platform <Platform>] [--include-ue]
+usage: legendary list-games [-h] [--platform <Platform>] [--include-ue] [--csv]
+                         [--tsv]
 
 optional arguments:
   -h, --help            show this help message and exit
   --platform <Platform>
                         Override platform that games are shown for
   --include-ue          Also include Unreal Engine content in list
+  --csv                 List games in CSV format
+  --tsv                 List games in TSV format
 
 
 Command: list-installed
-usage: legendary list-installed [-h] [--check-updates]
+usage: legendary list-installed [-h] [--check-updates] [--csv] [--tsv]
 
 optional arguments:
   -h, --help       show this help message and exit
   --check-updates  Check for updates when listing installed games
+  --csv            List games in CSV format
+  --tsv            List games in TSV format
+
+
+Command: list-files
+usage: legendary list-files [-h] [--force-download] [--platform <Platform>]
+                         [--manifest <uri>] [--csv] [--hashlist]
+                         <App Name>
+
+positional arguments:
+  <App Name>            Name of the app
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --force-download      Always download instead of using on-disk manifest
+  --platform <Platform>
+                        Platform override for download (disables install)
+  --manifest <uri>      Manifest URL or path to use instead of the CDN one
+  --csv                 Output in CSV format
+  --hashlist            Output file hash list in hashcheck/sha1sum compatible
+                        format
 ````
 
 
