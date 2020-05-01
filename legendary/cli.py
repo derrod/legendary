@@ -173,16 +173,24 @@ class LegendaryCLI:
         files = sorted(manifest.file_manifest_list.elements,
                        key=lambda a: a.filename.lower())
 
+        if args.install_tag:
+            files = [fm for fm in files if args.install_tag in fm.install_tags]
+
         if args.hashlist:
             for fm in files:
                 print(f'{fm.hash.hex()} *{fm.filename}')
-        elif args.csv:
-            writer = csv.writer(stdout)
-            writer.writerow(['path', 'hash', 'size'])
-            writer.writerows((fm.filename, fm.hash.hex(), fm.file_size) for fm in files)
+        elif args.csv or args.tsv:
+            writer = csv.writer(stdout, dialect='excel-tab' if args.tsv else 'excel')
+            writer.writerow(['path', 'hash', 'size', 'install_tags'])
+            writer.writerows((fm.filename, fm.hash.hex(), fm.file_size, '|'.join(fm.install_tags))for fm in files)
         else:
+            install_tags = set()
             for fm in files:
                 print(fm.filename)
+                for t in fm.install_tags:
+                    install_tags.add(t)
+            # use the log output so this isn't included when piping file list into file
+            logger.info(f'Install tags: {", ".join(sorted(install_tags))}')
 
     def launch_game(self, args, extra):
         app_name = args.app_name
@@ -232,7 +240,7 @@ class LegendaryCLI:
             logger.error('Login failed! Cannot continue with download process.')
             exit(1)
 
-        if args.file_prefix:
+        if args.file_prefix or args.file_exclude_prefix or args.install_tag:
             args.no_install = True
 
         if args.update_only:
@@ -273,7 +281,8 @@ class LegendaryCLI:
                                                           override_base_url=args.override_base_url,
                                                           platform_override=args.platform_override,
                                                           file_prefix_filter=args.file_prefix,
-                                                          file_exclude_filter=args.file_exclude_prefix)
+                                                          file_exclude_filter=args.file_exclude_prefix,
+                                                          file_install_tag=args.install_tag)
 
         # game is either up to date or hasn't changed, so we have nothing to do
         if not analysis.dl_size:
@@ -454,6 +463,8 @@ def main():
                                 help='Only fetch files whose path starts with <prefix> (case insensitive)')
     install_parser.add_argument('--exclude', dest='file_exclude_prefix', action='store', metavar='<prefix>',
                                 type=str, help='Exclude files starting with <prefix> (case insensitive)')
+    install_parser.add_argument('--install-tag', dest='install_tag', action='store', metavar='<prefix>',
+                                type=str, help='Only download files with the specified install tag (testing)')
 
     launch_parser.add_argument('--offline', dest='offline', action='store_true',
                                default=False, help='Skip login and launch game without online authentication')
@@ -485,8 +496,11 @@ def main():
     list_files_parser.add_argument('--manifest', dest='override_manifest', action='store', metavar='<uri>',
                                    help='Manifest URL or path to use instead of the CDN one')
     list_files_parser.add_argument('--csv', dest='csv', action='store_true', help='Output in CSV format')
+    list_files_parser.add_argument('--tsv', dest='tsv', action='store_true', help='Output in TSV format')
     list_files_parser.add_argument('--hashlist', dest='hashlist', action='store_true',
                                    help='Output file hash list in hashcheck/sha1sum compatible format')
+    list_files_parser.add_argument('--install-tag', dest='install_tag', action='store', metavar='<prefix>',
+                                   type=str, help='Show only files with specified install tag')
 
     args, extra = parser.parse_known_args()
 

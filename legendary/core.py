@@ -356,7 +356,8 @@ class LegendaryCore:
                          game_folder: str = '', override_manifest: str = '',
                          override_old_manifest: str = '', override_base_url: str = '',
                          platform_override: str = '', file_prefix_filter: str = '',
-                         file_exclude_filter: str = '' ) -> (DLManager, AnalysisResult, ManifestMeta):
+                         file_exclude_filter: str = '', file_install_tag: str = ''
+                         ) -> (DLManager, AnalysisResult, ManifestMeta):
         # load old manifest
         old_manifest = None
 
@@ -430,7 +431,8 @@ class LegendaryCore:
         anlres = dlm.run_analysis(manifest=new_manifest, old_manifest=old_manifest,
                                   patch=not disable_patching, resume=not force,
                                   file_prefix_filter=file_prefix_filter,
-                                  file_exclude_filter=file_exclude_filter)
+                                  file_exclude_filter=file_exclude_filter,
+                                  file_install_tag=file_install_tag)
 
         prereq = None
         if new_manifest.meta.prereq_ids:
