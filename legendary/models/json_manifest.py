@@ -115,7 +115,7 @@ class JSONCDL(CDL):
             _ci.guid = guid_from_json(guid)
             _ci.file_size = blob_to_num(cfl.pop(guid))
             _ci.hash = blob_to_num(chl.pop(guid))
-            _ci.sha_hash = csl.pop(guid)  # todo; figure out if we have to decode this somehow
+            _ci.sha_hash = bytes.fromhex(csl.pop(guid))
             _ci.group_num = blob_to_num(dgl.pop(guid))
             _ci.window_size = 1024*1024
             _cdl.elements.append(_ci)
