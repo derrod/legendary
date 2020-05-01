@@ -272,7 +272,8 @@ class LegendaryCLI:
                                                           override_old_manifest=args.override_old_manifest,
                                                           override_base_url=args.override_base_url,
                                                           platform_override=args.platform_override,
-                                                          file_prefix_filter=args.file_prefix)
+                                                          file_prefix_filter=args.file_prefix,
+                                                          file_exclude_filter=args.file_exclude_prefix)
 
         # game is either up to date or hasn't changed, so we have nothing to do
         if not analysis.dl_size:
@@ -451,6 +452,8 @@ def main():
                                 type=str, help='Platform override for download (disables install)')
     install_parser.add_argument('--prefix', dest='file_prefix', action='store', metavar='<prefix>', type=str,
                                 help='Only fetch files whose path starts with <prefix> (case insensitive)')
+    install_parser.add_argument('--exclude', dest='file_exclude_prefix', action='store', metavar='<prefix>',
+                                type=str, help='Exclude files starting with <prefix> (case insensitive)')
 
     launch_parser.add_argument('--offline', dest='offline', action='store_true',
                                default=False, help='Skip login and launch game without online authentication')
