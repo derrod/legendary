@@ -189,8 +189,9 @@ class LegendaryCLI:
                 print(fm.filename)
                 for t in fm.install_tags:
                     install_tags.add(t)
-            # use the log output so this isn't included when piping file list into file
-            logger.info(f'Install tags: {", ".join(sorted(install_tags))}')
+            if install_tags:
+                # use the log output so this isn't included when piping file list into file
+                logger.info(f'Install tags: {", ".join(sorted(install_tags))}')
 
     def launch_game(self, args, extra):
         app_name = args.app_name
