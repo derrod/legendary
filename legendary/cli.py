@@ -464,7 +464,7 @@ def main():
                                 help='Only fetch files whose path starts with <prefix> (case insensitive)')
     install_parser.add_argument('--exclude', dest='file_exclude_prefix', action='store', metavar='<prefix>',
                                 type=str, help='Exclude files starting with <prefix> (case insensitive)')
-    install_parser.add_argument('--install-tag', dest='install_tag', action='store', metavar='<prefix>',
+    install_parser.add_argument('--install-tag', dest='install_tag', action='store', metavar='<tag>',
                                 type=str, help='Only download files with the specified install tag (testing)')
 
     launch_parser.add_argument('--offline', dest='offline', action='store_true',
@@ -500,7 +500,7 @@ def main():
     list_files_parser.add_argument('--tsv', dest='tsv', action='store_true', help='Output in TSV format')
     list_files_parser.add_argument('--hashlist', dest='hashlist', action='store_true',
                                    help='Output file hash list in hashcheck/sha1sum compatible format')
-    list_files_parser.add_argument('--install-tag', dest='install_tag', action='store', metavar='<prefix>',
+    list_files_parser.add_argument('--install-tag', dest='install_tag', action='store', metavar='<tag>',
                                    type=str, help='Show only files with specified install tag')
 
     args, extra = parser.parse_known_args()
