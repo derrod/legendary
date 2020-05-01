@@ -12,7 +12,9 @@ if sys.version_info < (3, 8):
     sys.exit('python 3.8 or higher is required for legendary')
 
 with open("README.md", "r") as fh:
-    long_description = fh.read()
+    long_description_l = fh.readlines()
+    del long_description_l[2:5]  # remove discord/twitter link and logo
+    long_description = ''.join(long_description_l)
 
 setup(
     name='legendary-gl',

@@ -1,5 +1,7 @@
-# Legendary Game Launcher
-### A free and open-source Epic Games Launcher replacement
+# Legendary
+## A free and open-source Epic Games Launcher replacement
+![Logo](https://repository-images.githubusercontent.com/249938026/7ea8a680-7e65-11ea-9260-fea84c1112f1)
+
 [![Discord](https://discordapp.com/api/guilds/695233346627698689/widget.png?style=shield)](https://discord.gg/UJKBwPw) [![Twitter Follow](https://img.shields.io/twitter/follow/legendary_gl?label=Follow%20us%20for%20updates%21&style=social)](https://twitter.com/legendary_gl)
 
 Legendary is an open-source game launcher that can download and install games from the Epic Games Store on Linux and Windows.
@@ -8,22 +10,23 @@ It's name as a tongue-in-cheek play on tiers of [item rarity in many MMORPGs](ht
 Right now it is in an early public testing stage and still needs a lot of work to work. But it does work!
 
 **What works:**
- - Authenticate with Epic
- - Download and install games and their DLC
+ - Authenticating with Epic's service
+ - Downloading and installing your games and their DLC
  - Delta patching/updating of installed games
- - Launch games with online authentication
+ - Launching games with online authentication (for multiplayer)
+ - Running games with WINE on Linux
 
 **Planned:**
- - PyPI/PPA distribution
  - Simple GUI for managing/launching games
  - Importing installed games from the EGS launcher
+ - Better interfaces for other developers to use Legendary in their projects
  - Lots and lots of bug fixes, optimizations, and refactoring...
 
 ## Requirements
 
-- python 3.8+ **(64-bit)**
+- python 3.8+ (64-bit on Windows)
 - requests
-- setuptools (for installation)
+- setuptools (only when installing/building)
 
 ## How to run/install
 
@@ -165,7 +168,12 @@ optional arguments:
                         debug
   --platform <Platform>
                         Platform override for download (disables install)
-  --prefix <prefix>     Only fetch files whose path starts with <prefix> (case insensitive)
+  --prefix <prefix>     Only fetch files whose path starts with <prefix> (case
+                        insensitive)
+  --exclude <prefix>    Exclude files starting with <prefix> (case
+                        insensitive)
+  --install-tag <tag>   Only download files with the specified install tag
+                        (testing)
 
 
 Command: uninstall
@@ -223,8 +231,9 @@ optional arguments:
 
 Command: list-files
 usage: legendary list-files [-h] [--force-download] [--platform <Platform>]
-                         [--manifest <uri>] [--csv] [--hashlist]
-                         <App Name>
+                         [--manifest <uri>] [--csv] [--tsv] [--hashlist]
+                         [--install-tag <prefix>]
+                         [<App Name>]
 
 positional arguments:
   <App Name>            Name of the app
@@ -236,8 +245,12 @@ optional arguments:
                         Platform override for download (disables install)
   --manifest <uri>      Manifest URL or path to use instead of the CDN one
   --csv                 Output in CSV format
+  --tsv                 Output in TSV format
   --hashlist            Output file hash list in hashcheck/sha1sum compatible
                         format
+  --install-tag <tag>   Show only files with specified install tag
+
+
 ````
 
 
