@@ -35,7 +35,9 @@ Right now it is in an early public testing stage and still needs a lot of work t
 Depending on your Distro legendary may be available via (unofficial) packages that can be directly installed using your package manager.
 Check out the [Available Linux Packages](https://github.com/derrod/legendary/wiki/Available-Linux-Packages) wiki page for details.
 
-Currently this is limited to Arch Linux (AUR) but will hopefully be expanded to other distros rather soon.
+Currently this is limited to Arch Linux (AUR) and Fedora but will hopefully be expanded to other distros rather soon.
+
+- [Fedora](https://src.fedoraproject.org/rpms/legendary): `sudo dnf install legendary`
 
 ### Standalone
 Download the latest `legendary` or `legendary.exe` binary from [the latest release](https://github.com/derrod/legendary/releases/latest)
