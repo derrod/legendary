@@ -272,6 +272,7 @@ class LegendaryCLI:
         else:
             base_game = None
 
+        logger.info('Preparing download...')
         # todo use status queue to print progress from CLI
         dlm, analysis, igame = self.core.prepare_download(game=game, base_game=base_game, base_path=args.base_path,
                                                           force=args.force, max_shm=args.shared_memory,

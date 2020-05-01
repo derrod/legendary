@@ -387,6 +387,7 @@ class LegendaryCore:
             new_manifest_data, _base_urls = self.get_cdn_manifest(game, platform_override)
             base_urls.extend(i for i in _base_urls if i not in base_urls)
 
+        self.log.info('Parsing game manifest...')
         new_manifest = self.load_manfiest(new_manifest_data)
         self.log.debug(f'Base urls: {base_urls}')
         self.lgd.save_manifest(game.app_name, new_manifest_data)
