@@ -321,11 +321,14 @@ class LegendaryCore:
         if len(m_api_r['elements']) > 1:
             raise ValueError('Manifest response has more than one element!')
 
+        manifest_data = None
         manifest_info = m_api_r['elements'][0]
         for manifest in manifest_info['manifests']:
             base_url = manifest['uri'].rpartition('/')[0]
             if base_url not in base_urls:
                 base_urls.append(base_url)
+            if manifest_data:
+                continue
 
             params = dict()
             if 'queryParams' in manifest:
@@ -335,7 +338,9 @@ class LegendaryCore:
             self.log.debug(f'Downloading manifest from {manifest["uri"]} ...')
             r = self.egs.unauth_session.get(manifest['uri'], params=params)
             r.raise_for_status()
-            return r.content, base_urls
+            manifest_data = r.content
+
+        return manifest_data, base_urls
 
     def get_uri_manfiest(self, uri):
         if uri.startswith('http'):
