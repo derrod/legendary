@@ -32,10 +32,9 @@ Right now it is in an early public testing stage and still needs a lot of work t
 
 ### Package Manager
 
-Depending on your Distro legendary may be available via (unofficial) packages that can be directly installed using your package manager.
-Check out the [Available Linux Packages](https://github.com/derrod/legendary/wiki/Available-Linux-Packages) wiki page for details.
+Some distros already have (unofficial) packages available, check out the [Available Linux Packages](https://github.com/derrod/legendary/wiki/Available-Linux-Packages) wiki page for details.
 
-Currently this is limited to Arch Linux (AUR) but will hopefully be expanded to other distros rather soon.
+Currently this includes [Arch](https://src.fedoraproject.org/rpms/legendary) and [Fedora](https://src.fedoraproject.org/rpms/legendary) but more will be available in the future.
 
 ### Standalone
 Download the latest `legendary` or `legendary.exe` binary from [the latest release](https://github.com/derrod/legendary/releases/latest)
