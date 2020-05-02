@@ -439,7 +439,7 @@ class DLManager(Process):
         # Todo implement on-disk caching to avoid this issue.
         if analysis_res.min_memory > self.max_shared_memory:
             shared_mib = f'{self.max_shared_memory / 1024 / 1024:.01f} MiB'
-            required_mib = f'{analysis_res.min_memory / 1024 / 1024:.01} MiB'
+            required_mib = f'{analysis_res.min_memory / 1024 / 1024:.01f} MiB'
             raise MemoryError(f'Current shared memory cache is smaller than required! {shared_mib} < {required_mib}')
 
         # calculate actual dl and patch write size.
