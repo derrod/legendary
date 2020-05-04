@@ -86,7 +86,7 @@ This will fetch a list of games available on your account, the first time may ta
 
 Installing a game
 ````
-$ legendary download Anemone
+$ legendary install Anemone
 ````
 **Important:** the name used for these commands is the app name, *not* the game's name! The app name is in the parentheses after the game title in the games list.
 
