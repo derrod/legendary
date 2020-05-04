@@ -408,8 +408,11 @@ class LegendaryCore:
         if not base_path:
             base_path = self.get_default_install_dir()
 
-        install_path = os.path.join(base_path, game_folder)
+        # make sure base directory actually exists (but do not create game dir)
+        if not os.path.exists(base_path):
+            os.makedirs(base_path)
 
+        install_path = os.path.join(base_path, game_folder)
         self.log.info(f'Install path: {install_path}')
 
         if not force:
@@ -487,7 +490,7 @@ class LegendaryCore:
 
         # check if enough disk space is free (dl size is the approximate amount the installation will grow)
         min_disk_space = analysis.uncompressed_dl_size + analysis.biggest_file_size
-        _, _, free = shutil.disk_usage(install.install_path)
+        _, _, free = shutil.disk_usage(os.path.split(install.install_path)[0])
         if free < min_disk_space:
             free_mib = free / 1024 / 1024
             required_mib = min_disk_space / 1024 / 1024
