@@ -480,8 +480,10 @@ class LegendaryCore:
                     results.warnings.add('(Linux) This game uses EasyAntiCheat and may not run on linux')
                 elif 'beclient' in flower:
                     results.warnings.add('(Linux) This game uses BattlEye and may not run on linux')
+                elif 'equ8.dll' in flower:
+                    results.warnings.add('(Linux) This game is using EQU8 anticheat and may not run on linux')
                 elif flower == 'fna.dll' or flower == 'xna.dll':
-                    results.warnings.add('(Linux) This game is using XNA/FNA and may not run through WINE')
+                    results.warnings.add('(Linux) This game is using XNA/FNA and may not run in WINE')
 
         if install.requires_ot:
             results.warnings.add('This game requires an ownership verification token and likely uses Denuvo DRM.')
