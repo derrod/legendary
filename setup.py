@@ -34,7 +34,9 @@ setup(
         console_scripts=['legendary = legendary.cli:main']
     ),
     install_requires=[
-        'requests'
+        'requests<3.0',
+        'setuptools',
+        'wheel'
     ],
     url='https://github.com/derrod/legendary',
     description='Free and open-source replacement for the Epic Games Launcher application',
