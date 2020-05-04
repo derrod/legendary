@@ -17,6 +17,7 @@ from sys import exit, stdout
 from legendary import __version__, __codename__
 from legendary.core import LegendaryCore
 from legendary.models.exceptions import InvalidCredentialsError
+from legendary.utils.custom_parser import AliasedSubParsersAction
 
 # todo custom formatter for cli logger (clean info, highlighted error/warning)
 logging.basicConfig(
@@ -237,6 +238,10 @@ class LegendaryCLI:
             subprocess.Popen(params, cwd=cwd, env=env)
 
     def install_game(self, args):
+        if args.subparser_name == 'download':
+            logger.info('The "download" command will be changed to set the --no-install command by default '
+                        'in the future, please adjust install scripts etc. to use "install" instead.')
+
         if not self.core.login():
             logger.error('Login failed! Cannot continue with download process.')
             exit(1)
@@ -410,6 +415,7 @@ class LegendaryCLI:
 
 def main():
     parser = argparse.ArgumentParser(description=f'Legendary v{__version__} - "{__codename__}"')
+    parser.register('action', 'parsers', AliasedSubParsersAction)
 
     # general arguments
     parser.add_argument('-v', dest='debug', action='store_true', help='Set loglevel to debug')
@@ -419,7 +425,8 @@ def main():
     # all the commands
     subparsers = parser.add_subparsers(title='Commands', dest='subparser_name')
     auth_parser = subparsers.add_parser('auth', help='Authenticate with EPIC')
-    install_parser = subparsers.add_parser('download', help='Download a game',
+    install_parser = subparsers.add_parser('install', help='Download a game',
+                                           aliases=('download', 'update'),
                                            usage='%(prog)s <App Name> [options]')
     uninstall_parser = subparsers.add_parser('uninstall', help='Uninstall (delete) a game')
     launch_parser = subparsers.add_parser('launch', help='Launch a game', usage='%(prog)s <App Name> [options]',
@@ -518,13 +525,15 @@ def main():
         exit(0)
 
     if args.subparser_name not in ('auth', 'list-games', 'list-installed', 'list-files',
-                                   'launch', 'download', 'uninstall'):
+                                   'launch', 'download', 'uninstall', 'install', 'update'):
         print(parser.format_help())
 
         # Print the main help *and* the help for all of the subcommands. Thanks stackoverflow!
         print('Individual command help:')
         subparsers = next(a for a in parser._actions if isinstance(a, argparse._SubParsersAction))
         for choice, subparser in subparsers.choices.items():
+            if choice in ('install', 'update'):
+                continue
             print(f'\nCommand: {choice}')
             print(subparser.format_help())
         return
@@ -550,7 +559,7 @@ def main():
             cli.list_installed(args)
         elif args.subparser_name == 'launch':
             cli.launch_game(args, extra)
-        elif args.subparser_name == 'download':
+        elif args.subparser_name in ('download', 'install', 'update'):
             cli.install_game(args)
         elif args.subparser_name == 'uninstall':
             cli.uninstall_game(args)
