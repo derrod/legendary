@@ -16,7 +16,8 @@ from legendary.models.downloading import DownloaderTaskResult, WriterTaskResult
 
 
 class DLWorker(Process):
-    def __init__(self, name, queue, out_queue, shm, max_retries=5, logging_queue=None):
+    def __init__(self, name, queue, out_queue, shm, max_retries=5,
+                 logging_queue=None, dl_timeout=10):
         super().__init__(name=name)
         self.q = queue
         self.o_q = out_queue
@@ -28,6 +29,7 @@ class DLWorker(Process):
         self.shm = SharedMemory(name=shm)
         self.log_level = logging.getLogger().level
         self.logging_queue = logging_queue
+        self.dl_timeout = dl_timeout
 
     def run(self):
         # we have to fix up the logger before we can start
@@ -66,7 +68,7 @@ class DLWorker(Process):
                     dl_start = time.time()
 
                     try:
-                        r = self.session.get(job.url, timeout=5.0)
+                        r = self.session.get(job.url, timeout=self.dl_timeout)
                         r.raise_for_status()
                     except Exception as e:
                         logger.warning(f'[{self.name}] Chunk download failed ({e!r}), retrying...')

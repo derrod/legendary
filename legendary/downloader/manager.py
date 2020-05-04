@@ -23,7 +23,7 @@ from legendary.models.manifest import ManifestComparison, Manifest
 class DLManager(Process):
     def __init__(self, download_dir, base_url, cache_dir=None, status_q=None,
                  max_jobs=100, max_failures=5, max_workers=0, update_interval=1.0,
-                 max_shared_memory=1024 * 1024 * 1024, resume_file=None):
+                 max_shared_memory=1024 * 1024 * 1024, resume_file=None, dl_timeout=10):
         super().__init__(name='DLManager')
         self.log = logging.getLogger('DLM')
         self.proc_debug = False
@@ -40,6 +40,7 @@ class DLManager(Process):
         self.writer_result_q = None
         self.max_jobs = max_jobs
         self.max_workers = max_workers if max_workers else min(cpu_count() * 2, 16)
+        self.dl_timeout = dl_timeout
 
         # Analysis stuff
         self.analysis = None
@@ -574,7 +575,8 @@ class DLManager(Process):
         self.log.info(f'Starting download workers...')
         for i in range(self.max_workers):
             w = DLWorker(f'DLWorker {i + 1}', self.dl_worker_queue, self.dl_result_q,
-                         self.shared_memory.name, logging_queue=self.logging_queue)
+                         self.shared_memory.name, logging_queue=self.logging_queue,
+                         dl_timeout=self.dl_timeout)
             self.children.append(w)
             w.start()
 

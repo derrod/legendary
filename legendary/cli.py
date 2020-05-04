@@ -286,7 +286,8 @@ class LegendaryCLI:
                                                           file_prefix_filter=args.file_prefix,
                                                           file_exclude_filter=args.file_exclude_prefix,
                                                           file_install_tag=args.install_tag,
-                                                          dl_optimizations=args.order_opt)
+                                                          dl_optimizations=args.order_opt,
+                                                          dl_timeout=args.dl_timeout)
 
         # game is either up to date or hasn't changed, so we have nothing to do
         if not analysis.dl_size:
@@ -471,6 +472,8 @@ def main():
                                 type=str, help='Only download files with the specified install tag (testing)')
     install_parser.add_argument('--enable-reordering', dest='order_opt', action='store_true',
                                 help='Enable reordering to attempt to optimize RAM usage during download')
+    install_parser.add_argument('--dl-timeout', dest='dl_timeout', action='store', metavar='<sec>', type=int,
+                                help='Connection timeout for downloader (default: 10 seconds)')
 
     launch_parser.add_argument('--offline', dest='offline', action='store_true',
                                default=False, help='Skip login and launch game without online authentication')

@@ -363,7 +363,8 @@ class LegendaryCore:
                          override_old_manifest: str = '', override_base_url: str = '',
                          platform_override: str = '', file_prefix_filter: str = '',
                          file_exclude_filter: str = '', file_install_tag: str = '',
-                         dl_optimizations: bool = False) -> (DLManager, AnalysisResult, ManifestMeta):
+                         dl_optimizations: bool = False, dl_timeout: int = 10
+                         ) -> (DLManager, AnalysisResult, ManifestMeta):
         # load old manifest
         old_manifest = None
 
@@ -436,7 +437,8 @@ class LegendaryCore:
             process_opt = False
 
         dlm = DLManager(install_path, base_url, resume_file=resume_file, status_q=status_q,
-                        max_shared_memory=max_shm * 1024 * 1024, max_workers=max_workers)
+                        max_shared_memory=max_shm * 1024 * 1024, max_workers=max_workers,
+                        dl_timeout=dl_timeout)
         anlres = dlm.run_analysis(manifest=new_manifest, old_manifest=old_manifest,
                                   patch=not disable_patching, resume=not force,
                                   file_prefix_filter=file_prefix_filter,
