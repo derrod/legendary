@@ -25,6 +25,7 @@ from legendary.models.exceptions import *
 from legendary.models.game import *
 from legendary.models.json_manifest import JSONManifest
 from legendary.models.manifest import Manifest, ManifestMeta
+from legendary.utils.game_workarounds import is_opt_enabled
 
 
 # ToDo: instead of true/false return values for success/failure actually raise an exception that the CLI/GUI
@@ -361,8 +362,8 @@ class LegendaryCore:
                          game_folder: str = '', override_manifest: str = '',
                          override_old_manifest: str = '', override_base_url: str = '',
                          platform_override: str = '', file_prefix_filter: str = '',
-                         file_exclude_filter: str = '', file_install_tag: str = ''
-                         ) -> (DLManager, AnalysisResult, ManifestMeta):
+                         file_exclude_filter: str = '', file_install_tag: str = '',
+                         dl_optimizations: bool = False) -> (DLManager, AnalysisResult, ManifestMeta):
         # load old manifest
         old_manifest = None
 
@@ -408,10 +409,6 @@ class LegendaryCore:
 
         install_path = os.path.join(base_path, game_folder)
 
-        # todo move this somewhere else so the directory only gets created once the download is started
-        if not os.path.exists(install_path):
-            os.makedirs(install_path)
-
         self.log.info(f'Install path: {install_path}')
 
         if not force:
@@ -432,13 +429,20 @@ class LegendaryCore:
         if not max_shm:
             max_shm = self.lgd.config.getint('Legendary', 'max_memory', fallback=1024)
 
+        if dl_optimizations or is_opt_enabled(game.app_name):
+            self.log.info('Download order optimizations are enabled.')
+            process_opt = True
+        else:
+            process_opt = False
+
         dlm = DLManager(install_path, base_url, resume_file=resume_file, status_q=status_q,
                         max_shared_memory=max_shm * 1024 * 1024, max_workers=max_workers)
         anlres = dlm.run_analysis(manifest=new_manifest, old_manifest=old_manifest,
                                   patch=not disable_patching, resume=not force,
                                   file_prefix_filter=file_prefix_filter,
                                   file_exclude_filter=file_exclude_filter,
-                                  file_install_tag=file_install_tag)
+                                  file_install_tag=file_install_tag,
+                                  processing_optimization=process_opt)
 
         prereq = None
         if new_manifest.meta.prereq_ids:

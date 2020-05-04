@@ -274,6 +274,7 @@ class LegendaryCLI:
 
         logger.info('Preparing download...')
         # todo use status queue to print progress from CLI
+        # This has become a little ridiculous hasn't it?
         dlm, analysis, igame = self.core.prepare_download(game=game, base_game=base_game, base_path=args.base_path,
                                                           force=args.force, max_shm=args.shared_memory,
                                                           max_workers=args.max_workers, game_folder=args.game_folder,
@@ -284,7 +285,8 @@ class LegendaryCLI:
                                                           platform_override=args.platform_override,
                                                           file_prefix_filter=args.file_prefix,
                                                           file_exclude_filter=args.file_exclude_prefix,
-                                                          file_install_tag=args.install_tag)
+                                                          file_install_tag=args.install_tag,
+                                                          dl_optimizations=args.order_opt)
 
         # game is either up to date or hasn't changed, so we have nothing to do
         if not analysis.dl_size:
@@ -467,6 +469,8 @@ def main():
                                 type=str, help='Exclude files starting with <prefix> (case insensitive)')
     install_parser.add_argument('--install-tag', dest='install_tag', action='store', metavar='<tag>',
                                 type=str, help='Only download files with the specified install tag (testing)')
+    install_parser.add_argument('--enable-reordering', dest='order_opt', action='store_true',
+                                help='Enable reordering to attempt to optimize RAM usage during download')
 
     launch_parser.add_argument('--offline', dest='offline', action='store_true',
                                default=False, help='Skip login and launch game without online authentication')

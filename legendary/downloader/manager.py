@@ -242,7 +242,8 @@ class DLManager(Process):
 
     def run_analysis(self, manifest: Manifest, old_manifest: Manifest = None,
                      patch=True, resume=True, file_prefix_filter=None,
-                     file_exclude_filter=None, file_install_tag=None) -> AnalysisResult:
+                     file_exclude_filter=None, file_install_tag=None,
+                     processing_optimization=False) -> AnalysisResult:
         """
         Run analysis on manifest and old manifest (if not None) and return a result
         with a summary resources required in order to install the provided manifest.
@@ -253,6 +254,8 @@ class DLManager(Process):
         :param resume: Continue based on resume file if it exists
         :param file_prefix_filter: Only download files that start with this prefix
         :param file_exclude_filter: Exclude files with this prefix from download
+        :param file_install_tag: Only install files with the specified tag
+        :param processing_optimization: Attempt to optimize processing order and RAM usage
         :return: AnalysisResult
         """
 
@@ -324,9 +327,19 @@ class DLManager(Process):
             analysis_res.unchanged = len(mc.unchanged)
             self.log.debug(f'{analysis_res.unchanged} unchanged files')
 
+        if processing_optimization and len(manifest.file_manifest_list.elements) > 8_000:
+            self.log.warning('Manifest contains too many files, processing optimizations will be disabled.')
+            processing_optimization = False
+        elif processing_optimization:
+            self.log.info('Processing order optimization is enabled, analysis may take a few seconds longer...')
+
         # count references to chunks for determining runtime cache size later
         references = Counter()
-        for fm in manifest.file_manifest_list.elements:
+        file_to_chunks = defaultdict(set)
+        fmlist = sorted(manifest.file_manifest_list.elements,
+                        key=lambda a: a.filename.lower())
+
+        for fm in fmlist:
             # chunks of unchanged files are not downloaded so we can skip them
             if fm.filename in mc.unchanged:
                 analysis_res.unchanged += fm.file_size
@@ -334,6 +347,46 @@ class DLManager(Process):
 
             for cp in fm.chunk_parts:
                 references[cp.guid_num] += 1
+                if processing_optimization:
+                    file_to_chunks[fm.filename].add(cp.guid_num)
+
+        if processing_optimization:
+            # reorder the file manifest list to group files that share many chunks
+            # 5 is mostly arbitrary but has shown in testing to be a good choice
+            min_overlap = 5
+            # enumerate the file list to try and find a "partner" for
+            # each file that shares the most chunks with it.
+            partners = dict()
+            filenames = [fm.filename for fm in fmlist]
+
+            for num, filename in enumerate(filenames[:int((len(filenames)+1)/2)]):
+                chunks = file_to_chunks[filename]
+                max_overlap = min_overlap
+
+                for other_file in filenames[num+1:]:
+                    overlap = len(chunks & file_to_chunks[other_file])
+                    if overlap > max_overlap:
+                        partners[filename] = other_file
+                        max_overlap = overlap
+
+            # iterate over all the files again and this time around
+            _fmlist = []
+            processed = set()
+            for fm in fmlist:
+                if fm.filename in processed:
+                    continue
+                _fmlist.append(fm)
+                processed.add(fm.filename)
+                # try to find the file's "partner"
+                partner = partners.get(fm.filename, None)
+                if not partner or partner in processed:
+                    continue
+
+                partner_fm = manifest.file_manifest_list.get_file_by_path(partner)
+                _fmlist.append(partner_fm)
+                processed.add(partner)
+
+            fmlist = _fmlist
 
         # determine reusable chunks and prepare lookup table for reusable ones
         re_usable = defaultdict(dict)
@@ -367,8 +420,7 @@ class DLManager(Process):
         # run through the list of files and create the download jobs and also determine minimum
         # runtime cache requirement by simulating adding/removing from cache during download.
         self.log.debug('Creating filetasks and chunktasks...')
-        for current_file in sorted(manifest.file_manifest_list.elements,
-                                   key=lambda a: a.filename.lower()):
+        for current_file in fmlist:
             # skip unchanged and empty files
             if current_file.filename in mc.unchanged:
                 continue
@@ -440,7 +492,8 @@ class DLManager(Process):
         if analysis_res.min_memory > self.max_shared_memory:
             shared_mib = f'{self.max_shared_memory / 1024 / 1024:.01f} MiB'
             required_mib = f'{analysis_res.min_memory / 1024 / 1024:.01f} MiB'
-            raise MemoryError(f'Current shared memory cache is smaller than required! {shared_mib} < {required_mib}')
+            raise MemoryError(f'Current shared memory cache is smaller than required! {shared_mib} < {required_mib}. '
+                              f'Try running legendary with the --enable-reordering flag to reduce memory usage.')
 
         # calculate actual dl and patch write size.
         analysis_res.dl_size = \
