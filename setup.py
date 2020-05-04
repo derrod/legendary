@@ -28,6 +28,7 @@ setup(
         'legendary.downloader',
         'legendary.lfs',
         'legendary.models',
+        'legendary.utils',
     ],
     entry_points=dict(
         console_scripts=['legendary = legendary.cli:main']
