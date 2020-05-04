@@ -427,7 +427,8 @@ def main():
     auth_parser = subparsers.add_parser('auth', help='Authenticate with EPIC')
     install_parser = subparsers.add_parser('install', help='Download a game',
                                            aliases=('download', 'update'),
-                                           usage='%(prog)s <App Name> [options]')
+                                           usage='%(prog)s <App Name> [options]',
+                                           description='Aliases: download, update')
     uninstall_parser = subparsers.add_parser('uninstall', help='Uninstall (delete) a game')
     launch_parser = subparsers.add_parser('launch', help='Launch a game', usage='%(prog)s <App Name> [options]',
                                           description='Note: additional arguments are passed to the game')
