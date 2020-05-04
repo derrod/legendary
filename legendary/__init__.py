@@ -1,4 +1,4 @@
 """Legendary!"""
 
-__version__ = '0.0.6'
-__codename__ = 'Residue Processing'
+__version__ = '0.0.7'
+__codename__ = 'Questionable Ethics'

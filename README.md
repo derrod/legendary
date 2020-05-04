@@ -104,7 +104,7 @@ $ legendary launch Anemone
 ## Usage
 
 ````
-usage: legendary [-h] [-v] [-y] [-V] {auth,download,uninstall,launch,list-games,list-installed,list-files} ...
+usage: legendary [-h] [-v] [-y] [-V] {auth,install,download,update,uninstall,launch,list-games,list-installed,list-files} ...
 
 Legendary v0.0.X - "Codename"
 
@@ -115,9 +115,10 @@ optional arguments:
   -V                    Print version and exit
 
 Commands:
-  {auth,download,uninstall,launch,list-games,list-installed,list-files}
+  {auth,install,download,update,uninstall,launch,list-games,list-installed,list-files}
     auth                Authenticate with EPIC
-    download            Download a game
+    install (download,update)
+                        Download a game
     uninstall           Uninstall (delete) a game
     launch              Launch a game
     list-games          List available (installable) games
@@ -134,8 +135,10 @@ optional arguments:
   --import    Import EGS authentication data
 
 
-Command: download
-usage: legendary download <App Name> [options]
+Command: install
+usage: legendary install <App Name> [options]
+
+Aliases: download, update
 
 positional arguments:
   <App Name>            Name of the app
@@ -173,6 +176,10 @@ optional arguments:
                         insensitive)
   --install-tag <tag>   Only download files with the specified install tag
                         (testing)
+  --enable-reordering   Enable reordering to attempt to optimize RAM usage
+                        during download
+  --dl-timeout <sec>    Connection timeout for downloader (default: 10
+                        seconds)
 
 
 Command: uninstall
@@ -230,9 +237,9 @@ optional arguments:
 
 Command: list-files
 usage: legendary list-files [-h] [--force-download] [--platform <Platform>]
-                         [--manifest <uri>] [--csv] [--tsv] [--hashlist]
-                         [--install-tag <prefix>]
-                         [<App Name>]
+                            [--manifest <uri>] [--csv] [--tsv] [--hashlist]
+                            [--install-tag <tag>]
+                            [<App Name>]
 
 positional arguments:
   <App Name>            Name of the app
@@ -248,8 +255,6 @@ optional arguments:
   --hashlist            Output file hash list in hashcheck/sha1sum compatible
                         format
   --install-tag <tag>   Show only files with specified install tag
-
-
 ````
 
 
