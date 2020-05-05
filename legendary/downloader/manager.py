@@ -189,7 +189,7 @@ class DLManager(Process):
         if processing_optimization:
             # reorder the file manifest list to group files that share many chunks
             # 5 is mostly arbitrary but has shown in testing to be a good choice
-            min_overlap = 5
+            min_overlap = 4
             # enumerate the file list to try and find a "partner" for
             # each file that shares the most chunks with it.
             partners = dict()
@@ -197,13 +197,17 @@ class DLManager(Process):
 
             for num, filename in enumerate(filenames[:int((len(filenames) + 1) / 2)]):
                 chunks = file_to_chunks[filename]
-                max_overlap = min_overlap
+                partnerlist = list()
 
                 for other_file in filenames[num + 1:]:
                     overlap = len(chunks & file_to_chunks[other_file])
-                    if overlap > max_overlap:
-                        partners[filename] = other_file
-                        max_overlap = overlap
+                    if overlap > min_overlap:
+                        partnerlist.append(other_file)
+
+                if not partnerlist:
+                    continue
+
+                partners[filename] = partnerlist
 
             # iterate over all the files again and this time around
             _fmlist = []
@@ -214,13 +218,17 @@ class DLManager(Process):
                 _fmlist.append(fm)
                 processed.add(fm.filename)
                 # try to find the file's "partner"
-                partner = partners.get(fm.filename, None)
-                if not partner or partner in processed:
+                f_partners = partners.get(fm.filename, None)
+                if not f_partners:
                     continue
+                # add each partner to list at this point
+                for partner in f_partners:
+                    if partner in processed:
+                        continue
 
-                partner_fm = manifest.file_manifest_list.get_file_by_path(partner)
-                _fmlist.append(partner_fm)
-                processed.add(partner)
+                    partner_fm = manifest.file_manifest_list.get_file_by_path(partner)
+                    _fmlist.append(partner_fm)
+                    processed.add(partner)
 
             fmlist = _fmlist
 
