@@ -2,7 +2,7 @@
 
 # games where the download order optimizations are enabled by default
 _optimize_default = {
-    'wombat'
+    'wombat', 'snapdragon'
 }
 
 
