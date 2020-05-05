@@ -156,6 +156,7 @@ class DLManager(Process):
                     res_shm = in_buffer[task.chunk_guid].shm
 
                 try:
+                    self.log.debug(f'Adding {task.chunk_guid} to writer queue')
                     self.writer_queue.put(WriterTask(
                         filename=current_file, shared_memory=res_shm,
                         chunk_offset=task.chunk_offset, chunk_size=task.chunk_size,
@@ -184,6 +185,7 @@ class DLManager(Process):
                         task_cond.notify()
 
                     if res.success:
+                        self.log.debug(f'Download for {res.guid} succeeded, adding to in_buffer...')
                         in_buffer[res.guid] = res
                         self.bytes_downloaded_since_last += res.compressed_size
                         self.bytes_decompressed_since_last += res.size

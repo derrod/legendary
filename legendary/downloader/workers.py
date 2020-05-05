@@ -48,12 +48,12 @@ class DLWorker(Process):
                 empty = False
             except Empty:
                 if not empty:
-                    logger.debug(f'[{self.name}] Queue Empty, waiting for more...')
+                    logger.debug(f'Queue Empty, waiting for more...')
                 empty = True
                 continue
 
             if job.kill:  # let worker die
-                logger.debug(f'[{self.name}] Worker received kill signal, shutting down...')
+                logger.debug(f'Worker received kill signal, shutting down...')
                 break
 
             tries = 0
@@ -64,19 +64,19 @@ class DLWorker(Process):
             try:
                 while tries < self.max_retries:
                     # print('Downloading', job.url)
-                    logger.debug(f'[{self.name}] Downloading {job.url}')
+                    logger.debug(f'Downloading {job.url}')
                     dl_start = time.time()
 
                     try:
                         r = self.session.get(job.url, timeout=self.dl_timeout)
                         r.raise_for_status()
                     except Exception as e:
-                        logger.warning(f'[{self.name}] Chunk download failed ({e!r}), retrying...')
+                        logger.warning(f'Chunk download for {job.guid} failed: ({e!r}), retrying...')
                         continue
 
                     dl_end = time.time()
                     if r.status_code != 200:
-                        logger.warning(f'[{self.name}] Chunk download failed (Status {r.status_code}), retrying...')
+                        logger.warning(f'Chunk download for {job.guid} failed: status {r.status_code}, retrying...')
                         continue
                     else:
                         compressed = len(r.content)
@@ -85,12 +85,12 @@ class DLWorker(Process):
                 else:
                     raise TimeoutError('Max retries reached')
             except Exception as e:
-                logger.error(f'[{self.name}] Job failed with: {e!r}, fetching next one...')
+                logger.error(f'Job for {job.guid} failed with: {e!r}, fetching next one...')
                 # add failed job to result queue to be requeued
                 self.o_q.put(DownloaderTaskResult(success=False, chunk_guid=job.guid, shm=job.shm, url=job.url))
 
             if not chunk:
-                logger.warning(f'[{self.name}] Chunk smoehow None?')
+                logger.warning(f'Chunk somehow None?')
                 self.o_q.put(DownloaderTaskResult(success=False, chunk_guid=job.guid, shm=job.shm, url=job.url))
                 continue
 
@@ -106,7 +106,7 @@ class DLWorker(Process):
                                                   url=job.url, size=size, compressed_size=compressed,
                                                   time_delta=dl_end - dl_start))
             except Exception as e:
-                logger.warning(f'[{self.name}] Job failed with: {e!r}, fetching next one...')
+                logger.warning(f'Job for {job.guid} failed with: {e!r}, fetching next one...')
                 self.o_q.put(DownloaderTaskResult(success=False, chunk_guid=job.guid, shm=job.shm, url=job.url))
                 continue
 
@@ -254,7 +254,7 @@ class FileWorker(Process):
                                                   shm=j.shm, size=j.chunk_size,
                                                   time_delta=post_write-pre_write))
             except Exception as e:
-                logger.warning(f'[{self.name}] Job {j.filename} failed with: {e!r}, fetching next one...')
+                logger.warning(f'Job {j.filename} failed with: {e!r}, fetching next one...')
                 self.o_q.put(WriterTaskResult(success=False, filename=j.filename, chunk_guid=j.chunk_guid))
 
                 try:
@@ -262,7 +262,7 @@ class FileWorker(Process):
                         current_file.close()
                         current_file = None
                 except Exception as e:
-                    logger.error(f'[{self.name}] Closing file after error failed: {e!r}')
+                    logger.error(f'Closing file after error failed: {e!r}')
             except KeyboardInterrupt:
                 if current_file:
                     current_file.close()
