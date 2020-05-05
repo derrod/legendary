@@ -5,6 +5,9 @@ import os
 import sys
 
 from setuptools import setup
+from build_manpages.build_manpages import build_manpages, get_build_py_cmd, get_install_cmd
+from setuptools.command.build_py import build_py
+from setuptools.command.install import install
 
 from legendary import __version__ as legendary_version
 
@@ -36,7 +39,8 @@ setup(
     install_requires=[
         'requests<3.0',
         'setuptools',
-        'wheel'
+        'wheel',
+        'argparse-manpage'
     ],
     url='https://github.com/derrod/legendary',
     description='Free and open-source replacement for the Epic Games Launcher application',
@@ -54,4 +58,11 @@ setup(
         'Topic :: Games/Entertainment',
         'Development Status :: 4 - Beta',
     ],
+    cmdclass={
+        'build_manpages': build_manpages,
+        # Re-define build_py and install commands so the manual pages
+        # are automatically re-generated and installed (optional)
+        'build_py': get_build_py_cmd(build_py),
+        'install': get_install_cmd(install),
+    },
 )

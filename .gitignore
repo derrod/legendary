@@ -135,3 +135,6 @@ dmypy.json
 testing/
 stuff/
 dist_pyinstaller/
+
+# Man pages
+man/

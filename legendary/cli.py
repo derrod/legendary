@@ -413,8 +413,8 @@ class LegendaryCLI:
             logger.warning(f'Removing game failed: {e!r}, please remove {igame.install_path} manually.')
 
 
-def main():
-    parser = argparse.ArgumentParser(description=f'Legendary v{__version__} - "{__codename__}"')
+def get_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog='legendary', description=f'Legendary v{__version__} - "{__codename__}"')
     parser.register('action', 'parsers', AliasedSubParsersAction)
 
     # general arguments
@@ -518,6 +518,11 @@ def main():
                                    help='Output file hash list in hashcheck/sha1sum compatible format')
     list_files_parser.add_argument('--install-tag', dest='install_tag', action='store', metavar='<tag>',
                                    type=str, help='Show only files with specified install tag')
+    return parser
+
+
+def main():
+    parser = get_parser()
 
     args, extra = parser.parse_known_args()
 
