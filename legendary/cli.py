@@ -464,7 +464,7 @@ def main():
                                 help='Ignore existing files (overwrite)')
     install_parser.add_argument('--disable-patching', dest='disable_patching', action='store_true',
                                 help='Do not attempt to patch existing installations (download entire changed file)')
-    install_parser.add_argument('--download-only', dest='no_install', action='store_true',
+    install_parser.add_argument('--download-only', '--no-install', dest='no_install', action='store_true',
                                 help='Do not mark game as intalled and do not run prereq installers after download')
     install_parser.add_argument('--update-only', dest='update_only', action='store_true',
                                 help='Abort if game is not already installed (for automation)')
