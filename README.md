@@ -149,40 +149,26 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   --base-path <path>    Path for game installations (defaults to ~/legendary)
-  --game-folder <path>  Folder for game installation (defaults to folder in
-                        metadata)
+  --game-folder <path>  Folder for game installation (defaults to folder in metadata)
   --max-shared-memory <size>
-                        Maximum amount of shared memory to use (in MiB),
-                        default: 1 GiB
-  --max-workers <num>   Maximum amount of download workers, default: 2 *
-                        logical CPU
-  --manifest <uri>      Manifest URL or path to use instead of the CDN one
-                        (e.g. for downgrading)
-  --old-manifest <uri>  Manifest URL or path to use as the old one (e.g. for
-                        testing patching)
-  --base-url <url>      Base URL to download from (e.g. to test or switch to a
-                        different CDNs)
+                        Maximum amount of shared memory to use (in MiB), default: 1 GiB
+  --max-workers <num>   Maximum amount of download workers, default: 2 * logical CPU
+  --manifest <uri>      Manifest URL or path to use instead of the CDN one (e.g. for downgrading)
+  --old-manifest <uri>  Manifest URL or path to use as the old one (e.g. for testing patching)
+  --base-url <url>      Base URL to download from (e.g. to test or switch to a different CDNs)
   --force               Ignore existing files (overwrite)
-  --disable-patching    Do not attempt to patch existing installations
-                        (download entire changed file)
-  --download-only       Do not mark game as intalled and do not run prereq
-                        installers after download
-  --update-only         Abort if game is not already installed (for
-                        automation)
-  --dlm-debug           Set download manager and worker processes' loglevel to
-                        debug
+  --disable-patching    Do not attempt to patch existing installations (download entire changed file)
+  --download-only, --no-install
+                        Do not mark game as intalled and do not run prereq installers after download
+  --update-only         Abort if game is not already installed (for automation)
+  --dlm-debug           Set download manager and worker processes' loglevel to debug
   --platform <Platform>
                         Platform override for download (disables install)
-  --prefix <prefix>     Only fetch files whose path starts with <prefix> (case
-                        insensitive)
-  --exclude <prefix>    Exclude files starting with <prefix> (case
-                        insensitive)
-  --install-tag <tag>   Only download files with the specified install tag
-                        (testing)
-  --enable-reordering   Enable reordering to attempt to optimize RAM usage
-                        during download
-  --dl-timeout <sec>    Connection timeout for downloader (default: 10
-                        seconds)
+  --prefix <prefix>     Only fetch files whose path starts with <prefix> (case insensitive)
+  --exclude <prefix>    Exclude files starting with <prefix> (case insensitive)
+  --install-tag <tag>   Only download files with the specified install tag (testing)
+  --enable-reordering   Enable reordering to attempt to optimize RAM usage during download
+  --dl-timeout <sec>    Connection timeout for downloader (default: 10 seconds)
 
 
 Command: uninstall
@@ -205,19 +191,15 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  --offline             Skip login and launch game without online
-                        authentication
+  --offline             Skip login and launch game without online authentication
   --skip-version-check  Skip version check when launching game in online mode
   --override-username <username>
-                        Override username used when launching the game (only
-                        works with some titles)
-  --dry-run             Print the command line that would have been used to
-                        launch the game and exit
+                        Override username used when launching the game (only works with some titles)
+  --dry-run             Print the command line that would have been used to launch the game and exit
 
 
 Command: list-games
-usage: legendary list-games [-h] [--platform <Platform>] [--include-ue] [--csv]
-                         [--tsv]
+usage: legendary list-games [-h] [--platform <Platform>] [--include-ue] [--csv] [--tsv]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -239,10 +221,7 @@ optional arguments:
 
 
 Command: list-files
-usage: legendary list-files [-h] [--force-download] [--platform <Platform>]
-                            [--manifest <uri>] [--csv] [--tsv] [--hashlist]
-                            [--install-tag <tag>]
-                            [<App Name>]
+usage: legendary list-files [-h] [--force-download] [--platform <Platform>] [--manifest <uri>] [--csv] [--tsv] [--hashlist] [--install-tag <tag>] [<App Name>]
 
 positional arguments:
   <App Name>            Name of the app
@@ -255,8 +234,7 @@ optional arguments:
   --manifest <uri>      Manifest URL or path to use instead of the CDN one
   --csv                 Output in CSV format
   --tsv                 Output in TSV format
-  --hashlist            Output file hash list in hashcheck/sha1sum compatible
-                        format
+  --hashlist            Output file hash list in hashcheck/sha1sum compatible format
   --install-tag <tag>   Show only files with specified install tag
 ````
 
