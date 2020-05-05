@@ -22,8 +22,8 @@ from legendary.models.manifest import ManifestComparison, Manifest
 
 class DLManager(Process):
     def __init__(self, download_dir, base_url, cache_dir=None, status_q=None,
-                 max_jobs=100, max_failures=5, max_workers=0, update_interval=1.0,
-                 max_shared_memory=1024 * 1024 * 1024, resume_file=None, dl_timeout=10):
+                 max_workers=0, update_interval=1.0, dl_timeout=10, resume_file=None,
+                 max_shared_memory=1024 * 1024 * 1024):
         super().__init__(name='DLManager')
         self.log = logging.getLogger('DLM')
         self.proc_debug = False
@@ -38,7 +38,6 @@ class DLManager(Process):
         self.writer_queue = None
         self.dl_result_q = None
         self.writer_result_q = None
-        self.max_jobs = max_jobs
         self.max_workers = max_workers if max_workers else min(cpu_count() * 2, 16)
         self.dl_timeout = dl_timeout
 
@@ -58,7 +57,6 @@ class DLManager(Process):
         self.status_queue = status_q  # queue used to relay status info back to GUI/CLI
 
         # behaviour settings
-        self.max_failures = max_failures
         self.resume_file = resume_file
 
         # cross-thread runtime information
