@@ -29,7 +29,7 @@ class DLWorker(Process):
         self.shm = SharedMemory(name=shm)
         self.log_level = logging.getLogger().level
         self.logging_queue = logging_queue
-        self.dl_timeout = dl_timeout
+        self.dl_timeout = float(dl_timeout) if dl_timeout else 10.0
 
     def run(self):
         # we have to fix up the logger before we can start
