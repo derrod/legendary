@@ -6,7 +6,9 @@ import struct
 
 from copy import deepcopy
 
-from legendary.models.manifest import Manifest, ManifestMeta, CDL, ChunkPart, ChunkInfo, FML, FileManifest
+from legendary.models.manifest import (
+    Manifest, ManifestMeta, CDL, ChunkPart, ChunkInfo, FML, FileManifest, CustomFields
+)
 
 
 def blob_to_num(in_str):
@@ -48,7 +50,8 @@ class JSONManifest(Manifest):
         _m.meta = JSONManifestMeta.read(_tmp)
         _m.chunk_data_list = JSONCDL.read(_tmp, manifest_version=_m.version)
         _m.file_manifest_list = JSONFML.read(_tmp)
-        _m.custom_fields = _tmp.pop('CustomFields', dict())
+        _m.custom_fields = CustomFields()
+        _m.custom_fields._dict = _tmp.pop('CustomFields', dict())
 
         if _tmp.keys():
             print(f'Did not read JSON keys: {_tmp.keys()}!')

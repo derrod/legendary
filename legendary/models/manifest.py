@@ -31,6 +31,23 @@ def read_fstring(bio):
     return s
 
 
+def write_fstring(bio, string):
+    if not string:
+        bio.write(struct.pack('<i', 0))
+        return
+
+    try:
+        s = string.encode('ascii')
+        bio.write(struct.pack('<i', len(string) + 1))
+        bio.write(s)
+        bio.write(b'\x00')
+    except UnicodeEncodeError:
+        s = string.encode('utf-16le')
+        bio.write(struct.pack('<i', -(len(string) + 1)))
+        bio.write(s)
+        bio.write(b'\x00\x00')
+
+
 def get_chunk_dir(version):
     # The lowest version I've ever seen was 12 (Unreal Tournament), but for completeness sake leave all of them in
     if version >= 15:
@@ -47,7 +64,7 @@ class Manifest:
     header_magic = 0x44BEC00C
 
     def __init__(self):
-        self.header_size = 0
+        self.header_size = 41
         self.size_compressed = 0
         self.size_uncompressed = 0
         self.sha_hash = ''
@@ -95,8 +112,8 @@ class Manifest:
 
         _manifest = cls()
         _manifest.header_size = struct.unpack('<I', bio.read(4))[0]
-        _manifest.size_compressed = struct.unpack('<I', bio.read(4))[0]
         _manifest.size_uncompressed = struct.unpack('<I', bio.read(4))[0]
+        _manifest.size_compressed = struct.unpack('<I', bio.read(4))[0]
         _manifest.sha_hash = bio.read(20)
         _manifest.stored_as = struct.unpack('B', bio.read(1))[0]
         _manifest.version = struct.unpack('<I', bio.read(4))[0]
@@ -117,6 +134,34 @@ class Manifest:
             _manifest.data = data
 
         return _manifest
+
+    def write(self, compress=True):
+        body_bio = BytesIO()
+        self.meta.write(body_bio)
+        self.chunk_data_list.write(body_bio)
+        self.file_manifest_list.write(body_bio)
+        self.custom_fields.write(body_bio)
+
+        self.data = body_bio.getvalue()
+        self.size_uncompressed = self.size_compressed = len(self.data)
+        self.sha_hash = hashlib.sha1(self.data).digest()
+
+        if self.compressed or compress:
+            self.stored_as |= 0x1
+            self.data = zlib.compress(self.data)
+            self.size_compressed = len(self.data)
+
+        bio = BytesIO()
+        bio.write(struct.pack('<I', self.header_magic))
+        bio.write(struct.pack('<I', self.header_size))
+        bio.write(struct.pack('<I', self.size_uncompressed))
+        bio.write(struct.pack('<I', self.size_compressed))
+        bio.write(self.sha_hash)
+        bio.write(struct.pack('B', self.stored_as))
+        bio.write(struct.pack('<I', self.version))
+        bio.write(self.data)
+
+        return bio.getvalue()
 
 
 class ManifestMeta:
@@ -178,7 +223,7 @@ class ManifestMeta:
         # apparently there's a newer version that actually stores *a* build id.
         if _meta.data_version > 0:
             _meta._build_id = read_fstring(bio)
-        
+
         if bio.tell() != _meta.meta_size:
             raise ValueError('Did not read entire meta!')
 
@@ -186,6 +231,35 @@ class ManifestMeta:
         # bio.seek(0 + _meta.meta_size)
 
         return _meta
+
+    def write(self, bio):
+        meta_start = bio.tell()
+
+        bio.write(struct.pack('<I', 0))  # placeholder size
+        bio.write(struct.pack('B', self.data_version))
+        bio.write(struct.pack('<I', self.feature_level))
+        bio.write(struct.pack('B', self.is_file_data))
+        bio.write(struct.pack('<I', self.app_id))
+        write_fstring(bio, self.app_name)
+        write_fstring(bio, self.build_version)
+        write_fstring(bio, self.launch_exe)
+        write_fstring(bio, self.launch_command)
+
+        bio.write(struct.pack('<I', len(self.prereq_ids)))
+        for preqre_id in self.prereq_ids:
+            write_fstring(bio, preqre_id)
+
+        write_fstring(bio, self.prereq_name)
+        write_fstring(bio, self.prereq_path)
+        write_fstring(bio, self.prereq_args)
+
+        if self.data_version > 0:
+            write_fstring(bio, self.build_id)
+
+        meta_end = bio.tell()
+        bio.seek(meta_start)
+        bio.write(struct.pack('<I', meta_end - meta_start))
+        bio.seek(meta_end)
 
 
 class CDL:
@@ -277,6 +351,30 @@ class CDL:
             raise ValueError('Did not read entire chunk data list!')
 
         return _cdl
+
+    def write(self, bio):
+        cdl_start = bio.tell()
+        bio.write(struct.pack('<I', 0))  # placeholder size
+        bio.write(struct.pack('B', self.version))
+        bio.write(struct.pack('<I', len(self.elements)))
+
+        for chunk in self.elements:
+            bio.write(struct.pack('<IIII', *chunk.guid))
+        for chunk in self.elements:
+            bio.write(struct.pack('<Q', chunk.hash))
+        for chunk in self.elements:
+            bio.write(chunk.sha_hash)
+        for chunk in self.elements:
+            bio.write(struct.pack('B', chunk.group_num))
+        for chunk in self.elements:
+            bio.write(struct.pack('<I', chunk.window_size))
+        for chunk in self.elements:
+            bio.write(struct.pack('<q', chunk.file_size))
+
+        cdl_end = bio.tell()
+        bio.seek(cdl_start)
+        bio.write(struct.pack('<I', cdl_end - cdl_start))
+        bio.seek(cdl_end)
 
 
 class ChunkInfo:
@@ -395,6 +493,40 @@ class FML:
 
         return _fml
 
+    def write(self, bio):
+        fml_start = bio.tell()
+        bio.write(struct.pack('<I', 0))  # placeholder size
+        bio.write(struct.pack('B', self.version))
+        bio.write(struct.pack('<I', len(self.elements)))
+
+        for fm in self.elements:
+            write_fstring(bio, fm.filename)
+        for fm in self.elements:
+            write_fstring(bio, fm.symlink_target)
+        for fm in self.elements:
+            bio.write(fm.hash)
+        for fm in self.elements:
+            bio.write(struct.pack('B', fm.flags))
+        for fm in self.elements:
+            bio.write(struct.pack('<I', len(fm.install_tags)))
+            for tag in fm.install_tags:
+                write_fstring(bio, tag)
+
+        # finally, write the chunk parts
+        for fm in self.elements:
+            bio.write(struct.pack('<I', len(fm.chunk_parts)))
+            for cp in fm.chunk_parts:
+                # size is always 28 bytes (4 size + 16 guid + 4 offset + 4 size)
+                bio.write(struct.pack('<I', 28))
+                bio.write(struct.pack('<IIII', *cp.guid))
+                bio.write(struct.pack('<I', cp.offset))
+                bio.write(struct.pack('<I', cp.size))
+
+        fml_end = bio.tell()
+        bio.seek(fml_start)
+        bio.write(struct.pack('<I', fml_end - fml_start))
+        bio.seek(fml_end)
+
 
 class FileManifest:
     def __init__(self):
@@ -508,6 +640,24 @@ class CustomFields:  # this could probably be replaced with just a dict
             raise ValueError('Did not read entire custom fields list!')
 
         return _cf
+
+    def write(self, bio):
+        cf_start = bio.tell()
+        bio.write(struct.pack('<I', 0))  # placeholder size
+        bio.write(struct.pack('B', self.version))
+        bio.write(struct.pack('<I', len(self._dict)))
+
+        for key in self.keys():
+            write_fstring(bio, key)
+
+        for value in self.values():
+            write_fstring(bio, value)
+
+        cf_end = bio.tell()
+        # write proper size
+        bio.seek(cf_start)
+        bio.write(struct.pack('<I', cf_end - cf_start))
+        bio.seek(cf_end)
 
 
 class ManifestComparison:
