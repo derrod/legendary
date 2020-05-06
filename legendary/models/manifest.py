@@ -69,7 +69,7 @@ class Manifest:
         self.size_uncompressed = 0
         self.sha_hash = ''
         self.stored_as = 0
-        self.version = 0
+        self.version = 17
         self.data = b''
 
         # remainder
