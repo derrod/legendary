@@ -14,6 +14,7 @@ Right now it is in an early public testing stage and still needs a lot of work t
  - Downloading and installing your games and their DLC
  - Delta patching/updating of installed games
  - Launching games with online authentication (for multiplayer)
+ - Downloading existing cloud saves
  - Running games with WINE on Linux
 
 **Planned:**
@@ -34,7 +35,11 @@ Right now it is in an early public testing stage and still needs a lot of work t
 
 Some distros already have (unofficial) packages available, check out the [Available Linux Packages](https://github.com/derrod/legendary/wiki/Available-Linux-Packages) wiki page for details.
 
-Currently this includes [Arch](https://github.com/derrod/legendary/wiki/Available-Linux-Packages#arch-aur) and [Fedora](https://github.com/derrod/legendary/wiki/Available-Linux-Packages#fedora) but more will be available in the future.
+Currently this includes
+[Arch](https://github.com/derrod/legendary/wiki/Available-Linux-Packages#arch-aur),
+[Fedora](https://github.com/derrod/legendary/wiki/Available-Linux-Packages#fedora), and
+[openSUSE](https://github.com/derrod/legendary/wiki/Available-Linux-Packages#opensuse)
+but more will be available in the future.
 
 ### Standalone
 Download the latest `legendary` or `legendary.exe` binary from [the latest release](https://github.com/derrod/legendary/releases/latest)
@@ -107,7 +112,7 @@ $ legendary launch Anemone
 ## Usage
 
 ````
-usage: legendary [-h] [-v] [-y] [-V] {auth,install,download,update,uninstall,launch,list-games,list-installed,list-files} ...
+usage: legendary [-h] [-v] [-y] [-V] {auth,install,download,update,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves} ...
 
 Legendary v0.0.X - "Codename"
 
@@ -118,7 +123,7 @@ optional arguments:
   -V                    Print version and exit
 
 Commands:
-  {auth,install,download,update,uninstall,launch,list-games,list-installed,list-files}
+  {auth,install,download,update,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves}
     auth                Authenticate with EPIC
     install (download,update)
                         Download a game
@@ -127,6 +132,8 @@ Commands:
     list-games          List available (installable) games
     list-installed      List installed games
     list-files          List files in manifest
+    list-saves          List available cloud saves
+    download-saves      Download all cloud saves
 
 Individual command help:
 
@@ -224,7 +231,7 @@ Command: list-files
 usage: legendary list-files [-h] [--force-download] [--platform <Platform>] [--manifest <uri>] [--csv] [--tsv] [--hashlist] [--install-tag <tag>] [<App Name>]
 
 positional arguments:
-  <App Name>            Name of the app
+  <App Name>            Name of the app (optional)
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -236,6 +243,23 @@ optional arguments:
   --tsv                 Output in TSV format
   --hashlist            Output file hash list in hashcheck/sha1sum compatible format
   --install-tag <tag>   Show only files with specified install tag
+
+
+Command: list-saves
+usage: legendary list-saves [-h] [<App Name>]
+
+positional arguments:
+  <App Name>  Name of the app (optional)
+
+optional arguments:
+  -h, --help  show this help message and exit
+
+
+Command: download-saves
+usage: legendary download-saves [-h]
+
+optional arguments:
+  -h, --help  show this help message and exit
 ````
 
 
