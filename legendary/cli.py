@@ -194,6 +194,34 @@ class LegendaryCLI:
                 # use the log output so this isn't included when piping file list into file
                 logger.info(f'Install tags: {", ".join(sorted(install_tags))}')
 
+    def list_saves(self, args):
+        if not self.core.login():
+            logger.error('Login failed! Cannot continue with download process.')
+            exit(1)
+        # update game metadata
+        logger.debug('Refreshing games list...')
+        _ = self.core.get_game_and_dlc_list(update_assets=True)
+        # then get the saves
+        logger.info('Getting list of saves...')
+        saves = self.core.get_save_games(args.app_name)
+        last_app = ''
+        print('Save games:')
+        for save in sorted(saves, key=lambda a: a.app_name):
+            if save.app_name != last_app:
+                game_title = self.core.get_game(save.app_name).app_title
+                last_app = save.app_name
+                print(f'- {game_title} ("{save.app_name}")')
+            print(' +', save.manifest_name)
+
+    def download_saves(self, args):
+        if not self.core.login():
+            logger.error('Login failed! Cannot continue with download process.')
+            exit(1)
+        # then get the saves
+        logger.info(f'Downloading saves to "{self.core.get_default_install_dir()}"')
+        # todo expand this to allow downloading single saves and extracting them to the correct directory
+        self.core.download_saves()
+
     def launch_game(self, args, extra):
         app_name = args.app_name
         if not self.core.is_installed(app_name):
@@ -435,11 +463,16 @@ def main():
     list_parser = subparsers.add_parser('list-games', help='List available (installable) games')
     list_installed_parser = subparsers.add_parser('list-installed', help='List installed games')
     list_files_parser = subparsers.add_parser('list-files', help='List files in manifest')
+    list_saves_parser = subparsers.add_parser('list-saves', help='List available cloud saves')
+    download_saves_parser = subparsers.add_parser('download-saves', help='Download all cloud saves')
 
     install_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
     uninstall_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
     launch_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
-    list_files_parser.add_argument('app_name', nargs='?', help='Name of the app', metavar='<App Name>')
+    list_files_parser.add_argument('app_name', nargs='?', metavar='<App Name>',
+                                   help='Name of the app (optional)')
+    list_saves_parser.add_argument('app_name', nargs='?', metavar='<App Name>', default='',
+                                   help='Name of the app (optional)')
 
     # importing only works on Windows right now
     if os.name == 'nt':
@@ -526,14 +559,15 @@ def main():
         exit(0)
 
     if args.subparser_name not in ('auth', 'list-games', 'list-installed', 'list-files',
-                                   'launch', 'download', 'uninstall', 'install', 'update'):
+                                   'launch', 'download', 'uninstall', 'install', 'update',
+                                   'list-saves', 'download-saves'):
         print(parser.format_help())
 
         # Print the main help *and* the help for all of the subcommands. Thanks stackoverflow!
         print('Individual command help:')
         subparsers = next(a for a in parser._actions if isinstance(a, argparse._SubParsersAction))
         for choice, subparser in subparsers.choices.items():
-            if choice in ('install', 'update'):
+            if choice in ('download', 'update'):
                 continue
             print(f'\nCommand: {choice}')
             print(subparser.format_help())
@@ -566,6 +600,10 @@ def main():
             cli.uninstall_game(args)
         elif args.subparser_name == 'list-files':
             cli.list_files(args)
+        elif args.subparser_name == 'list-saves':
+            cli.list_saves(args)
+        elif args.subparser_name == 'download-saves':
+            cli.download_saves(args)
     except KeyboardInterrupt:
         logger.info('Command was aborted via KeyboardInterrupt, cleaning up...')
 

@@ -20,6 +20,7 @@ class EPCAPI:
     _entitlements_host = 'entitlement-public-service-prod08.ol.epicgames.com'
     _catalog_host = 'catalog-public-service-prod06.ol.epicgames.com'
     _ecommerce_host = 'ecommerceintegration-public-service-ecomprod02.ol.epicgames.com'
+    _datastorage_host = 'datastorage-public-service-liveegs.live.use1a.on.epicgames.com'
 
     def __init__(self):
         self.session = requests.session()
@@ -117,3 +118,23 @@ class EPCAPI:
                                          country='US', locale='en'))
         r.raise_for_status()
         return r.json().get(catalog_item_id, None)
+
+    def get_user_cloud_saves(self, app_name='', manifests=False, filenames=None):
+        if app_name and manifests:
+            app_name += '/manifests/'
+        elif app_name:
+            app_name += '/'
+
+        user_id = self.user.get('account_id')
+
+        if filenames:
+            r = self.session.post(f'https://{self._datastorage_host}/api/v1/access/egstore/savesync/'
+                                  f'{user_id}/{app_name}', json=dict(files=filenames))
+        else:
+            r = self.session.get(f'https://{self._datastorage_host}/api/v1/access/egstore/savesync/'
+                                 f'{user_id}/{app_name}')
+        r.raise_for_status()
+        return r.json()
+    
+    def create_game_cloud_saves(self, app_name, filenames):
+        return self.get_user_cloud_saves(app_name, filenames=filenames)

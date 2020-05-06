@@ -8,7 +8,7 @@ import shlex
 import shutil
 
 from base64 import b64decode
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from datetime import datetime
 from multiprocessing import Queue
 from random import choice as randchoice
@@ -25,6 +25,7 @@ from legendary.models.exceptions import *
 from legendary.models.game import *
 from legendary.models.json_manifest import JSONManifest
 from legendary.models.manifest import Manifest, ManifestMeta
+from legendary.models.chunk import Chunk
 from legendary.utils.game_workarounds import is_opt_enabled
 
 
@@ -271,6 +272,69 @@ class LegendaryCore:
             env.update(dict(self.lgd.config['default.env']))
 
         return params, working_dir, env
+
+    def get_save_games(self, app_name: str = ''):
+        # todo make this a proper class in legendary.models.egs or something
+        CloudSave = namedtuple('CloudSave', ['filename', 'app_name', 'manifest_name', 'iso_date'])
+        savegames = self.egs.get_user_cloud_saves(app_name)
+        _saves = []
+        for fname, f in savegames['files'].items():
+            if '.manifest' not in fname:
+                continue
+            f_parts = fname.split('/')
+            _saves.append(CloudSave(filename=fname, app_name=f_parts[2],
+                                    manifest_name=f_parts[4], iso_date=f['lastModified']))
+
+        return _saves
+
+    def download_saves(self):
+        save_path = os.path.join(self.get_default_install_dir(), '.saves')
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+
+        savegames = self.egs.get_user_cloud_saves()
+        files = savegames['files']
+        for fname, f in files.items():
+            if '.manifest' not in fname:
+                continue
+            f_parts = fname.split('/')
+            save_dir = os.path.join(save_path, f'{f_parts[2]}/{f_parts[4].rpartition(".")[0]}')
+            if not os.path.exists(save_dir):
+                os.makedirs(save_dir)
+
+            self.log.info(f'Downloading "{fname.split("/", 2)[2]}"...')
+            # download manifest
+            r = self.egs.unauth_session.get(f['readLink'])
+            if r.status_code != 200:
+                self.log.error(f'Download failed, status code: {r.status_code}')
+                continue
+            m = self.load_manfiest(r.content)
+
+            # download chunks requierd for extraction
+            chunks = dict()
+            for chunk in m.chunk_data_list.elements:
+                cpath_p = fname.split('/', 3)[:3]
+                cpath_p.append(chunk.path)
+                cpath = '/'.join(cpath_p)
+                self.log.debug(f'Downloading chunk "{cpath}"')
+                r = self.egs.unauth_session.get(files[cpath]['readLink'])
+                if r.status_code != 200:
+                    self.log.error(f'Download failed, status code: {r.status_code}')
+                    break
+                c = Chunk.read_buffer(r.content)
+                chunks[c.guid_num] = c.data
+
+            for fm in m.file_manifest_list.elements:
+                dirs, fname = os.path.split(fm.filename)
+                fdir = os.path.join(save_dir, dirs)
+                fpath = os.path.join(fdir, fname)
+                if not os.path.exists(fdir):
+                    os.makedirs(fdir)
+
+                self.log.debug(f'Writing "{fpath}"...')
+                with open(fpath, 'wb') as fh:
+                    for cp in fm.chunk_parts:
+                        fh.write(chunks[cp.guid_num][cp.offset:cp.offset+cp.size])
 
     def is_offline_game(self, app_name: str) -> bool:
         return self.lgd.config.getboolean(app_name, 'offline', fallback=False)
