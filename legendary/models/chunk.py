@@ -4,22 +4,25 @@
 import struct
 import zlib
 
+from hashlib import sha1
 from io import BytesIO
+
+from legendary.utils.rolling_hash import get_hash
 
 
 # ToDo do some reworking to make this more memory efficient
-
 class Chunk:
     header_magic = 0xB1FE3AA2
 
     def __init__(self):
-        self.header_version = 0
+        self.header_version = 3
         self.header_size = 0
         self.compressed_size = 0
         self.hash = 0
         self.stored_as = 0
         self.guid = []
 
+        # 0x1 = rolling hash, 0x2 = sha hash, 0x3 = both
         self.hash_type = 0
         self.sha_hash = None
         self.uncompressed_size = 1024 * 1024
@@ -44,6 +47,20 @@ class Chunk:
         self._bio = None
 
         return self._data
+
+    @data.setter
+    def data(self, value: bytes):
+        # data is now uncompressed
+        if self.compressed:
+            self.stored_as ^= 0x1
+        # pad data to 1 MiB
+        if len(value) < 1024 * 1024:
+            value += b'\x00' * (1024 * 1024 - len(value))
+        # recalculate hashes
+        self.hash = get_hash(value)
+        self.sha_hash = sha1(value).digest()
+        self.hash_type = 0x3
+        self._data = value
 
     @property
     def guid_str(self):
@@ -93,3 +110,33 @@ class Chunk:
             raise ValueError('Did not read entire chunk header!')
 
         return _chunk
+
+    def write(self, compress=True):
+        bio = BytesIO()
+
+        self.uncompressed_size = self.compressed_size = len(self.data)
+        if compress or self.compressed:
+            self._data = zlib.compress(self.data)
+            self.stored_as |= 0x1
+            self.compressed_size = len(self._data)
+
+        bio.write(struct.pack('<I', self.header_magic))
+        # we only serialize the latest version so version/size are hardcoded to 3/66
+        bio.write(struct.pack('<I', 3))
+        bio.write(struct.pack('<I', 66))
+        bio.write(struct.pack('<I', self.compressed_size))
+        bio.write(struct.pack('<IIII', *self.guid))
+        bio.write(struct.pack('<Q', self.hash))
+        bio.write(struct.pack('<B', self.stored_as))
+
+        # header version 2 stuff
+        bio.write(self.sha_hash)
+        bio.write(struct.pack('B', self.hash_type))
+
+        # header version 3 stuff
+        bio.write(struct.pack('<I', self.uncompressed_size))
+
+        # finally, add the data
+        bio.write(self._data)
+
+        return bio.getvalue()
