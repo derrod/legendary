@@ -168,7 +168,7 @@ class ManifestMeta:
     def __init__(self):
         self.meta_size = 0
         self.data_version = 0
-        self.feature_level = 0
+        self.feature_level = 17
         self.is_file_data = False
         self.app_id = 0
         self.app_name = ''
