@@ -637,6 +637,9 @@ class CustomFields:  # this could probably be replaced with just a dict
     def __getitem__(self, item):
         return self._dict.get(item, None)
 
+    def __setitem__(self, key, value):
+        self._dict[key] = value
+
     def __str__(self):
         return str(self._dict)
 
