@@ -277,6 +277,18 @@ class CDL:
         self._manifest_version = 17
         self._guid_map = None
         self._guid_int_map = None
+        self._path_map = None
+
+    def get_chunk_by_path(self, path):
+        if not self._path_map:
+            self._path_map = dict()
+            for index, chunk in enumerate(self.elements):
+                self._path_map[chunk.path] = index
+
+        index = self._path_map.get(path, None)
+        if index is None:
+            raise ValueError(f'Invalid path! "{path}"')
+        return self.elements[index]
 
     def get_chunk_by_guid(self, guid):
         """
