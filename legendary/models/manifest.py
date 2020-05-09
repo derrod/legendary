@@ -400,11 +400,12 @@ class ChunkInfo:
         self.guid = None
         self.hash = 0
         self.sha_hash = b''
-        self.group_num = 0
         self.window_size = 0
         self.file_size = 0
+
         self._manifest_version = manifest_version
         # caches for things that are "expensive" to compute
+        self._group_num = None
         self._guid_str = None
         self._guid_num = None
 
@@ -427,16 +428,27 @@ class ChunkInfo:
         return self._guid_num
 
     @property
+    def group_num(self):
+        if self._guid_num is not None:
+            return self._group_num
+
+        self._group_num = (zlib.crc32(
+            struct.pack('<I', self.guid[0]) +
+            struct.pack('<I', self.guid[1]) +
+            struct.pack('<I', self.guid[2]) +
+            struct.pack('<I', self.guid[3])
+        ) & 0xffffffff) % 100
+        return self._group_num
+
+    @group_num.setter
+    def group_num(self, value):
+        self._group_num = value
+
+    @property
     def path(self):
         return '{}/{:02d}/{:016X}_{}.chunk'.format(
-            get_chunk_dir(self._manifest_version),
-            # the result of this seems to always match the group number, but this is the "correct way"
-            (zlib.crc32(struct.pack('<I', self.guid[0]) +
-                        struct.pack('<I', self.guid[1]) +
-                        struct.pack('<I', self.guid[2]) +
-                        struct.pack('<I', self.guid[3])) & 0xffffffff) % 100,
-            self.hash, ''.join('{:08X}'.format(g) for g in self.guid)
-        )
+            get_chunk_dir(self._manifest_version), self.group_num,
+            self.hash, ''.join('{:08X}'.format(g) for g in self.guid))
 
 
 class FML:
