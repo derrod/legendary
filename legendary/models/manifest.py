@@ -135,8 +135,9 @@ class Manifest:
 
         return _manifest
 
-    def write(self, compress=True):
+    def write(self, fp=None, compress=True):
         body_bio = BytesIO()
+
         self.meta.write(body_bio)
         self.chunk_data_list.write(body_bio)
         self.file_manifest_list.write(body_bio)
@@ -151,7 +152,11 @@ class Manifest:
             self.data = zlib.compress(self.data)
             self.size_compressed = len(self.data)
 
-        bio = BytesIO()
+        if not fp:
+            bio = BytesIO()
+        else:
+            bio = fp
+
         bio.write(struct.pack('<I', self.header_magic))
         bio.write(struct.pack('<I', self.header_size))
         bio.write(struct.pack('<I', self.size_uncompressed))
@@ -161,7 +166,8 @@ class Manifest:
         bio.write(struct.pack('<I', self.version))
         bio.write(self.data)
 
-        return bio.getvalue()
+        if not fp:
+            return bio.getvalue()
 
 
 class ManifestMeta:

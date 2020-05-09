@@ -111,8 +111,11 @@ class Chunk:
 
         return _chunk
 
-    def write(self, compress=True):
-        bio = BytesIO()
+    def write(self, fp=None, compress=True):
+        if not fp:
+            bio = BytesIO()
+        else:
+            bio = fp
 
         self.uncompressed_size = self.compressed_size = len(self.data)
         if compress or self.compressed:
@@ -139,4 +142,5 @@ class Chunk:
         # finally, add the data
         bio.write(self._data)
 
-        return bio.getvalue()
+        if not fp:
+            return bio.getvalue()
