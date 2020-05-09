@@ -73,6 +73,9 @@ class JSONManifest(Manifest):
 
         return _manifest
 
+    def write(self, *args, **kwargs):
+        raise NotImplementedError('Serializing JSON manifests is not supported')
+
 
 class JSONManifestMeta(ManifestMeta):
     def __init__(self):
