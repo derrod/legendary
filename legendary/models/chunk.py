@@ -6,6 +6,7 @@ import zlib
 
 from hashlib import sha1
 from io import BytesIO
+from uuid import uuid4
 
 from legendary.utils.rolling_hash import get_hash
 
@@ -20,7 +21,7 @@ class Chunk:
         self.compressed_size = 0
         self.hash = 0
         self.stored_as = 0
-        self.guid = []
+        self.guid = struct.unpack('>IIII', uuid4().bytes)
 
         # 0x1 = rolling hash, 0x2 = sha hash, 0x3 = both
         self.hash_type = 0
