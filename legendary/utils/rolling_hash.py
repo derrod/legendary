@@ -21,5 +21,5 @@ def get_hash(data):
 
     h = 0
     for i in range(len(data)):
-        h = ((h << 1 | h >> 63) ^ hash_table[c.data[i]]) & 0xffffffffffffffff
+        h = ((h << 1 | h >> 63) ^ hash_table[data[i]]) & 0xffffffffffffffff
     return h
