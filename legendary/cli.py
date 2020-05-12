@@ -206,7 +206,7 @@ class LegendaryCLI:
         saves = self.core.get_save_games(args.app_name)
         last_app = ''
         print('Save games:')
-        for save in sorted(saves, key=lambda a: a.app_name):
+        for save in sorted(saves, key=lambda a: a.app_name + a.manifest_name):
             if save.app_name != last_app:
                 game_title = self.core.get_game(save.app_name).app_title
                 last_app = save.app_name
