@@ -602,10 +602,10 @@ class FileManifest:
 
 
 class ChunkPart:
-    def __init__(self):
-        self.guid = None
-        self.offset = 0
-        self.size = 0
+    def __init__(self, guid=None, offset=0, size=0):
+        self.guid = guid
+        self.offset = offset
+        self.size = size
         # caches for things that are "expensive" to compute
         self._guid_str = None
         self._guid_num = None
