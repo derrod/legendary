@@ -138,3 +138,8 @@ class EPCAPI:
     
     def create_game_cloud_saves(self, app_name, filenames):
         return self.get_user_cloud_saves(app_name, filenames=filenames)
+
+    def delete_game_cloud_save_file(self, path):
+        url = f'https://{self._datastorage_host}/api/v1/data/egstore/{path}'
+        r = self.session.delete(url)
+        r.raise_for_status()
