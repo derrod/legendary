@@ -201,7 +201,8 @@ class LegendaryCore:
         return self.lgd.get_installed_game(app_name)
 
     def get_launch_parameters(self, app_name: str, offline: bool = False,
-                              user: str = None, extra_args: list = None) -> (list, str, dict):
+                              user: str = None, extra_args: list = None,
+                              wine_bin: str = None, wine_pfx: str = None) -> (list, str, dict):
         install = self.lgd.get_installed_game(app_name)
         game = self.lgd.get_game_meta(app_name)
 
@@ -223,11 +224,12 @@ class LegendaryCore:
         params = []
 
         if os.name != 'nt':
-            # check if there's a default override
-            wine_binary = self.lgd.config.get('default', 'wine_executable', fallback='wine')
-            # check if there's a game specific override
-            wine_binary = self.lgd.config.get(app_name, 'wine_executable', fallback=wine_binary)
-            params.append(wine_binary)
+            if not wine_bin:
+                # check if there's a default override
+                wine_bin = self.lgd.config.get('default', 'wine_executable', fallback='wine')
+                # check if there's a game specific override
+                wine_bin = self.lgd.config.get(app_name, 'wine_executable', fallback=wine_bin)
+            params.append(wine_bin)
 
         params.append(game_exe)
 
@@ -270,6 +272,9 @@ class LegendaryCore:
             env.update(dict(self.lgd.config[f'{app_name}.env']))
         elif 'default.env' in self.lgd.config:
             env.update(dict(self.lgd.config['default.env']))
+
+        if wine_pfx:
+            env['WINEPREFIX'] = wine_pfx
 
         return params, working_dir, env
 
