@@ -147,3 +147,5 @@ class Chunk:
 
         if not fp:
             return bio.getvalue()
+        else:
+            return bio.tell()

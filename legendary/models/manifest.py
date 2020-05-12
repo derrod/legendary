@@ -168,6 +168,8 @@ class Manifest:
 
         if not fp:
             return bio.getvalue()
+        else:
+            return bio.tell()
 
 
 class ManifestMeta:
