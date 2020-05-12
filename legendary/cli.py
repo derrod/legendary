@@ -43,12 +43,15 @@ class LegendaryCLI:
         return ql
 
     def auth(self, args):
+        if args.auth_delete:
+            self.core.lgd.invalidate_userdata()
+            return
+
         try:
             logger.info('Testing existing login data if present...')
             if self.core.login():
-                logger.info('Stored credentials are still valid, if you wish to switch to a different'
-                            'account, delete ~/.config/legendary/user.json and try again.')
-                exit(0)
+                logger.info('Stored credentials are still valid, if you wish to switch to a different '
+                            'account, run "legendary auth --delete" and try again.')
         except ValueError:
             pass
         except InvalidCredentialsError:
@@ -69,17 +72,20 @@ class LegendaryCLI:
                 logger.error('No EGS login session found, please login normally.')
                 exit(1)
 
-        # unfortunately the captcha stuff makes a complete CLI login flow kinda impossible right now...
-        print('Please login via the epic web login!')
-        webbrowser.open(
-            'https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fexchange'
-        )
-        print('If web page did not open automatically, please navigate '
-              'to https://www.epicgames.com/id/login in your web browser')
-        print('- In case you opened the link manually; please open https://www.epicgames.com/id/api/exchange '
-              'in your web browser after you have finished logging in.')
-        exchange_code = input('Please enter code from JSON response: ')
-        exchange_token = exchange_code.strip().strip('"')
+        if not args.auth_code:
+            # unfortunately the captcha stuff makes a complete CLI login flow kinda impossible right now...
+            print('Please login via the epic web login!')
+            webbrowser.open(
+                'https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fexchange'
+            )
+            print('If web page did not open automatically, please navigate '
+                  'to https://www.epicgames.com/id/login in your web browser')
+            print('- In case you opened the link manually; please open https://www.epicgames.com/id/api/exchange '
+                  'in your web browser after you have finished logging in.')
+            exchange_code = input('Please enter code from JSON response: ')
+            exchange_token = exchange_code.strip().strip('"')
+        else:
+            exchange_token = args.auth_code
 
         if self.core.auth_code(exchange_token):
             logger.info(f'Successfully logged in as "{self.core.lgd.userdata["displayName"]}"')
@@ -479,6 +485,10 @@ def main():
     if os.name == 'nt':
         auth_parser.add_argument('--import', dest='import_egs_auth', action='store_true',
                                  help='Import EGS authentication data')
+    auth_parser.add_argument('--code', dest='auth_code', action='store', metavar='<exchange code>',
+                             help='Use specified exchange code instead of interactive authentication.')
+    auth_parser.add_argument('--delete', dest='auth_delete', action='store_true',
+                             help='Remove existing authentication data')
 
     install_parser.add_argument('--base-path', dest='base_path', action='store', metavar='<path>',
                                 help='Path for game installations (defaults to ~/legendary)')
