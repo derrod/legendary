@@ -17,6 +17,7 @@ from sys import exit, stdout
 from legendary import __version__, __codename__
 from legendary.core import LegendaryCore
 from legendary.models.exceptions import InvalidCredentialsError
+from legendary.models.game import SaveGameStatus
 from legendary.utils.custom_parser import AliasedSubParsersAction
 
 # todo custom formatter for cli logger (clean info, highlighted error/warning)
@@ -223,10 +224,115 @@ class LegendaryCLI:
         if not self.core.login():
             logger.error('Login failed! Cannot continue with download process.')
             exit(1)
-        # then get the saves
         logger.info(f'Downloading saves to "{self.core.get_default_install_dir()}"')
-        # todo expand this to allow downloading single saves and extracting them to the correct directory
-        self.core.download_saves()
+        self.core.download_saves(args.app_name)
+
+    def sync_saves(self, args):
+        if not self.core.login():
+            logger.error('Login failed! Cannot continue with download process.')
+            exit(1)
+
+        igames = self.core.get_installed_list()
+        if args.app_name:
+            igame = self.core.get_installed_game(args.app_name)
+            if not igame:
+                logger.fatal(f'Game not installed: {args.app_name}')
+                exit(1)
+            igames = [igame]
+
+        # check available saves
+        saves = self.core.get_save_games()
+        latest_save = dict()
+
+        for save in sorted(saves, key=lambda a: a.datetime):
+            latest_save[save.app_name] = save
+
+        logger.info(f'Got {len(latest_save)} remote save game(s)')
+
+        # evaluate current save state for each game.
+        for igame in igames:
+            if igame.app_name not in latest_save:
+                continue
+
+            game = self.core.get_game(igame.app_name)
+            if 'CloudSaveFolder' not in game.metadata['customAttributes']:
+                # this should never happen unless cloud save support was removed from a game
+                logger.warning(f'{igame.app_name} has remote save(s) but does not support cloud saves?!')
+                continue
+
+            # override save path only if app name is specified
+            if args.app_name and args.save_path:
+                logger.info(f'Overriding save path with "{args.save_path}"...')
+                igame.save_path = args.save_path
+                self.core.lgd.set_installed_game(igame.app_name, igame)
+
+            # if there is no saved save path, try to get one
+            if not igame.save_path:
+                save_path = self.core.get_save_path(igame.app_name)
+
+                # ask user if path is correct if computing for the first time
+                logger.info(f'Computed save path: "{save_path}"')
+
+                if '%' in save_path or '{' in save_path:
+                    logger.warning('Path contains unprocessed variables, please enter the correct path manually.')
+                    yn = 'n'
+                else:
+                    yn = input('Is this correct? [Y/n] ')
+
+                if yn and yn.lower()[0] != 'y':
+                    save_path = input('Please enter the correct path (leave empty to skip): ')
+                    if not save_path:
+                        logger.info('Empty input, skipping...')
+                        continue
+
+                if not os.path.exists(save_path):
+                    os.makedirs(save_path)
+                igame.save_path = save_path
+                self.core.lgd.set_installed_game(igame.app_name, igame)
+
+            # check if *any* file in the save game directory is newer than the latest uploaded save
+            res, (dt_l, dt_r) = self.core.check_savegame_state(igame.save_path, latest_save[igame.app_name])
+
+            if res == SaveGameStatus.SAME_AGE and not (args.force_upload or args.force_download):
+                logger.info(f'Save game for "{igame.title}" is up to date, skipping...')
+                continue
+
+            if (res == SaveGameStatus.REMOTE_NEWER and not args.force_upload) or args.force_download:
+                if res == SaveGameStatus.REMOTE_NEWER:  # only print this info if not forced
+                    logger.info(f'Cloud save for "{igame.title}" is newer:')
+                    logger.info(f'- Cloud save date: {dt_l.strftime("%Y-%m-%d %H:%M:%S")}')
+                    logger.info(f'- Local save date: {dt_r.strftime("%Y-%m-%d %H:%M:%S")}')
+
+                if args.upload_only:
+                    logger.info('Save game downloading is disabled, skipping...')
+                    continue
+
+                if not args.yes and not args.force_download:
+                    choice = input(f'Download cloud save? [Y/n]: ')
+                    if choice and choice.lower()[0] != 'y':
+                        logger.info('Not downloading...')
+                        continue
+
+                logger.info('Downloading remote savegame...')
+                self.core.download_saves(igame.app_name, save_dir=igame.save_path, clean_dir=True,
+                                         manifest_name=latest_save[igame.app_name].manifest_name)
+            elif res == SaveGameStatus.LOCAL_NEWER or args.force_upload:
+                if res == SaveGameStatus.LOCAL_NEWER:
+                    logger.info(f'Local save for "{igame.title}" is newer')
+                    logger.info(f'- Cloud save date: {dt_l.strftime("%Y-%m-%d %H:%M:%S")}')
+                    logger.info(f'- Local save date: {dt_r.strftime("%Y-%m-%d %H:%M:%S")}')
+
+                if args.download_only:
+                    logger.info('Save game uploading is disabled, skipping...')
+                    continue
+
+                if not args.yes and not args.force_upload:
+                    choice = input(f'Upload local save? [Y/n]: ')
+                    if choice and choice.lower()[0] != 'y':
+                        logger.info('Not uploading...')
+                        continue
+                logger.info('Uploading local savegame...')
+                self.core.upload_save(igame.app_name, igame.save_path, dt_l)
 
     def launch_game(self, args, extra):
         app_name = args.app_name
@@ -472,6 +578,7 @@ def main():
     list_files_parser = subparsers.add_parser('list-files', help='List files in manifest')
     list_saves_parser = subparsers.add_parser('list-saves', help='List available cloud saves')
     download_saves_parser = subparsers.add_parser('download-saves', help='Download all cloud saves')
+    sync_saves_parser = subparsers.add_parser('sync-saves', help='Sync cloud saves')
 
     install_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
     uninstall_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
@@ -479,6 +586,10 @@ def main():
     list_files_parser.add_argument('app_name', nargs='?', metavar='<App Name>',
                                    help='Name of the app (optional)')
     list_saves_parser.add_argument('app_name', nargs='?', metavar='<App Name>', default='',
+                                   help='Name of the app (optional)')
+    download_saves_parser.add_argument('app_name', nargs='?', metavar='<App Name>', default='',
+                                       help='Name of the app (optional)')
+    sync_saves_parser.add_argument('app_name', nargs='?', metavar='<App Name>', default='',
                                    help='Name of the app (optional)')
 
     # importing only works on Windows right now
@@ -570,6 +681,17 @@ def main():
     list_files_parser.add_argument('--install-tag', dest='install_tag', action='store', metavar='<tag>',
                                    type=str, help='Show only files with specified install tag')
 
+    sync_saves_parser.add_argument('--skip-upload', dest='download_only', action='store_true',
+                                   help='Only download new saves from cloud, don\'t upload')
+    sync_saves_parser.add_argument('--skip-download', dest='upload_only', action='store_true',
+                                   help='Only upload new saves from cloud, don\'t download')
+    sync_saves_parser.add_argument('--force-upload', dest='force_upload', action='store_true',
+                                   help='Force upload even if local saves are older')
+    sync_saves_parser.add_argument('--force-download', dest='force_download', action='store_true',
+                                   help='Force download even if local saves are newer')
+    sync_saves_parser.add_argument('--save-path', dest='save_path', action='store',
+                                   help='Override savegame path (only if app name is specified)')
+
     args, extra = parser.parse_known_args()
 
     if args.version:
@@ -578,7 +700,7 @@ def main():
 
     if args.subparser_name not in ('auth', 'list-games', 'list-installed', 'list-files',
                                    'launch', 'download', 'uninstall', 'install', 'update',
-                                   'list-saves', 'download-saves'):
+                                   'list-saves', 'download-saves', 'sync-saves'):
         print(parser.format_help())
 
         # Print the main help *and* the help for all of the subcommands. Thanks stackoverflow!
@@ -622,6 +744,8 @@ def main():
             cli.list_saves(args)
         elif args.subparser_name == 'download-saves':
             cli.download_saves(args)
+        elif args.subparser_name == 'sync-saves':
+            cli.sync_saves(args)
     except KeyboardInterrupt:
         logger.info('Command was aborted via KeyboardInterrupt, cleaning up...')
 

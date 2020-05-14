@@ -8,8 +8,8 @@ import shlex
 import shutil
 
 from base64 import b64decode
-from collections import defaultdict, namedtuple
-from datetime import datetime
+from collections import defaultdict
+from datetime import datetime, timezone
 from multiprocessing import Queue
 from random import choice as randchoice
 from requests.exceptions import HTTPError
@@ -27,6 +27,7 @@ from legendary.models.json_manifest import JSONManifest
 from legendary.models.manifest import Manifest, ManifestMeta
 from legendary.models.chunk import Chunk
 from legendary.utils.game_workarounds import is_opt_enabled
+from legendary.utils.savegame_helper import SaveGameHelper
 
 
 # ToDo: instead of true/false return values for success/failure actually raise an exception that the CLI/GUI
@@ -44,6 +45,8 @@ class LegendaryCore:
         self.log = logging.getLogger('Core')
         self.egs = EPCAPI()
         self.lgd = LGDLFS()
+
+        self.local_timezone = datetime.now().astimezone().tzinfo
 
         # epic lfs only works on Windows right now
         if os.name == 'nt':
@@ -279,33 +282,107 @@ class LegendaryCore:
         return params, working_dir, env
 
     def get_save_games(self, app_name: str = ''):
-        # todo make this a proper class in legendary.models.egs or something
-        CloudSave = namedtuple('CloudSave', ['filename', 'app_name', 'manifest_name', 'iso_date'])
-        savegames = self.egs.get_user_cloud_saves(app_name)
+        savegames = self.egs.get_user_cloud_saves(app_name, manifests=not not app_name)
         _saves = []
         for fname, f in savegames['files'].items():
             if '.manifest' not in fname:
                 continue
             f_parts = fname.split('/')
-            _saves.append(CloudSave(filename=fname, app_name=f_parts[2],
-                                    manifest_name=f_parts[4], iso_date=f['lastModified']))
+            _saves.append(SaveGameFile(app_name=f_parts[2], filename=fname, manifest=f_parts[4],
+                                       datetime=datetime.fromisoformat(f['lastModified'][:-1])))
 
         return _saves
 
-    def download_saves(self):
+    def get_save_path(self, app_name, wine_prefix='~/.wine'):
+        game = self.lgd.get_game_meta(app_name)
+        save_path = game.metadata['customAttributes'].get('CloudSaveFolder', {}).get('value')
+        if not save_path:
+            raise ValueError('Game does not support cloud saves')
+
+        igame = self.lgd.get_installed_game(app_name)
+        if not igame:
+            raise ValueError('Game is not installed!')
+
+        # the following variables are known:
+        path_vars = {
+            '{appdata}': os.path.expandvars('%APPDATA%'),
+            '{installdir}': igame.install_path,
+            '{userdir}': os.path.expandvars('%userprofile%/documents'),
+            '{epicid}': self.lgd.userdata['account_id']
+        }
+        # the following variables are in the EGL binary but are not used by any of
+        # my games and I'm not sure where they actually point at:
+        # {UserProfile} (Probably %USERPROFILE%)
+        # {UserSavedGames}
+
+        # these paths should always use a forward slash
+        new_save_path = [path_vars.get(p.lower(), p) for p in save_path.split('/')]
+        return os.path.join(*new_save_path)
+
+    def check_savegame_state(self, path: str, save: SaveGameFile) -> (SaveGameStatus, (datetime, datetime)):
+        latest = 0
+        for _dir, _, _files in os.walk(path):
+            for _file in _files:
+                s = os.stat(os.path.join(_dir, _file))
+                latest = max(latest, s.st_mtime)
+
+        # timezones are fun!
+        dt_local = datetime.fromtimestamp(latest).replace(tzinfo=self.local_timezone).astimezone(timezone.utc)
+        dt_remote = datetime.strptime(save.manifest_name, '%Y.%m.%d-%H.%M.%S.manifest').replace(tzinfo=timezone.utc)
+        self.log.debug(f'Local save date: {str(dt_local)}, Remote save date: {str(dt_remote)}')
+
+        # Ideally we check the files themselves based on manifest,
+        # this is mostly a guess but should be accurate enough.
+        if abs((dt_local - dt_remote).total_seconds()) < 60:
+            return SaveGameStatus.SAME_AGE, (dt_local, dt_remote)
+        elif dt_local > dt_remote:
+            return SaveGameStatus.LOCAL_NEWER, (dt_local, dt_remote)
+        else:
+            return SaveGameStatus.REMOTE_NEWER, (dt_local, dt_remote)
+
+    def upload_save(self, app_name, save_dir, local_dt: datetime = None):
+        game = self.lgd.get_game_meta(app_name)
+        save_path = game.metadata['customAttributes'].get('CloudSaveFolder', {}).get('value')
+        if not save_path:
+            raise ValueError('Game does not support cloud saves')
+
+        sgh = SaveGameHelper()
+        files = sgh.package_savegame(save_dir, app_name, self.egs.user.get('account_id'),
+                                     save_path, local_dt)
+
+        self.log.debug(f'Packed files: {str(files)}, creating cloud files...')
+        resp = self.egs.create_game_cloud_saves(app_name, list(files.keys()))
+
+        self.log.info('Starting upload...')
+        for remote_path, file_info in resp['files'].items():
+            self.log.debug(f'Uploading "{remote_path}"')
+            f = files.get(remote_path)
+            self.egs.unauth_session.put(file_info['writeLink'], data=f.read())
+
+        self.log.info('Finished uploading savegame.')
+
+    def download_saves(self, app_name='', manifest_name='', save_dir='', clean_dir=False):
         save_path = os.path.join(self.get_default_install_dir(), '.saves')
         if not os.path.exists(save_path):
             os.makedirs(save_path)
 
-        savegames = self.egs.get_user_cloud_saves()
+        savegames = self.egs.get_user_cloud_saves(app_name=app_name)
         files = savegames['files']
         for fname, f in files.items():
             if '.manifest' not in fname:
                 continue
             f_parts = fname.split('/')
-            save_dir = os.path.join(save_path, f'{f_parts[2]}/{f_parts[4].rpartition(".")[0]}')
-            if not os.path.exists(save_dir):
-                os.makedirs(save_dir)
+
+            if manifest_name and f_parts[4] != manifest_name:
+                continue
+            if not save_dir:
+                save_dir = os.path.join(save_path, f'{f_parts[2]}/{f_parts[4].rpartition(".")[0]}')
+                if not os.path.exists(save_dir):
+                    os.makedirs(save_dir)
+
+            if clean_dir:
+                self.log.info('Deleting old save files...')
+                delete_folder(save_dir)
 
             self.log.info(f'Downloading "{fname.split("/", 2)[2]}"...')
             # download manifest
@@ -315,7 +392,7 @@ class LegendaryCore:
                 continue
             m = self.load_manfiest(r.content)
 
-            # download chunks requierd for extraction
+            # download chunks required for extraction
             chunks = dict()
             for chunk in m.chunk_data_list.elements:
                 cpath_p = fname.split('/', 3)[:3]
@@ -340,6 +417,13 @@ class LegendaryCore:
                 with open(fpath, 'wb') as fh:
                     for cp in fm.chunk_parts:
                         fh.write(chunks[cp.guid_num][cp.offset:cp.offset+cp.size])
+
+                # set modified time to savegame creation timestamp
+                m_date = datetime.strptime(f_parts[4], '%Y.%m.%d-%H.%M.%S.manifest')
+                m_date = m_date.replace(tzinfo=timezone.utc).astimezone(self.local_timezone)
+                os.utime(fpath, (m_date.timestamp(), m_date.timestamp()))
+
+        self.log.info('Successfully completed savegame download.')
 
     def is_offline_game(self, app_name: str) -> bool:
         return self.lgd.config.getboolean(app_name, 'offline', fallback=False)

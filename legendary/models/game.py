@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+from enum import Enum
+
 
 class GameAsset:
     def __init__(self):
@@ -73,7 +75,7 @@ class Game:
 class InstalledGame:
     def __init__(self, app_name='', title='', version='', manifest_path='', base_urls=None,
                  install_path='', executable='', launch_parameters='', prereq_info=None,
-                 can_run_offline=False, requires_ot=False, is_dlc=False):
+                 can_run_offline=False, requires_ot=False, is_dlc=False, save_path=None):
         self.app_name = app_name
         self.title = title
         self.version = version
@@ -87,6 +89,7 @@ class InstalledGame:
         self.can_run_offline = can_run_offline
         self.requires_ot = requires_ot
         self.is_dlc = is_dlc
+        self.save_path = save_path
 
     @classmethod
     def from_json(cls, json):
@@ -105,4 +108,19 @@ class InstalledGame:
         tmp.can_run_offline = json.get('can_run_offline', False)
         tmp.requires_ot = json.get('requires_ot', False)
         tmp.is_dlc = json.get('is_dlc', False)
+        tmp.save_path = json.get('save_path', None)
         return tmp
+
+
+class SaveGameFile:
+    def __init__(self, app_name='', filename='', manifest='', datetime=None):
+        self.app_name = app_name
+        self.filename = filename
+        self.manifest_name = manifest
+        self.datetime = datetime
+
+
+class SaveGameStatus(Enum):
+    LOCAL_NEWER = 1
+    REMOTE_NEWER = -1
+    SAME_AGE = 0

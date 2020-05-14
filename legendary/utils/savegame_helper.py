@@ -1,6 +1,7 @@
 import logging
 import os
-import time
+
+from datetime import datetime
 from hashlib import sha1
 from io import BytesIO
 from tempfile import TemporaryFile
@@ -30,12 +31,14 @@ class SaveGameHelper:
         return ci
 
     def package_savegame(self, input_folder: str, app_name: str = '',
-                         epic_id: str = '', cloud_folder: str = ''):
+                         epic_id: str = '', cloud_folder: str = '',
+                         manifest_dt: datetime = None):
         """
         :param input_folder: Folder to be packaged into chunks/manifest
         :param app_name: App name for savegame being stored
         :param epic_id: Epic account ID
         :param cloud_folder: Folder the savegame resides in (based on game metadata)
+        :param manifest_dt: datetime for the manifest name (optional)
         :return:
         """
         m = Manifest()
@@ -45,7 +48,9 @@ class SaveGameHelper:
         m.custom_fields = CustomFields()
         # create metadata for savegame
         m.meta.app_name = f'{app_name}{epic_id}'
-        m.meta.build_version = time.strftime('%Y.%m.%d-%H.%M.%S')
+        if not manifest_dt:
+            manifest_dt = datetime.utcnow()
+        m.meta.build_version = manifest_dt.strftime('%Y.%m.%d-%H.%M.%S')
         m.custom_fields['CloudSaveFolder'] = cloud_folder
 
         self.log.info(f'Packing savegame for "{app_name}", input folder: {input_folder}')
