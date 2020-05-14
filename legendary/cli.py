@@ -484,18 +484,37 @@ class LegendaryCLI:
         else:
             end_t = time.time()
             if not args.no_install:
+                postinstall = self.core.install_game(igame)
+                if postinstall:
+                    self._handle_postinstall(postinstall, igame, yes=args.yes)
+
                 dlcs = self.core.get_dlc_for_game(game.app_name)
                 if dlcs:
                     print('The following DLCs are available for this game:')
                     for dlc in dlcs:
                         print(f' - {dlc.app_title} (App name: {dlc.app_name}, version: {dlc.app_version})')
-                    # todo recursively call install with modified args to install DLC automatically (after confirm)
-                    print('Installing DLCs works the same as the main game, just use the DLC app name instead.')
-                    print('(Automatic installation of DLC is currently not supported.)')
+                    print('Manually installing DLCs works the same; just use the DLC app name instead.')
 
-                postinstall = self.core.install_game(igame)
-                if postinstall:
-                    self._handle_postinstall(postinstall, igame, yes=args.yes)
+                    install_dlcs = True
+                    if not args.yes:
+                        choice = input(f'Do you wish to automatically install DLCs ? [Y/n]: ')
+                        if choice and choice.lower()[0] != 'y':
+                            install_dlcs = False
+
+                    if install_dlcs:
+                        _yes, _app_name = args.yes, args.app_name
+                        args.yes = True
+                        for dlc in dlcs:
+                            args.app_name = dlc.app_name
+                            self.install_game(args)
+                        args.yes, args.app_name = _yes, _app_name
+
+                if game.supports_cloud_saves:
+                    # todo option to automatically download saves after the installation
+                    #  args does not have the required attributes for sync_saves in here,
+                    #  not sure how to solve that elegantly.
+                    print('This game supports cloud saves, syncing is handled by the "sync-saves" command.')
+                    print(f'To download saves for this game run "legendary sync-saves {args.app_name}"')
 
             logger.info(f'Finished installation process in {end_t - start_t:.02f} seconds.')
 

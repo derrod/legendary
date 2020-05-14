@@ -53,6 +53,10 @@ class Game:
     def is_dlc(self):
         return self.metadata and 'mainGameItem' in self.metadata
 
+    @property
+    def supports_cloud_saves(self):
+        return self.metadata and (self.metadata.get('customAttributes', {}).get('CloudSaveFolder') is not None)
+
     @classmethod
     def from_json(cls, json):
         tmp = cls()
