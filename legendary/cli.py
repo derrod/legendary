@@ -484,6 +484,10 @@ class LegendaryCLI:
         else:
             end_t = time.time()
             if not args.no_install:
+                # Allow setting savegame directory at install time so sync-saves will work immediately
+                if game.supports_cloud_saves and args.save_path:
+                    igame.save_path = args.save_path
+
                 postinstall = self.core.install_game(igame)
                 if postinstall:
                     self._handle_postinstall(postinstall, igame, yes=args.yes)
@@ -509,12 +513,12 @@ class LegendaryCLI:
                             self.install_game(args)
                         args.yes, args.app_name = _yes, _app_name
 
-                if game.supports_cloud_saves:
+                if game.supports_cloud_saves and not game.is_dlc:
                     # todo option to automatically download saves after the installation
                     #  args does not have the required attributes for sync_saves in here,
                     #  not sure how to solve that elegantly.
-                    print('This game supports cloud saves, syncing is handled by the "sync-saves" command.')
-                    print(f'To download saves for this game run "legendary sync-saves {args.app_name}"')
+                    logger.info('This game supports cloud saves, syncing is handled by the "sync-saves" command.')
+                    logger.info(f'To download saves for this game run "legendary sync-saves {args.app_name}"')
 
             logger.info(f'Finished installation process in {end_t - start_t:.02f} seconds.')
 
@@ -656,6 +660,8 @@ def main():
                                 help='Enable reordering to attempt to optimize RAM usage during download')
     install_parser.add_argument('--dl-timeout', dest='dl_timeout', action='store', metavar='<sec>', type=int,
                                 help='Connection timeout for downloader (default: 10 seconds)')
+    install_parser.add_argument('--save-path', dest='save_path', action='store', metavar='<path>',
+                                help='Set save game path during install.')
 
     launch_parser.add_argument('--offline', dest='offline', action='store_true',
                                default=False, help='Skip login and launch game without online authentication')
