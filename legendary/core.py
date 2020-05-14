@@ -514,8 +514,8 @@ class LegendaryCore:
                          force: bool = False, disable_patching: bool = False,
                          game_folder: str = '', override_manifest: str = '',
                          override_old_manifest: str = '', override_base_url: str = '',
-                         platform_override: str = '', file_prefix_filter: str = '',
-                         file_exclude_filter: str = '', file_install_tag: str = '',
+                         platform_override: str = '', file_prefix_filter: list = None,
+                         file_exclude_filter: list = None, file_install_tag: list = None,
                          dl_optimizations: bool = False, dl_timeout: int = 10
                          ) -> (DLManager, AnalysisResult, ManifestMeta):
         # load old manifest

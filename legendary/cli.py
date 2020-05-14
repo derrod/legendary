@@ -646,11 +646,11 @@ def main():
                                 help='Set download manager and worker processes\' loglevel to debug')
     install_parser.add_argument('--platform', dest='platform_override', action='store', metavar='<Platform>',
                                 type=str, help='Platform override for download (disables install)')
-    install_parser.add_argument('--prefix', dest='file_prefix', action='store', metavar='<prefix>', type=str,
+    install_parser.add_argument('--prefix', dest='file_prefix', action='append', metavar='<prefix>',
                                 help='Only fetch files whose path starts with <prefix> (case insensitive)')
-    install_parser.add_argument('--exclude', dest='file_exclude_prefix', action='store', metavar='<prefix>',
+    install_parser.add_argument('--exclude', dest='file_exclude_prefix', action='append', metavar='<prefix>',
                                 type=str, help='Exclude files starting with <prefix> (case insensitive)')
-    install_parser.add_argument('--install-tag', dest='install_tag', action='store', metavar='<tag>',
+    install_parser.add_argument('--install-tag', dest='install_tag', action='append', metavar='<tag>',
                                 type=str, help='Only download files with the specified install tag (testing)')
     install_parser.add_argument('--enable-reordering', dest='order_opt', action='store_true',
                                 help='Enable reordering to attempt to optimize RAM usage during download')
@@ -708,7 +708,7 @@ def main():
                                    help='Force upload even if local saves are older')
     sync_saves_parser.add_argument('--force-download', dest='force_download', action='store_true',
                                    help='Force download even if local saves are newer')
-    sync_saves_parser.add_argument('--save-path', dest='save_path', action='store',
+    sync_saves_parser.add_argument('--save-path', dest='save_path', action='store', metavar='<path>',
                                    help='Override savegame path (only if app name is specified)')
 
     args, extra = parser.parse_known_args()

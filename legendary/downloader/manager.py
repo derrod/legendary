@@ -120,8 +120,11 @@ class DLManager(Process):
         # Not entirely sure what install tags are used for, only some titles have them.
         # Let's add it for testing anyway.
         if file_install_tag:
+            if isinstance(file_install_tag, str):
+                file_install_tag = [file_install_tag]
+
             files_to_skip = set(i.filename for i in manifest.file_manifest_list.elements
-                                if file_install_tag not in i.install_tags)
+                                if not any(fit in i.install_tags for fit in file_install_tag))
             self.log.info(f'Found {len(files_to_skip)} files to skip based on install tag.')
             mc.added -= files_to_skip
             mc.changed -= files_to_skip
@@ -129,17 +132,25 @@ class DLManager(Process):
 
         # if include/exclude prefix has been set: mark all files that are not to be downloaded as unchanged
         if file_exclude_filter:
-            file_exclude_filter = file_exclude_filter.lower()
-            files_to_skip = set(i for i in mc.added | mc.changed if i.lower().startswith(file_exclude_filter))
+            if isinstance(file_exclude_filter, str):
+                file_exclude_filter = [file_exclude_filter]
+
+            file_exclude_filter = [f.lower() for f in file_exclude_filter]
+            files_to_skip = set(i.filename for i in manifest.file_manifest_list.elements if
+                                any(i.filename.lower().startswith(pfx) for pfx in file_exclude_filter))
             self.log.info(f'Found {len(files_to_skip)} files to skip based on exclude prefix.')
             mc.added -= files_to_skip
             mc.changed -= files_to_skip
             mc.unchanged |= files_to_skip
 
         if file_prefix_filter:
-            file_prefix_filter = file_prefix_filter.lower()
-            files_to_skip = set(i for i in mc.added | mc.changed if not i.lower().startswith(file_prefix_filter))
-            self.log.info(f'Found {len(files_to_skip)} files to skip based on include prefix.')
+            if isinstance(file_prefix_filter, str):
+                file_prefix_filter = [file_prefix_filter]
+
+            file_prefix_filter = [f.lower() for f in file_prefix_filter]
+            files_to_skip = set(i.filename for i in manifest.file_manifest_list.elements if not
+                                any(i.filename.lower().startswith(pfx) for pfx in file_prefix_filter))
+            self.log.info(f'Found {len(files_to_skip)} files to skip based on include prefix(es)')
             mc.added -= files_to_skip
             mc.changed -= files_to_skip
             mc.unchanged |= files_to_skip
