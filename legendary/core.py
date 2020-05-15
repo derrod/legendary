@@ -562,6 +562,7 @@ class LegendaryCore:
 
         # make sure base directory actually exists (but do not create game dir)
         if not os.path.exists(base_path):
+            self.log.info(f'"{base_path}" does not exist, creating...')
             os.makedirs(base_path)
 
         install_path = os.path.join(base_path, game_folder)
