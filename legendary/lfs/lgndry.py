@@ -13,7 +13,12 @@ from legendary.lfs.utils import clean_filename
 class LGDLFS:
     def __init__(self):
         self.log = logging.getLogger('LGDLFS')
-        self.path = os.path.expanduser('~/.config/legendary')
+
+        if config_path := os.environ.get('XDG_CONFIG_HOME'):
+            self.path = os.path.join(config_path, 'legendary')
+        else:
+            self.path = os.path.expanduser('~/.config/legendary')
+
         # EGS user info
         self._user_data = None
         # EGS entitlements
