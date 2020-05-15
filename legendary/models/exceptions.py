@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # coding: utf-8
 
 # ToDo more custom exceptions where it makes sense

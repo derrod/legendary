@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # coding: utf-8
 
 # please don't look at this code too hard, it's a mess.
