@@ -1,6 +1,6 @@
 # Legendary
 ## A free and open-source Epic Games Launcher replacement
-![Logo](https://repository-images.githubusercontent.com/249938026/7ea8a680-7e65-11ea-9260-fea84c1112f1)
+![Logo](https://repository-images.githubusercontent.com/249938026/80b18f80-96c7-11ea-9183-0a8c96e7cada)
 
 [![Discord](https://discordapp.com/api/guilds/695233346627698689/widget.png?style=shield)](https://discord.gg/UJKBwPw) [![Twitter Follow](https://img.shields.io/twitter/follow/legendary_gl?label=Follow%20us%20for%20updates%21&style=social)](https://twitter.com/legendary_gl)
 
