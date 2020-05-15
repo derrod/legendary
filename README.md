@@ -25,6 +25,7 @@ Right now it is in an early public testing stage and still needs a lot of work t
 
 ## Requirements
 
+- Linux or Windows (64-bit)
 - python 3.8+ (64-bit on Windows)
 - requests
 - setuptools (only when installing/building)
@@ -112,7 +113,7 @@ $ legendary launch Anemone
 ## Usage
 
 ````
-usage: legendary [-h] [-v] [-y] [-V] {auth,install,download,update,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves} ...
+usage: legendary [-h] [-v] [-y] [-V] {auth,install,download,update,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves} ...
 
 Legendary v0.0.X - "Codename"
 
@@ -123,7 +124,7 @@ optional arguments:
   -V                    Print version and exit
 
 Commands:
-  {auth,install,download,update,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves}
+  {auth,install,download,update,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves}
     auth                Authenticate with EPIC
     install (download,update)
                         Download a game
@@ -134,15 +135,20 @@ Commands:
     list-files          List files in manifest
     list-saves          List available cloud saves
     download-saves      Download all cloud saves
+    sync-saves          Sync cloud saves
 
 Individual command help:
 
 Command: auth
-usage: legendary auth [-h] [--import]
+usage: legendary auth [-h] [--import] [--code <exchange code>] [--delete]
 
 optional arguments:
-  -h, --help  show this help message and exit
-  --import    Import EGS authentication data
+  -h, --help            show this help message and exit
+  --import              Import EGS authentication data
+  --code <exchange code>
+                        Use specified exchange code instead of interactive
+                        authentication.
+  --delete              Remove existing authentication data
 
 
 Command: install
@@ -176,6 +182,7 @@ optional arguments:
   --install-tag <tag>   Only download files with the specified install tag (testing)
   --enable-reordering   Enable reordering to attempt to optimize RAM usage during download
   --dl-timeout <sec>    Connection timeout for downloader (default: 10 seconds)
+  --save-path <path>    Set save game path during install.
 
 
 Command: uninstall
@@ -256,10 +263,28 @@ optional arguments:
 
 
 Command: download-saves
-usage: legendary download-saves [-h]
+usage: legendary download-saves [-h] [<App Name>]
+
+positional arguments:
+  <App Name>  Name of the app (optional)
 
 optional arguments:
   -h, --help  show this help message and exit
+
+
+Command: sync-saves
+usage: legendary sync-saves [-h] [--skip-upload] [--skip-download] [--force-upload] [--force-download] [--save-path <path>] [<App Name>]
+
+positional arguments:
+  <App Name>          Name of the app (optional)
+
+optional arguments:
+  -h, --help          show this help message and exit
+  --skip-upload       Only download new saves from cloud, don't upload
+  --skip-download     Only upload new saves from cloud, don't download
+  --force-upload      Force upload even if local saves are older
+  --force-download    Force download even if local saves are newer
+  --save-path <path>  Override savegame path (only if app name is specified)
 ````
 
 
