@@ -125,6 +125,11 @@ class SaveGameHelper:
                     cp = ChunkPart(guid=cur_chunk.guid, offset=cur_buffer.tell(),
                                    size=min(remaining, 1024 * 1024 - cur_buffer.tell()))
                     _tmp = cf.read(cp.size)
+                    if not _tmp:
+                        self.log.warning(f'Got EOF for "{f.filename}" with {remaining} bytes remaining! '
+                                         f'File may have been corrupted/modified.')
+                        break
+                    
                     cur_buffer.write(_tmp)
                     fhash.update(_tmp)  # update sha1 hash with new data
                     f.chunk_parts.append(cp)
