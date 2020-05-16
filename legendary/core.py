@@ -460,8 +460,8 @@ class LegendaryCore:
 
     def get_installed_manifest(self, app_name):
         igame = self.get_installed_game(app_name)
-        if old_bytes := self.lgd.load_manifest(app_name, igame.version):
-            return old_bytes, igame.base_urls
+        old_bytes = self.lgd.load_manifest(app_name, igame.version)
+        return old_bytes, igame.base_urls
 
     def get_cdn_manifest(self, game, platform_override=''):
         base_urls = []
@@ -527,7 +527,10 @@ class LegendaryCore:
             old_manifest = self.load_manfiest(old_bytes)
         elif not disable_patching and not force and self.is_installed(game.app_name):
             old_bytes, _ = self.get_installed_manifest(game.app_name)
-            old_manifest = self.load_manfiest(old_bytes)
+            if not old_bytes:
+                self.log.error(f'Could not load old manifest, patching will not work!')
+            else:
+                old_manifest = self.load_manfiest(old_bytes)
 
         base_urls = list(game.base_urls)  # copy list for manipulation
 
