@@ -686,6 +686,10 @@ def main():
         launch_parser.add_argument('--wine-prefix', dest='wine_pfx', action='store', metavar='<wine pfx path>',
                                    default=os.environ.get('LGDRY_WINE_PREFIX', None),
                                    help='Override WINE prefix used.')
+    else:
+        # hidden arguments to not break this on Windows
+        launch_parser.add_argument('--wine', help=argparse.SUPPRESS, dest='wine_bin')
+        launch_parser.add_argument('--wine-prefix', help=argparse.SUPPRESS, dest='wine_pfx')
 
     list_parser.add_argument('--platform', dest='platform_override', action='store', metavar='<Platform>',
                              type=str, help='Override platform that games are shown for')
