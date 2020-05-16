@@ -146,8 +146,7 @@ optional arguments:
   -h, --help            show this help message and exit
   --import              Import EGS authentication data
   --code <exchange code>
-                        Use specified exchange code instead of interactive
-                        authentication.
+                        Use specified exchange code instead of interactive authentication.
   --delete              Remove existing authentication data
 
 
@@ -210,6 +209,9 @@ optional arguments:
   --override-username <username>
                         Override username used when launching the game (only works with some titles)
   --dry-run             Print the command line that would have been used to launch the game and exit
+  --wine <wine binary>  Override WINE binary being used to launch the game
+  --wine-prefix <wine pfx path>
+                        Override WINE prefix used.
 
 
 Command: list-games
@@ -273,7 +275,7 @@ optional arguments:
 
 
 Command: sync-saves
-usage: legendary sync-saves [-h] [--skip-upload] [--skip-download] [--force-upload] [--force-download] [--save-path <path>] [<App Name>]
+usage: legendary sync-saves [-h] [--skip-upload] [--skip-download] [--force-upload] [--force-download] [--save-path <path>] [--disable-filters] [<App Name>]
 
 positional arguments:
   <App Name>          Name of the app (optional)
@@ -285,6 +287,7 @@ optional arguments:
   --force-upload      Force upload even if local saves are older
   --force-download    Force download even if local saves are newer
   --save-path <path>  Override savegame path (only if app name is specified)
+  --disable-filters   Disable save game file filtering (in case it breaks)
 ````
 
 
