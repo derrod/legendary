@@ -178,6 +178,11 @@ class LegendaryCore:
                 if not platform_override:
                     self.lgd.set_game_meta(game.app_name, game)
 
+            # replace asset info with the platform specific one if override is used
+            if platform_override:
+                game.app_version = ga.build_version
+                game.asset_info = ga
+
             if game.is_dlc:
                 _dlc[game.metadata['mainGameItem']['id']].append(game)
             else:
