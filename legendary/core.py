@@ -339,15 +339,26 @@ class LegendaryCore:
         else:
             return SaveGameStatus.REMOTE_NEWER, (dt_local, dt_remote)
 
-    def upload_save(self, app_name, save_dir, local_dt: datetime = None):
+    def upload_save(self, app_name, save_dir, local_dt: datetime = None,
+                    disable_filtering: bool = False):
         game = self.lgd.get_game_meta(app_name)
-        save_path = game.metadata['customAttributes'].get('CloudSaveFolder', {}).get('value')
+        custom_attr = game.metadata['customAttributes']
+        save_path = custom_attr.get('CloudSaveFolder', {}).get('value')
+
+        include_f = exclude_f = None
+        if not disable_filtering:
+            # get file inclusion and exclusion filters if they exist
+            if _include := custom_attr.get('CloudIncludeList', {}).get('value', None) is not None:
+                include_f = _include.split(',')
+            if _exclude := custom_attr.get('CloudExcludeList', {}).get('value', None) is not None:
+                exclude_f = _exclude.split(',')
+
         if not save_path:
             raise ValueError('Game does not support cloud saves')
 
         sgh = SaveGameHelper()
         files = sgh.package_savegame(save_dir, app_name, self.egs.user.get('account_id'),
-                                     save_path, local_dt)
+                                     save_path, include_f, exclude_f, local_dt)
 
         self.log.debug(f'Packed files: {str(files)}, creating cloud files...')
         resp = self.egs.create_game_cloud_saves(app_name, list(files.keys()))
@@ -630,7 +641,6 @@ class LegendaryCore:
 
     @staticmethod
     def check_installation_conditions(analysis: AnalysisResult, install: InstalledGame) -> ConditionCheckResult:
-        # ToDo add more checks in the future
         results = ConditionCheckResult(failures=set(), warnings=set())
 
         # if on linux, check for eac in the files

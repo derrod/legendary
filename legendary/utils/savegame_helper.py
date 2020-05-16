@@ -2,6 +2,7 @@ import logging
 import os
 
 from datetime import datetime
+from fnmatch import fnmatch
 from hashlib import sha1
 from io import BytesIO
 from tempfile import TemporaryFile
@@ -9,6 +10,26 @@ from tempfile import TemporaryFile
 from legendary.models.chunk import Chunk
 from legendary.models.manifest import \
     Manifest, ManifestMeta, CDL, FML, CustomFields, FileManifest, ChunkPart, ChunkInfo
+
+
+def _filename_matches(filename, patterns):
+    """
+    Helper to determine if a filename matches the filter patterns
+
+    :param filename: name of the file
+    :param patterns: list of patterns to match against
+    :return:
+    """
+
+    for pattern in patterns:
+        if pattern.endswith('/'):
+            # pat is a directory, check if path starts with it
+            if filename.startswith(pattern):
+                return True
+        elif fnmatch(filename, pattern):
+            return True
+
+    return False
 
 
 class SaveGameHelper:
@@ -32,12 +53,16 @@ class SaveGameHelper:
 
     def package_savegame(self, input_folder: str, app_name: str = '',
                          epic_id: str = '', cloud_folder: str = '',
+                         include_filter: list = None,
+                         exclude_filter: list = None,
                          manifest_dt: datetime = None):
         """
         :param input_folder: Folder to be packaged into chunks/manifest
         :param app_name: App name for savegame being stored
         :param epic_id: Epic account ID
         :param cloud_folder: Folder the savegame resides in (based on game metadata)
+        :param include_filter: list of patterns for files to include (excludes all others)
+        :param exclude_filter: list of patterns for files to exclude (includes all others)
         :param manifest_dt: datetime for the manifest name (optional)
         :return:
         """
@@ -57,7 +82,17 @@ class SaveGameHelper:
         files = []
         for _dir, _, _files in os.walk(input_folder):
             for _file in _files:
-                files.append(os.path.join(_dir, _file))
+                _file_path = os.path.join(_dir, _file)
+                _file_path_rel = os.path.relpath(_file_path, input_folder).replace('\\', '/')
+
+                if include_filter and not _filename_matches(_file_path_rel, include_filter):
+                    self.log.debug(f'Excluding "{_file_path_rel}" (does not match include filter)')
+                    continue
+                elif exclude_filter and _filename_matches(_file_path_rel, exclude_filter):
+                    self.log.debug(f'Excluding "{_file_path_rel}" (does match exclude filter)')
+                    continue
+
+                files.append(_file_path)
 
         chunk_num = 0
         cur_chunk = None
