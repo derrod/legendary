@@ -332,7 +332,7 @@ class LegendaryCLI:
                         logger.info('Not uploading...')
                         continue
                 logger.info('Uploading local savegame...')
-                self.core.upload_save(igame.app_name, igame.save_path, dt_l)
+                self.core.upload_save(igame.app_name, igame.save_path, dt_l, args.disable_filters)
 
     def launch_game(self, args, extra):
         app_name = args.app_name
@@ -716,6 +716,8 @@ def main():
                                    help='Force download even if local saves are newer')
     sync_saves_parser.add_argument('--save-path', dest='save_path', action='store', metavar='<path>',
                                    help='Override savegame path (only if app name is specified)')
+    sync_saves_parser.add_argument('--disable-filters', dest='disable_filters', action='store_true',
+                                   help='Disable save game file filtering (in case it breaks)')
 
     args, extra = parser.parse_known_args()
 
