@@ -94,6 +94,11 @@ class SaveGameHelper:
 
                 files.append(_file_path)
 
+        if not files:
+            if exclude_filter or include_filter:
+                self.log.warning('No save files matching the specified filters have been found.')
+            return self.files
+
         chunk_num = 0
         cur_chunk = None
         cur_buffer = None

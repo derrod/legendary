@@ -360,6 +360,10 @@ class LegendaryCore:
         files = sgh.package_savegame(save_dir, app_name, self.egs.user.get('account_id'),
                                      save_path, include_f, exclude_f, local_dt)
 
+        if not files:
+            self.log.info('No files to upload. If you believe this is incorrect run command with "--disable-filters"')
+            return
+
         self.log.debug(f'Packed files: {str(files)}, creating cloud files...')
         resp = self.egs.create_game_cloud_saves(app_name, list(files.keys()))
 
