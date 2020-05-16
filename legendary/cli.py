@@ -251,15 +251,14 @@ class LegendaryCLI:
 
         # evaluate current save state for each game.
         for igame in igames:
-            if igame.app_name not in latest_save:
-                continue
-
             game = self.core.get_game(igame.app_name)
             if 'CloudSaveFolder' not in game.metadata['customAttributes']:
-                # this should never happen unless cloud save support was removed from a game
-                logger.warning(f'{igame.app_name} has remote save(s) but does not support cloud saves?!')
+                if igame.app_name in latest_save:
+                    # this should never happen unless cloud save support was removed from a game
+                    logger.warning(f'{igame.app_name} has remote save(s) but does not support cloud saves?!')
                 continue
 
+            logger.info(f'Checking "{igame.title}" ({igame.app_name})')
             # override save path only if app name is specified
             if args.app_name and args.save_path:
                 logger.info(f'Overriding save path with "{args.save_path}"...')
@@ -290,8 +289,11 @@ class LegendaryCLI:
                 igame.save_path = save_path
                 self.core.lgd.set_installed_game(igame.app_name, igame)
 
-            # check if *any* file in the save game directory is newer than the latest uploaded save
-            res, (dt_l, dt_r) = self.core.check_savegame_state(igame.save_path, latest_save[igame.app_name])
+            res, (dt_l, dt_r) = self.core.check_savegame_state(igame.save_path, latest_save.get(igame.app_name))
+
+            if res == SaveGameStatus.NO_SAVE:
+                logger.info('No cloud or local savegame found.')
+                continue
 
             if res == SaveGameStatus.SAME_AGE and not (args.force_upload or args.force_download):
                 logger.info(f'Save game for "{igame.title}" is up to date, skipping...')
@@ -300,8 +302,11 @@ class LegendaryCLI:
             if (res == SaveGameStatus.REMOTE_NEWER and not args.force_upload) or args.force_download:
                 if res == SaveGameStatus.REMOTE_NEWER:  # only print this info if not forced
                     logger.info(f'Cloud save for "{igame.title}" is newer:')
-                    logger.info(f'- Cloud save date: {dt_l.strftime("%Y-%m-%d %H:%M:%S")}')
-                    logger.info(f'- Local save date: {dt_r.strftime("%Y-%m-%d %H:%M:%S")}')
+                    logger.info(f'- Cloud save date: {dt_r.strftime("%Y-%m-%d %H:%M:%S")}')
+                    if dt_l:
+                        logger.info(f'- Local save date: {dt_l.strftime("%Y-%m-%d %H:%M:%S")}')
+                    else:
+                        logger.info('- Local save date: N/A')
 
                 if args.upload_only:
                     logger.info('Save game downloading is disabled, skipping...')
@@ -319,8 +324,11 @@ class LegendaryCLI:
             elif res == SaveGameStatus.LOCAL_NEWER or args.force_upload:
                 if res == SaveGameStatus.LOCAL_NEWER:
                     logger.info(f'Local save for "{igame.title}" is newer')
-                    logger.info(f'- Cloud save date: {dt_l.strftime("%Y-%m-%d %H:%M:%S")}')
-                    logger.info(f'- Local save date: {dt_r.strftime("%Y-%m-%d %H:%M:%S")}')
+                    if dt_r:
+                        logger.info(f'- Cloud save date: {dt_r.strftime("%Y-%m-%d %H:%M:%S")}')
+                    else:
+                        logger.info('- Cloud save date: N/A')
+                    logger.info(f'- Local save date: {dt_l.strftime("%Y-%m-%d %H:%M:%S")}')
 
                 if args.download_only:
                     logger.info('Save game uploading is disabled, skipping...')

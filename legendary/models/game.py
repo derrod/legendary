@@ -124,6 +124,8 @@ class SaveGameFile:
 
 
 class SaveGameStatus(Enum):
-    LOCAL_NEWER = 1
-    REMOTE_NEWER = -1
-    SAME_AGE = 0
+    LOCAL_NEWER = 0
+    REMOTE_NEWER = 1
+    SAME_AGE = 2
+    NO_SAVE = 3
+

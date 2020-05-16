@@ -325,9 +325,18 @@ class LegendaryCore:
                 s = os.stat(os.path.join(_dir, _file))
                 latest = max(latest, s.st_mtime)
 
+        if not latest and not save:
+            return SaveGameStatus.NO_SAVE, (None, None)
+
         # timezones are fun!
         dt_local = datetime.fromtimestamp(latest).replace(tzinfo=self.local_timezone).astimezone(timezone.utc)
+        if not save:
+            return SaveGameStatus.LOCAL_NEWER, (dt_local, None)
+
         dt_remote = datetime.strptime(save.manifest_name, '%Y.%m.%d-%H.%M.%S.manifest').replace(tzinfo=timezone.utc)
+        if not latest:
+            return SaveGameStatus.REMOTE_NEWER, (None, dt_remote)
+
         self.log.debug(f'Local save date: {str(dt_local)}, Remote save date: {str(dt_remote)}')
 
         # Ideally we check the files themselves based on manifest,
@@ -348,9 +357,9 @@ class LegendaryCore:
         include_f = exclude_f = None
         if not disable_filtering:
             # get file inclusion and exclusion filters if they exist
-            if _include := custom_attr.get('CloudIncludeList', {}).get('value', None) is not None:
+            if (_include := custom_attr.get('CloudIncludeList', {}).get('value', None)) is not None:
                 include_f = _include.split(',')
-            if _exclude := custom_attr.get('CloudExcludeList', {}).get('value', None) is not None:
+            if (_exclude := custom_attr.get('CloudExcludeList', {}).get('value', None)) is not None:
                 exclude_f = _exclude.split(',')
 
         if not save_path:
