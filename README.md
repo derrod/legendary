@@ -1,25 +1,26 @@
 # Legendary
-## A free and open-source Epic Games Launcher replacement
+## A free and open-source Epic Games Launcher alternative
 ![Logo](https://repository-images.githubusercontent.com/249938026/80b18f80-96c7-11ea-9183-0a8c96e7cada)
 
 [![Discord](https://discordapp.com/api/guilds/695233346627698689/widget.png?style=shield)](https://discord.gg/UJKBwPw) [![Twitter Follow](https://img.shields.io/twitter/follow/legendary_gl?label=Follow%20us%20for%20updates%21&style=social)](https://twitter.com/legendary_gl)
 
-Legendary is an open-source game launcher that can download and install games from the Epic Games Store on Linux and Windows.
+Legendary is an open-source game launcher that can download and install games from the Epic Games platform on Linux and Windows.
 It's name as a tongue-in-cheek play on tiers of [item rarity in many MMORPGs](https://wow.gamepedia.com/Quality).
 
-Right now it is in an early public testing stage and still needs a lot of work to work. But it does work!
+Right now Legendary is in beta and not feature-complete. You might run into some bugs or issues.
+If you do please [create an issue on GitHub](https://github.com/derrod/legendary/issues/new) so we can fix it.
 
 **What works:**
  - Authenticating with Epic's service
  - Downloading and installing your games and their DLC
  - Delta patching/updating of installed games
- - Launching games with online authentication (for multiplayer)
- - Downloading existing cloud saves
+ - Launching games with online authentication (for multiplayer/DRM)
+ - Syncing cloud saves (compatible with EGL)
  - Running games with WINE on Linux
 
 **Planned:**
  - Simple GUI for managing/launching games
- - Importing installed games from the EGS launcher
+ - Importing/Exporting installed games from/to the Epic Games Launcher
  - Better interfaces for other developers to use Legendary in their projects
  - Lots and lots of bug fixes, optimizations, and refactoring...
 
@@ -27,14 +28,13 @@ Right now it is in an early public testing stage and still needs a lot of work t
 
 - Linux or Windows (64-bit)
 - python 3.8+ (64-bit on Windows)
-- requests
-- setuptools (only when installing/building)
+- PyPI packages: `requests`, optionally `setuptools` and `wheel` for setup/building
 
 ## How to run/install
 
 ### Package Manager
 
-Some distros already have (unofficial) packages available, check out the [Available Linux Packages](https://github.com/derrod/legendary/wiki/Available-Linux-Packages) wiki page for details.
+Several distros already have (unofficial) packages available, check out the [Available Linux Packages](https://github.com/derrod/legendary/wiki/Available-Linux-Packages) wiki page for details.
 
 Currently this includes
 [Arch](https://github.com/derrod/legendary/wiki/Available-Linux-Packages#arch-aur),
@@ -43,7 +43,7 @@ Currently this includes
 but more will be available in the future.
 
 ### Standalone
-Download the latest `legendary` or `legendary.exe` binary from [the latest release](https://github.com/derrod/legendary/releases/latest)
+Download the `legendary` or `legendary.exe` binary from [the latest release](https://github.com/derrod/legendary/releases/latest)
 and move it to somewhere in your `$PATH`/`%PATH%`. Don't forget to `chmod +x` it on Linux.
 
 The Windows .exe and Linux executable were created with PyInstaller and will run standalone even without python being installed.
@@ -51,14 +51,14 @@ Note that on Linux glibc >= 2.25 is required, so older distributions such as Ubu
 
 ### Python package
 
-The package is available on [PyPI](https://pypi.org/project/legendary-gl/), to install simply run:
+Legendary is available on [PyPI](https://pypi.org/project/legendary-gl/), to install simply run:
 ```bash
 pip install legendary-gl
 ```
 
-Manually:
-- Install python3.8, setuptools and requests
-- Clone the git repository
+#### Manually from the repo
+- Install python3.8, setuptools, wheel, and requests
+- Clone the git repository and cd into it
 - Run `python3.8 setup.py install`
 
 #### Ubuntu 20.04 example
@@ -86,6 +86,7 @@ To log in:
 $ legendary auth
 ````
 Authentication is a little finicky since we have to go through the Epic website. The login page should open in your browser and after logging in you should be presented with a JSON response that contains a code, just copy and paste the code into your terminal to log in.
+On Windows you can use the `--import` flag to import the authentication from the Epic Games Launcher. Note that this will log you out of the Epic Launcher.
 
 Listing your games
 ````
@@ -319,11 +320,10 @@ offline = true
 skip_update_check = true
 ; start parameters to use (in addition to the required ones)
 start_params = -windowed
-wine_executable = proton
+wine_executable = /path/to/proton/wine64
 
 [AppName.env]
 ; environment variables to set for this game (mostly useful on linux)
 WINEPREFIX = /mnt/tank/games/Game/.wine
 DXVK_CONFIG_FILE = /mnt/tank/games/Game/dxvk.conf
 ````
-
