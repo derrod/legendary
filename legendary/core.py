@@ -552,23 +552,28 @@ class LegendaryCore:
         self.lgd.save_manifest(game.app_name, new_manifest_data,
                                version=new_manifest.meta.build_version)
 
-        if not game_folder:
-            if game.is_dlc:
-                game_folder = base_game.metadata.get('customAttributes', {}).\
-                    get('FolderName', {}).get('value', base_game.app_name)
-            else:
-                game_folder = game.metadata.get('customAttributes', {}).\
-                    get('FolderName', {}).get('value', game.app_name)
+        # reuse existing installation's directory
+        if igame := self.get_installed_game(base_game.app_name if base_game else game.app_name):
+            install_path = igame.install_path
+        else:
+            if not game_folder:
+                if game.is_dlc:
+                    game_folder = base_game.metadata.get('customAttributes', {}).\
+                        get('FolderName', {}).get('value', base_game.app_name)
+                else:
+                    game_folder = game.metadata.get('customAttributes', {}).\
+                        get('FolderName', {}).get('value', game.app_name)
 
-        if not base_path:
-            base_path = self.get_default_install_dir()
+            if not base_path:
+                base_path = self.get_default_install_dir()
 
-        # make sure base directory actually exists (but do not create game dir)
-        if not os.path.exists(base_path):
-            self.log.info(f'"{base_path}" does not exist, creating...')
-            os.makedirs(base_path)
+            # make sure base directory actually exists (but do not create game dir)
+            if not os.path.exists(base_path):
+                self.log.info(f'"{base_path}" does not exist, creating...')
+                os.makedirs(base_path)
 
-        install_path = os.path.join(base_path, game_folder)
+            install_path = os.path.join(base_path, game_folder)
+
         self.log.info(f'Install path: {install_path}')
 
         if not force:
