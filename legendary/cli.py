@@ -252,7 +252,7 @@ class LegendaryCLI:
         # evaluate current save state for each game.
         for igame in igames:
             game = self.core.get_game(igame.app_name)
-            if 'CloudSaveFolder' not in game.metadata['customAttributes']:
+            if not game.supports_cloud_saves:
                 if igame.app_name in latest_save:
                     # this should never happen unless cloud save support was removed from a game
                     logger.warning(f'{igame.app_name} has remote save(s) but does not support cloud saves?!')
