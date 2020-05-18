@@ -716,7 +716,7 @@ class LegendaryCore:
         return results
 
     def get_default_install_dir(self):
-        return self.lgd.config.get('Legendary', 'install_dir', fallback=os.path.expanduser('~/legendary'))
+        return os.path.expanduser(self.lgd.config.get('Legendary', 'install_dir', fallback='~/legendary'))
 
     def install_game(self, installed_game: InstalledGame) -> dict:  # todo class for result?
         """Save game metadata and info to mark it "installed" and also show the user the prerequisites"""
