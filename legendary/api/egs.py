@@ -22,7 +22,7 @@ class EPCAPI:
     _ecommerce_host = 'ecommerceintegration-public-service-ecomprod02.ol.epicgames.com'
     _datastorage_host = 'datastorage-public-service-liveegs.live.use1a.on.epicgames.com'
 
-    def __init__(self):
+    def __init__(self, lc='en', cc='US'):
         self.session = requests.session()
         self.log = logging.getLogger('EPCAPI')
         self.unauth_session = requests.session()
@@ -32,6 +32,9 @@ class EPCAPI:
 
         self.access_token = None
         self.user = None
+
+        self.language_code = lc
+        self.country_code = cc
 
     def resume_session(self, session):
         self.session.headers['Authorization'] = f'bearer {session["access_token"]}'
@@ -115,7 +118,7 @@ class EPCAPI:
     def get_game_info(self, namespace, catalog_item_id):
         r = self.session.get(f'https://{self._catalog_host}/catalog/api/shared/namespace/{namespace}/bulk/items',
                              params=dict(id=catalog_item_id, includeDLCDetails=True, includeMainGameDetails=True,
-                                         country='US', locale='en'))
+                                         country=self.country_code, locale=self.language_code))
         r.raise_for_status()
         return r.json().get(catalog_item_id, None)
 

@@ -302,6 +302,8 @@ log_level = debug
 max_memory = 1024
 ; default install directory
 install_dir = /mnt/tank/games
+; locale override, must be in RFC 1766 format (e.g. "en-US")
+locale = en-US
 
 ; default settings to use (currently limited to WINE executable)
 [default]
@@ -321,6 +323,8 @@ skip_update_check = true
 ; start parameters to use (in addition to the required ones)
 start_params = -windowed
 wine_executable = /path/to/proton/wine64
+; override language with two-letter language code
+language = fr
 
 [AppName.env]
 ; environment variables to set for this game (mostly useful on linux)

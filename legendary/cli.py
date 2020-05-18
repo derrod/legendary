@@ -370,7 +370,8 @@ class LegendaryCLI:
 
         params, cwd, env = self.core.get_launch_parameters(app_name=app_name, offline=args.offline,
                                                            extra_args=extra, user=args.user_name_override,
-                                                           wine_bin=args.wine_bin, wine_pfx=args.wine_pfx)
+                                                           wine_bin=args.wine_bin, wine_pfx=args.wine_pfx,
+                                                           language=args.language)
 
         logger.info(f'Launching {app_name}...')
         if args.dry_run:
@@ -679,6 +680,8 @@ def main():
                                help='Override username used when launching the game (only works with some titles)')
     launch_parser.add_argument('--dry-run', dest='dry_run', action='store_true',
                                help='Print the command line that would have been used to launch the game and exit')
+    launch_parser.add_argument('--language', dest='language', action='store', metavar='<two letter language code>',
+                               help='Override language for game launch (defaults to system settings)')
     if os.name != 'nt':
         launch_parser.add_argument('--wine', dest='wine_bin', action='store', metavar='<wine binary>',
                                    default=os.environ.get('LGDRY_WINE_BINARY', None),

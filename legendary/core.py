@@ -9,6 +9,7 @@ import shutil
 from base64 import b64decode
 from collections import defaultdict
 from datetime import datetime, timezone
+from locale import getdefaultlocale
 from multiprocessing import Queue
 from random import choice as randchoice
 from requests.exceptions import HTTPError
@@ -46,12 +47,29 @@ class LegendaryCore:
         self.lgd = LGDLFS()
 
         self.local_timezone = datetime.now().astimezone().tzinfo
+        self.language_code, self.country_code = ('en', 'US')
 
         # epic lfs only works on Windows right now
         if os.name == 'nt':
             self.egl = EPCLFS()
         else:
             self.egl = None
+
+    def get_locale(self):
+        locale = self.lgd.config.get('Legendary', 'locale', fallback=getdefaultlocale()[0])
+
+        if locale:
+            try:
+                self.language_code, self.country_code = locale.split('-' if '-' in locale else '_')
+                self.log.debug(f'Set locale to {self.language_code}-{self.country_code}')
+
+                # if egs is loaded make sure to override its language setting as well
+                if self.egs:
+                    self.egs.language_code, self.egs.country_code = self.language_code, self.country_code
+            except Exception as e:
+                self.log.warning(f'Getting locale failed: {e!r}, falling back to using en-US.')
+        else:
+            self.log.warning(f'Could not determine locale, falling back to en-US')
 
     def auth(self, username, password):
         """
@@ -158,6 +176,8 @@ class LegendaryCore:
     def get_game_and_dlc_list(self, update_assets=True,
                               platform_override=None,
                               skip_ue=True) -> (List[Game], Dict[str, Game]):
+        # resolve locale
+        self.get_locale()
         _ret = []
         _dlc = defaultdict(list)
 
@@ -209,7 +229,8 @@ class LegendaryCore:
 
     def get_launch_parameters(self, app_name: str, offline: bool = False,
                               user: str = None, extra_args: list = None,
-                              wine_bin: str = None, wine_pfx: str = None) -> (list, str, dict):
+                              wine_bin: str = None, wine_pfx: str = None,
+                              language: str = None) -> (list, str, dict):
         install = self.lgd.get_installed_game(app_name)
         game = self.lgd.get_game_meta(app_name)
 
@@ -260,11 +281,16 @@ class LegendaryCore:
                 f.write(ovt)
             params.append(f'-epicovt={ovt_path}')
 
+        language_code = self.lgd.config.get(app_name, 'language', fallback=language)
+        if not language_code:  # fall back to system or config language
+            self.get_locale()
+            language_code = self.language_code
+
         params.extend([
               '-EpicPortal',
               f'-epicusername={user_name}',
               f'-epicuserid={account_id}',
-              '-epiclocale=en'
+              f'-epiclocale={language_code}'
         ])
 
         if extra_args:
