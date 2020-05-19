@@ -581,7 +581,10 @@ class LegendaryCore:
             old_bytes, _ = self.get_uri_manfiest(override_old_manifest)
             old_manifest = self.load_manfiest(old_bytes)
         elif not disable_patching and not force and self.is_installed(game.app_name):
-            old_bytes, _ = self.get_installed_manifest(game.app_name)
+            old_bytes, _base_urls = self.get_installed_manifest(game.app_name)
+            if _base_urls and not game.base_urls:
+                game.base_urls = _base_urls
+
             if not old_bytes:
                 self.log.error(f'Could not load old manifest, patching will not work!')
             else:
@@ -598,6 +601,9 @@ class LegendaryCore:
         else:
             new_manifest_data, _base_urls = self.get_cdn_manifest(game, platform_override)
             base_urls.extend(i for i in _base_urls if i not in base_urls)
+            game.base_urls = base_urls
+            # save base urls to game metadata
+            self.lgd.set_game_meta(game.app_name, game)
 
         self.log.info('Parsing game manifest...')
         new_manifest = self.load_manfiest(new_manifest_data)
