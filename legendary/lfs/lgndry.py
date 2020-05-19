@@ -6,7 +6,7 @@ import configparser
 import logging
 
 from legendary.models.game import *
-from legendary.lfs.utils import clean_filename
+from legendary.utils.lfs import clean_filename
 
 
 class LGDLFS:

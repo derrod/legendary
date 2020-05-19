@@ -19,7 +19,7 @@ from legendary.api.egs import EPCAPI
 from legendary.downloader.manager import DLManager
 from legendary.lfs.egl import EPCLFS
 from legendary.lfs.lgndry import LGDLFS
-from legendary.lfs.utils import clean_filename, delete_folder
+from legendary.utils.lfs import clean_filename, delete_folder
 from legendary.models.downloading import AnalysisResult, ConditionCheckResult
 from legendary.models.exceptions import *
 from legendary.models.game import *
