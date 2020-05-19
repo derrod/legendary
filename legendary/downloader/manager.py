@@ -106,13 +106,25 @@ class DLManager(Process):
         analysis_res.manifest_comparison = mc
 
         if resume and self.resume_file and os.path.exists(self.resume_file):
+            self.log.info('Found previously interrupted download. Download will be resumed if possible.')
             try:
                 completed_files = set(i.strip() for i in open(self.resume_file).readlines())
+                # check if the files are actually there
+                removed = 0
+                for cf in sorted(completed_files):
+                    _p = os.path.join(self.dl_dir, cf)
+                    if not os.path.exists(_p):
+                        self.log.debug(f'File does not exist but is in resume file: "{_p}"')
+                        completed_files.remove(cf)
+                        removed += 1
+
+                if removed:
+                    self.log.warning(f'{removed} previously completed file(s) are missing, they will be redownloaded.')
                 # remove completed files from changed/added and move them to unchanged for the analysis.
                 mc.added -= completed_files
                 mc.changed -= completed_files
                 mc.unchanged |= completed_files
-                self.log.debug(f'Skipped {len(completed_files)} files based on resume data!')
+                self.log.info(f'Skipping {len(completed_files)} files based on resume data.')
             except Exception as e:
                 self.log.warning(f'Reading resume file failed: {e!r}, continuing as normal...')
 
