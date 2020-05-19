@@ -500,7 +500,7 @@ class DLManager(Process):
                 res = self.writer_result_q.get(timeout=1.0)
                 self.num_tasks_processed_since_last += 1
 
-                if res.closed and self.resume_file:
+                if res.closed and self.resume_file and res.success:
                     # write last completed file to super simple resume file
                     with open(self.resume_file, 'ab') as rf:
                         rf.write(f'{res.filename}\n'.encode('utf-8'))
