@@ -17,8 +17,9 @@ from sys import exit, stdout
 from legendary import __version__, __codename__
 from legendary.core import LegendaryCore
 from legendary.models.exceptions import InvalidCredentialsError
-from legendary.models.game import SaveGameStatus
+from legendary.models.game import SaveGameStatus, VerifyResult
 from legendary.utils.custom_parser import AliasedSubParsersAction
+from legendary.utils.lfs import validate_files
 
 # todo custom formatter for cli logger (clean info, highlighted error/warning)
 logging.basicConfig(
@@ -585,6 +586,47 @@ class LegendaryCLI:
         except Exception as e:
             logger.warning(f'Removing game failed: {e!r}, please remove {igame.install_path} manually.')
 
+    def verify_game(self, args):
+        if not self.core.is_installed(args.app_name):
+            logger.error(f'Game "{args.app_name}" is not installed')
+            return
+
+        logger.info(f'Loading installed manifest for "{args.app_name}"')
+        igame = self.core.get_installed_game(args.app_name)
+        manifest_data, _ = self.core.get_installed_manifest(args.app_name)
+        manifest = self.core.load_manfiest(manifest_data)
+
+        files = sorted(manifest.file_manifest_list.elements,
+                       key=lambda a: a.filename.lower())
+
+        # build list of hashes
+        file_list = [(f.filename, f.sha_hash.hex()) for f in files]
+        total = len(file_list)
+        num = 0
+        failed = []
+        missing = []
+
+        for result, path in validate_files(igame.install_path, file_list):
+            stdout.write(f'Verification progress: {num}/{total} ({num * 100 / total:.01f}%)\t\r')
+            stdout.flush()
+            num += 1
+
+            if result == VerifyResult.HASH_MATCH:
+                continue
+            elif result == VerifyResult.HASH_MISMATCH:
+                logger.error(f'File does not match hash: "{path}"')
+                failed.append(path)
+            elif result == VerifyResult.FILE_MISSING:
+                logger.error(f'File is missing: "{path}"')
+                missing.append(path)
+
+        stdout.write(f'Verification progress: {num}/{total} ({num * 100 / total:.01f}%)\t\n')
+
+        if not missing and not failed:
+            logger.info('Verification finished successfully.')
+        else:
+            logger.fatal(f'Verification failed, {len(failed)} file(s) corrupted, {len(missing)} file(s) are missing.')
+
 
 def main():
     parser = argparse.ArgumentParser(description=f'Legendary v{__version__} - "{__codename__}"')
@@ -611,6 +653,7 @@ def main():
     list_saves_parser = subparsers.add_parser('list-saves', help='List available cloud saves')
     download_saves_parser = subparsers.add_parser('download-saves', help='Download all cloud saves')
     sync_saves_parser = subparsers.add_parser('sync-saves', help='Sync cloud saves')
+    verify_parser = subparsers.add_parser('verify-game', help='Verify a game\'s local files')
 
     install_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
     uninstall_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
@@ -623,6 +666,7 @@ def main():
                                        help='Name of the app (optional)')
     sync_saves_parser.add_argument('app_name', nargs='?', metavar='<App Name>', default='',
                                    help='Name of the app (optional)')
+    verify_parser.add_argument('app_name', help='Name of the app (optional)', metavar='<App Name>')
 
     # importing only works on Windows right now
     if os.name == 'nt':
@@ -742,7 +786,7 @@ def main():
 
     if args.subparser_name not in ('auth', 'list-games', 'list-installed', 'list-files',
                                    'launch', 'download', 'uninstall', 'install', 'update',
-                                   'list-saves', 'download-saves', 'sync-saves'):
+                                   'list-saves', 'download-saves', 'sync-saves', 'verify-game'):
         print(parser.format_help())
 
         # Print the main help *and* the help for all of the subcommands. Thanks stackoverflow!
@@ -788,6 +832,8 @@ def main():
             cli.download_saves(args)
         elif args.subparser_name == 'sync-saves':
             cli.sync_saves(args)
+        elif args.subparser_name == 'verify-game':
+            cli.verify_game(args)
     except KeyboardInterrupt:
         logger.info('Command was aborted via KeyboardInterrupt, cleaning up...')
 

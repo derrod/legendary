@@ -129,3 +129,8 @@ class SaveGameStatus(Enum):
     SAME_AGE = 2
     NO_SAVE = 3
 
+
+class VerifyResult(Enum):
+    HASH_MATCH = 0
+    HASH_MISMATCH = 1
+    FILE_MISSING = 2

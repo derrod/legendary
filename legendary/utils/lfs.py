@@ -5,7 +5,9 @@ import shutil
 import hashlib
 import logging
 
-from typing import List
+from typing import List, Iterator
+
+from legendary.models.game import VerifyResult
 
 logger = logging.getLogger('LFS Utils')
 
@@ -24,7 +26,7 @@ def delete_folder(path: str, recursive=True) -> bool:
         return True
 
 
-def validate_files(base_path: str, filelist: List[tuple], hash_type='sha1') -> list:
+def validate_files(base_path: str, filelist: List[tuple], hash_type='sha1') -> Iterator[tuple]:
     """
     Validates the files in filelist in path against the provided hashes
 
@@ -34,24 +36,18 @@ def validate_files(base_path: str, filelist: List[tuple], hash_type='sha1') -> l
     :return: list of files that failed hash check
     """
 
-    failed = list()
+    if not filelist:
+        raise ValueError('No files to validate!')
 
     if not os.path.exists(base_path):
-        logger.error('Path does not exist!')
-        failed.extend(i[0] for i in filelist)
-        return failed
-
-    if not filelist:
-        logger.info('No files to validate')
-        return failed
+        raise OSError('Path does not exist')
 
     for file_path, file_hash in filelist:
         full_path = os.path.join(base_path, file_path)
-        logger.debug(f'Checking "{file_path}"...')
+        # logger.debug(f'Checking "{file_path}"...')
 
         if not os.path.exists(full_path):
-            logger.warning(f'File "{full_path}" does not exist!')
-            failed.append(file_path)
+            yield VerifyResult.FILE_MISSING, file_path
             continue
 
         with open(full_path, 'rb') as f:
@@ -60,10 +56,9 @@ def validate_files(base_path: str, filelist: List[tuple], hash_type='sha1') -> l
                 real_file_hash.update(chunk)
 
             if file_hash != real_file_hash.hexdigest():
-                logger.error(f'Hash for "{full_path}" does not match!')
-                failed.append(file_path)
-
-    return failed
+                yield VerifyResult.HASH_MISMATCH, file_path
+            else:
+                yield VerifyResult.HASH_MATCH, file_path
 
 
 def clean_filename(filename):
