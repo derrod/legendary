@@ -754,6 +754,36 @@ class LegendaryCore:
         igame.prereq_info['installed'] = True
         self.lgd.set_installed_game(app_name, igame)
 
+    def import_game(self, game: Game, app_path: str) -> (Manifest, InstalledGame):
+        self.log.info(f'Downloading latest manifest for "{game.app_name}"')
+        manifest_data, base_urls = self.get_cdn_manifest(game)
+        if not game.base_urls:
+            game.base_urls = base_urls
+            self.lgd.set_game_meta(game.app_name, game)
+
+        # parse and save manifest to disk for verification step of import
+        new_manifest = self.load_manfiest(manifest_data)
+        self.lgd.save_manifest(game.app_name, manifest_data)
+        self.lgd.save_manifest(game.app_name, manifest_data,
+                               version=new_manifest.meta.build_version)
+
+        prereq = None
+        if new_manifest.meta.prereq_ids:
+            prereq = dict(ids=new_manifest.meta.prereq_ids, name=new_manifest.meta.prereq_name,
+                          path=new_manifest.meta.prereq_path, args=new_manifest.meta.prereq_args)
+
+        offline = game.metadata.get('customAttributes', {}).get('CanRunOffline', {}).get('value', 'true')
+        ot = game.metadata.get('customAttributes', {}).get('OwnershipToken', {}).get('value', 'false')
+        igame = InstalledGame(app_name=game.app_name, title=game.app_title, prereq_info=prereq, base_urls=base_urls,
+                              install_path=app_path, version=new_manifest.meta.build_version, is_dlc=game.is_dlc,
+                              executable=new_manifest.meta.launch_exe, can_run_offline=offline == 'true',
+                              launch_parameters=new_manifest.meta.launch_command, requires_ot=ot == 'true',
+                              needs_verification=True)
+
+        return new_manifest, igame
+
+
+
     def exit(self):
         """
         Do cleanup, config saving, and exit.

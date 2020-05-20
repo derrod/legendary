@@ -78,7 +78,8 @@ class Game:
 class InstalledGame:
     def __init__(self, app_name='', title='', version='', manifest_path='', base_urls=None,
                  install_path='', executable='', launch_parameters='', prereq_info=None,
-                 can_run_offline=False, requires_ot=False, is_dlc=False, save_path=None):
+                 can_run_offline=False, requires_ot=False, is_dlc=False, save_path=None,
+                 needs_verification=False):
         self.app_name = app_name
         self.title = title
         self.version = version
@@ -93,6 +94,7 @@ class InstalledGame:
         self.requires_ot = requires_ot
         self.is_dlc = is_dlc
         self.save_path = save_path
+        self.needs_verification = needs_verification
 
     @classmethod
     def from_json(cls, json):
@@ -112,6 +114,7 @@ class InstalledGame:
         tmp.requires_ot = json.get('requires_ot', False)
         tmp.is_dlc = json.get('is_dlc', False)
         tmp.save_path = json.get('save_path', None)
+        tmp.needs_verification = json.get('needs_verification', None)
         return tmp
 
 

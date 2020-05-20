@@ -389,6 +389,12 @@ class LegendaryCLI:
             subprocess.Popen(params, cwd=cwd, env=env)
 
     def install_game(self, args):
+        if self.core.is_installed(args.app_name):
+            igame = self.core.get_installed_game(args.app_name)
+            if igame.needs_verification and not args.repair_mode:
+                logger.info('Game needs to be verified before updating, switching to repair mode...')
+                args.repair_mode = True
+
         repair_file = None
         if args.subparser_name == 'download':
             logger.info('Setting --no-install flag since "download" command was used')
@@ -472,6 +478,11 @@ class LegendaryCLI:
         if not analysis.dl_size:
             logger.info('Download size is 0, the game is either already up to date or has not changed. Exiting...')
             if args.repair_mode and os.path.exists(repair_file):
+                igame = self.core.get_installed_game(game.app_name)
+                if igame.needs_verification:
+                    igame.needs_verification = False
+                    self.core.install_game(igame)
+
                 logger.debug('Removing repair file.')
                 os.remove(repair_file)
             exit(0)
@@ -557,6 +568,11 @@ class LegendaryCLI:
                     logger.info(f'To download saves for this game run "legendary sync-saves {args.app_name}"')
 
             if args.repair_mode and os.path.exists(repair_file):
+                igame = self.core.get_installed_game(game.app_name)
+                if igame.needs_verification:
+                    igame.needs_verification = False
+                    self.core.install_game(igame)
+
                 logger.debug('Removing repair file.')
                 os.remove(repair_file)
 
@@ -670,6 +686,46 @@ class LegendaryCLI:
             if print_command:
                 logger.info(f'Run "legendary repair {args.app_name}" to repair your game installation.')
 
+    def import_game(self, args):
+        if not os.path.exists(args.app_path):
+            logger.error(f'Specified path "{args.app_path}" does not exist!')
+            exit(1)
+
+        if self.core.is_installed(args.app_name):
+            logger.error('Game is already installed!')
+            exit(0)
+
+        if not self.core.login():
+            logger.error('Log in failed!')
+            exit(1)
+
+        # do some basic checks
+        game = self.core.get_game(args.app_name, update_meta=True)
+        if not game:
+            logger.fatal(f'Did not find game "{args.app_name}" on account.')
+            exit(1)
+
+        # todo: if there is an Epic Games Launcher manifest in the install path use that instead
+        # get everything needed for import from core, then run additional checks.
+        manifest, igame = self.core.import_game(game, args.app_path)
+        # check if most files at least exist or if user might have specified the wrong directory
+        total = len(manifest.file_manifest_list.elements)
+        found = sum(os.path.exists(os.path.join(args.app_path, f.filename))
+                    for f in manifest.file_manifest_list.elements)
+        if found != total:
+            ratio = found / total
+            if ratio < 0.95:
+                logger.fatal(f'{total-found}/{total} files are missing, cannot import.')
+                exit(1)
+            logger.warning('Some files are missing from the game installation, this may be due to newer updates.')
+        else:
+            logger.info('Game install appears to be complete.')
+
+        self.core.install_game(igame)
+        logger.info(f'NOTE: The game installation will have to be verified before it can be updated with legendary. '
+                    f'Run "legendary repair {args.app_name}" to do so.')
+        logger.info('Game has been imported.')
+
 
 def main():
     parser = argparse.ArgumentParser(description=f'Legendary v{__version__} - "{__codename__}"')
@@ -697,6 +753,7 @@ def main():
     download_saves_parser = subparsers.add_parser('download-saves', help='Download all cloud saves')
     sync_saves_parser = subparsers.add_parser('sync-saves', help='Sync cloud saves')
     verify_parser = subparsers.add_parser('verify-game', help='Verify a game\'s local files')
+    import_parser = subparsers.add_parser('import-game', help='Import an already installed game')
 
     install_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
     uninstall_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
@@ -709,7 +766,10 @@ def main():
                                        help='Name of the app (optional)')
     sync_saves_parser.add_argument('app_name', nargs='?', metavar='<App Name>', default='',
                                    help='Name of the app (optional)')
-    verify_parser.add_argument('app_name', help='Name of the app (optional)', metavar='<App Name>')
+    verify_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
+    import_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
+    import_parser.add_argument('app_path', help='Path where the game is installed',
+                               metavar='<Installation directory>')
 
     # importing only works on Windows right now
     if os.name == 'nt':
@@ -835,7 +895,7 @@ def main():
     if args.subparser_name not in ('auth', 'list-games', 'list-installed', 'list-files',
                                    'launch', 'download', 'uninstall', 'install', 'update',
                                    'repair', 'list-saves', 'download-saves', 'sync-saves',
-                                   'verify-game'):
+                                   'verify-game', 'import-game'):
         print(parser.format_help())
 
         # Print the main help *and* the help for all of the subcommands. Thanks stackoverflow!
@@ -883,6 +943,8 @@ def main():
             cli.sync_saves(args)
         elif args.subparser_name == 'verify-game':
             cli.verify_game(args)
+        elif args.subparser_name == 'import-game':
+            cli.import_game(args)
     except KeyboardInterrupt:
         logger.info('Command was aborted via KeyboardInterrupt, cleaning up...')
 
