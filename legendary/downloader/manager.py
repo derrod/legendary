@@ -55,8 +55,9 @@ class DLManager(Process):
         self.update_interval = update_interval
         self.status_queue = status_q  # queue used to relay status info back to GUI/CLI
 
-        # behaviour settings
+        # Resume file stuff
         self.resume_file = resume_file
+        self.hash_map = dict()
 
         # cross-thread runtime information
         self.running = True
@@ -108,18 +109,26 @@ class DLManager(Process):
         if resume and self.resume_file and os.path.exists(self.resume_file):
             self.log.info('Found previously interrupted download. Download will be resumed if possible.')
             try:
-                completed_files = set(i.strip() for i in open(self.resume_file).readlines())
-                # check if the files are actually there
-                removed = 0
-                for cf in sorted(completed_files):
-                    _p = os.path.join(self.dl_dir, cf)
+                missing = 0
+                mismatch = 0
+                completed_files = set()
+
+                for line in open(self.resume_file).readlines():
+                    file_hash, _, filename = line.strip().partition(':')
+                    _p = os.path.join(self.dl_dir, filename)
                     if not os.path.exists(_p):
                         self.log.debug(f'File does not exist but is in resume file: "{_p}"')
-                        completed_files.remove(cf)
-                        removed += 1
+                        missing += 1
+                    elif file_hash != manifest.file_manifest_list.get_file_by_path(filename).sha_hash.hex():
+                        mismatch += 1
+                    else:
+                        completed_files.add(filename)
 
-                if removed:
-                    self.log.warning(f'{removed} previously completed file(s) are missing, they will be redownloaded.')
+                if missing:
+                    self.log.warning(f'{missing} previously completed file(s) are missing, they will be redownloaded.')
+                if mismatch:
+                    self.log.warning(f'{mismatch} existing file(s) have been changed and will be redownloaded.')
+
                 # remove completed files from changed/added and move them to unchanged for the analysis.
                 mc.added -= completed_files
                 mc.changed -= completed_files
@@ -198,6 +207,8 @@ class DLManager(Process):
                         key=lambda a: a.filename.lower())
 
         for fm in fmlist:
+            self.hash_map[fm.filename] = fm.sha_hash.hex()
+
             # chunks of unchanged files are not downloaded so we can skip them
             if fm.filename in mc.unchanged:
                 analysis_res.unchanged += fm.file_size
@@ -513,9 +524,10 @@ class DLManager(Process):
                 self.num_tasks_processed_since_last += 1
 
                 if res.closed and self.resume_file and res.success:
+                    file_hash = self.hash_map[res.filename]
                     # write last completed file to super simple resume file
                     with open(self.resume_file, 'ab') as rf:
-                        rf.write(f'{res.filename}\n'.encode('utf-8'))
+                        rf.write(f'{file_hash}:{res.filename}\n'.encode('utf-8'))
 
                 if res.kill:
                     self.log.info('Got termination command in FW result handler')
