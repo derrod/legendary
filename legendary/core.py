@@ -230,7 +230,8 @@ class LegendaryCore:
     def get_launch_parameters(self, app_name: str, offline: bool = False,
                               user: str = None, extra_args: list = None,
                               wine_bin: str = None, wine_pfx: str = None,
-                              language: str = None) -> (list, str, dict):
+                              language: str = None, wrapper: str = None
+                              ) -> (list, str, dict):
         install = self.lgd.get_installed_game(app_name)
         game = self.lgd.get_game_meta(app_name)
 
@@ -250,6 +251,9 @@ class LegendaryCore:
         working_dir = os.path.split(game_exe)[0]
 
         params = []
+
+        if wrapper := self.lgd.config.get(app_name, 'wrapper', fallback=wrapper):
+            params.extend(shlex.split(wrapper))
 
         if os.name != 'nt':
             if not wine_bin:
