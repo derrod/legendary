@@ -47,7 +47,7 @@ def validate_files(base_path: str, filelist: List[tuple], hash_type='sha1') -> I
         # logger.debug(f'Checking "{file_path}"...')
 
         if not os.path.exists(full_path):
-            yield VerifyResult.FILE_MISSING, file_path
+            yield VerifyResult.FILE_MISSING, file_path, ''
             continue
 
         with open(full_path, 'rb') as f:
@@ -55,10 +55,11 @@ def validate_files(base_path: str, filelist: List[tuple], hash_type='sha1') -> I
             while chunk := f.read(8192):
                 real_file_hash.update(chunk)
 
-            if file_hash != real_file_hash.hexdigest():
-                yield VerifyResult.HASH_MISMATCH, file_path
+            result_hash = real_file_hash.hexdigest()
+            if file_hash != result_hash:
+                yield VerifyResult.HASH_MISMATCH, file_path, result_hash
             else:
-                yield VerifyResult.HASH_MATCH, file_path
+                yield VerifyResult.HASH_MATCH, file_path, result_hash
 
 
 def clean_filename(filename):
