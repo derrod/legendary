@@ -389,9 +389,14 @@ class LegendaryCLI:
             subprocess.Popen(params, cwd=cwd, env=env)
 
     def install_game(self, args):
+        repair_file = None
         if args.subparser_name == 'download':
-            logger.info('The "download" command will be changed to set the --no-install command by default '
-                        'in the future, please adjust install scripts etc. to use "install" instead.')
+            logger.info('Setting --no-install flag since "download" command was used')
+            args.no_install = True
+        elif args.subparser_name == 'repair' or args.repair_mode:
+            args.repair_mode = True
+            args.no_install = True
+            repair_file = os.path.join(self.core.lgd.get_tmp_path(), f'{args.app_name}.repair')
 
         if not self.core.login():
             logger.error('Login failed! Cannot continue with download process.')
@@ -428,6 +433,23 @@ class LegendaryCLI:
         else:
             base_game = None
 
+        if args.repair_mode:
+            if not self.core.is_installed(game.app_name):
+                logger.error(f'Game "{game.app_title}" ({game.app_name}) is not installed!')
+                exit(0)
+
+            if not os.path.exists(repair_file):
+                logger.info('Game has not been verified yet.')
+                if not args.yes:
+                    choice = input(f'Verify "{game.app_name}" now (answer "no" will abort repair)? [Y/n]: ')
+                    if choice and choice.lower()[0] != 'y':
+                        print('Aborting...')
+                        exit(0)
+
+                self.verify_game(args, print_command=False)
+            else:
+                logger.info(f'Using existing repair file: {repair_file}')
+
         logger.info('Preparing download...')
         # todo use status queue to print progress from CLI
         # This has become a little ridiculous hasn't it?
@@ -443,11 +465,15 @@ class LegendaryCLI:
                                                           file_exclude_filter=args.file_exclude_prefix,
                                                           file_install_tag=args.install_tag,
                                                           dl_optimizations=args.order_opt,
-                                                          dl_timeout=args.dl_timeout)
+                                                          dl_timeout=args.dl_timeout,
+                                                          repair=args.repair_mode)
 
         # game is either up to date or hasn't changed, so we have nothing to do
         if not analysis.dl_size:
             logger.info('Download size is 0, the game is either already up to date or has not changed. Exiting...')
+            if args.repair_mode and os.path.exists(repair_file):
+                logger.debug('Removing repair file.')
+                os.remove(repair_file)
             exit(0)
 
         logger.info(f'Install size: {analysis.install_size / 1024 / 1024:.02f} MiB')
@@ -530,6 +556,10 @@ class LegendaryCLI:
                     logger.info('This game supports cloud saves, syncing is handled by the "sync-saves" command.')
                     logger.info(f'To download saves for this game run "legendary sync-saves {args.app_name}"')
 
+            if args.repair_mode and os.path.exists(repair_file):
+                logger.debug('Removing repair file.')
+                os.remove(repair_file)
+
             logger.info(f'Finished installation process in {end_t - start_t:.02f} seconds.')
 
     def _handle_postinstall(self, postinstall, igame, yes=False):
@@ -586,7 +616,7 @@ class LegendaryCLI:
         except Exception as e:
             logger.warning(f'Removing game failed: {e!r}, please remove {igame.install_path} manually.')
 
-    def verify_game(self, args):
+    def verify_game(self, args, print_command=True):
         if not self.core.is_installed(args.app_name):
             logger.error(f'Game "{args.app_name}" is not installed')
             return
@@ -606,15 +636,19 @@ class LegendaryCLI:
         failed = []
         missing = []
 
-        for result, path in validate_files(igame.install_path, file_list):
+        logger.info(f'Verifying "{igame.title}" version "{manifest.meta.build_version}"')
+        repair_file = []
+        for result, path, result_hash in validate_files(igame.install_path, file_list):
             stdout.write(f'Verification progress: {num}/{total} ({num * 100 / total:.01f}%)\t\r')
             stdout.flush()
             num += 1
 
             if result == VerifyResult.HASH_MATCH:
+                repair_file.append(f'{result_hash}:{path}')
                 continue
             elif result == VerifyResult.HASH_MISMATCH:
                 logger.error(f'File does not match hash: "{path}"')
+                repair_file.append(f'{result_hash}:{path}')
                 failed.append(path)
             elif result == VerifyResult.FILE_MISSING:
                 logger.error(f'File is missing: "{path}"')
@@ -622,10 +656,19 @@ class LegendaryCLI:
 
         stdout.write(f'Verification progress: {num}/{total} ({num * 100 / total:.01f}%)\t\n')
 
+        # always write repair file, even if all match
+        if repair_file:
+            repair_filename = os.path.join(self.core.lgd.get_tmp_path(), f'{args.app_name}.repair')
+            with open(repair_filename, 'w') as f:
+                f.write('\n'.join(repair_file))
+            logger.debug(f'Written repair file to "{repair_filename}"')
+
         if not missing and not failed:
             logger.info('Verification finished successfully.')
         else:
-            logger.fatal(f'Verification failed, {len(failed)} file(s) corrupted, {len(missing)} file(s) are missing.')
+            logger.error(f'Verification failed, {len(failed)} file(s) corrupted, {len(missing)} file(s) are missing.')
+            if print_command:
+                logger.info(f'Run "legendary repair {args.app_name}" to repair your game installation.')
 
 
 def main():
@@ -641,7 +684,7 @@ def main():
     subparsers = parser.add_subparsers(title='Commands', dest='subparser_name')
     auth_parser = subparsers.add_parser('auth', help='Authenticate with EPIC')
     install_parser = subparsers.add_parser('install', help='Download a game',
-                                           aliases=('download', 'update'),
+                                           aliases=('download', 'update', 'repair'),
                                            usage='%(prog)s <App Name> [options]',
                                            description='Aliases: download, update')
     uninstall_parser = subparsers.add_parser('uninstall', help='Uninstall (delete) a game')
@@ -715,6 +758,8 @@ def main():
                                 help='Connection timeout for downloader (default: 10 seconds)')
     install_parser.add_argument('--save-path', dest='save_path', action='store', metavar='<path>',
                                 help='Set save game path during install.')
+    install_parser.add_argument('--repair', dest='repair_mode', action='store_true',
+                                help='Repair already installed game by downloading corrupted/missing files')
 
     launch_parser.add_argument('--offline', dest='offline', action='store_true',
                                default=False, help='Skip login and launch game without online authentication')
@@ -786,7 +831,8 @@ def main():
 
     if args.subparser_name not in ('auth', 'list-games', 'list-installed', 'list-files',
                                    'launch', 'download', 'uninstall', 'install', 'update',
-                                   'list-saves', 'download-saves', 'sync-saves', 'verify-game'):
+                                   'repair', 'list-saves', 'download-saves', 'sync-saves',
+                                   'verify-game'):
         print(parser.format_help())
 
         # Print the main help *and* the help for all of the subcommands. Thanks stackoverflow!
@@ -820,7 +866,7 @@ def main():
             cli.list_installed(args)
         elif args.subparser_name == 'launch':
             cli.launch_game(args, extra)
-        elif args.subparser_name in ('download', 'install', 'update'):
+        elif args.subparser_name in ('download', 'install', 'update', 'repair'):
             cli.install_game(args)
         elif args.subparser_name == 'uninstall':
             cli.uninstall_game(args)

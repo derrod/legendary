@@ -570,8 +570,8 @@ class LegendaryCore:
                          override_old_manifest: str = '', override_base_url: str = '',
                          platform_override: str = '', file_prefix_filter: list = None,
                          file_exclude_filter: list = None, file_install_tag: list = None,
-                         dl_optimizations: bool = False, dl_timeout: int = 10
-                         ) -> (DLManager, AnalysisResult, ManifestMeta):
+                         dl_optimizations: bool = False, dl_timeout: int = 10,
+                         repair: bool = False) -> (DLManager, AnalysisResult, ManifestMeta):
         # load old manifest
         old_manifest = None
 
@@ -637,8 +637,15 @@ class LegendaryCore:
 
         self.log.info(f'Install path: {install_path}')
 
-        if not force:
-            filename = clean_filename(f'{game.app_name}_{new_manifest.meta.build_version}.resume')
+        if repair:
+            # use installed manifest for repairs, do not update to latest version (for now)
+            new_manifest = old_manifest
+            old_manifest = None
+            filename = clean_filename(f'{game.app_name}.repair')
+            resume_file = os.path.join(self.lgd.get_tmp_path(), filename)
+            force = False
+        elif not force:
+            filename = clean_filename(f'{game.app_name}.resume')
             resume_file = os.path.join(self.lgd.get_tmp_path(), filename)
         else:
             resume_file = None
