@@ -87,6 +87,9 @@ class DLWorker(Process):
                 logger.error(f'Job for {job.guid} failed with: {e!r}, fetching next one...')
                 # add failed job to result queue to be requeued
                 self.o_q.put(DownloaderTaskResult(success=False, chunk_guid=job.guid, shm=job.shm, url=job.url))
+            except KeyboardInterrupt:
+                logger.warning('Immediate exit requested, quitting...')
+                break
 
             if not chunk:
                 logger.warning(f'Chunk somehow None?')
@@ -108,6 +111,9 @@ class DLWorker(Process):
                 logger.warning(f'Job for {job.guid} failed with: {e!r}, fetching next one...')
                 self.o_q.put(DownloaderTaskResult(success=False, chunk_guid=job.guid, shm=job.shm, url=job.url))
                 continue
+            except KeyboardInterrupt:
+                logger.warning('Immediate exit requested, quitting...')
+                break
 
         self.shm.close()
 
@@ -263,6 +269,7 @@ class FileWorker(Process):
                 except Exception as e:
                     logger.error(f'Closing file after error failed: {e!r}')
             except KeyboardInterrupt:
+                logger.warning('Immediate exit requested, quitting...')
                 if current_file:
                     current_file.close()
                 return
