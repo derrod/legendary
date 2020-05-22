@@ -905,7 +905,7 @@ def main():
         print('Individual command help:')
         subparsers = next(a for a in parser._actions if isinstance(a, argparse._SubParsersAction))
         for choice, subparser in subparsers.choices.items():
-            if choice in ('download', 'update'):
+            if choice in ('download', 'update', 'repair'):
                 continue
             print(f'\nCommand: {choice}')
             print(subparser.format_help())
