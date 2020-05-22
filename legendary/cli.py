@@ -507,6 +507,9 @@ class LegendaryCLI:
             for warn in sorted(res.warnings):
                 logger.warning(warn)
 
+        logger.info('Downloads are resumable, you can interrupt the download with '
+                    'CTRL-C and resume it using the same command later on.')
+
         if not args.yes:
             choice = input(f'Do you wish to install "{igame.title}"? [Y/n]: ')
             if choice and choice.lower()[0] != 'y':
