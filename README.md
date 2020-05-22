@@ -111,10 +111,22 @@ $ legendary launch Anemone
 ````
 **Tip:** most games will run fine offline (`--offline`), and thus won't require launching through legendary for online authentication. You can run `legendary launch <App Name> --offline --dry-run` to get a command line that will launch the game with all parameters that would be used by the Epic Launcher. These can then be entered into any other game launcher (e.g. Lutris/Steam) if the game requires them.
 
+Importing a previously installed game
+````
+$ legendary import Anemone /mnt/games/Epic/WorldOfGoo
+````
+**Note:** Importing will require a full verification so Legendary can correctly update the game later.
+
+Sync savegames with the Epic Cloud
+````
+$ legendary sync-saves
+````
+**Note:** When this command is run the first time after a supported game has been installed it will ask you to confirm or provide the path to where the savegame is located.
+
 ## Usage
 
 ````
-usage: legendary [-h] [-v] [-y] [-V] {auth,install,download,update,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves} ...
+usage: legendary [-h] [-v] [-y] [-V] {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game} ...
 
 Legendary v0.0.X - "Codename"
 
@@ -125,9 +137,9 @@ optional arguments:
   -V                    Print version and exit
 
 Commands:
-  {auth,install,download,update,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves}
+  {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game}
     auth                Authenticate with EPIC
-    install (download,update)
+    install (download,update,repair)
                         Download a game
     uninstall           Uninstall (delete) a game
     launch              Launch a game
@@ -137,6 +149,8 @@ Commands:
     list-saves          List available cloud saves
     download-saves      Download all cloud saves
     sync-saves          Sync cloud saves
+    verify-game         Verify a game's local files
+    import-game         Import an already installed game
 
 Individual command help:
 
@@ -183,6 +197,7 @@ optional arguments:
   --enable-reordering   Enable reordering to attempt to optimize RAM usage during download
   --dl-timeout <sec>    Connection timeout for downloader (default: 10 seconds)
   --save-path <path>    Set save game path during install.
+  --repair              Repair already installed game by downloading corrupted/missing files
 
 
 Command: uninstall
@@ -210,9 +225,10 @@ optional arguments:
   --override-username <username>
                         Override username used when launching the game (only works with some titles)
   --dry-run             Print the command line that would have been used to launch the game and exit
-  --wine <wine binary>  Override WINE binary being used to launch the game
-  --wine-prefix <wine pfx path>
-                        Override WINE prefix used.
+  --language <two letter language code>
+                        Override language for game launch (defaults to system settings)
+  --wrapper <wrapper command>
+                        Wrapper command to launch game with
 
 
 Command: list-games
@@ -289,6 +305,28 @@ optional arguments:
   --force-download    Force download even if local saves are newer
   --save-path <path>  Override savegame path (only if app name is specified)
   --disable-filters   Disable save game file filtering (in case it breaks)
+
+
+Command: verify-game
+usage: legendary verify-game [-h] <App Name>
+
+positional arguments:
+  <App Name>  Name of the app
+
+optional arguments:
+  -h, --help  show this help message and exit
+
+
+Command: import-game
+usage: legendary import-game [-h] <App Name> <Installation directory>
+
+positional arguments:
+  <App Name>            Name of the app
+  <Installation directory>
+                        Path where the game is installed
+
+optional arguments:
+  -h, --help            show this help message and exit
 ````
 
 
