@@ -38,7 +38,7 @@ class LegendaryCLI:
     def setup_threaded_logging(self):
         self.logging_queue = MPQueue(-1)
         shandler = logging.StreamHandler()
-        sformatter = logging.Formatter('[%(asctime)s] [%(name)s] %(levelname)s: %(message)s')
+        sformatter = logging.Formatter('[%(name)s] %(levelname)s: %(message)s')
         shandler.setFormatter(sformatter)
         ql = QueueListener(self.logging_queue, shandler)
         ql.start()
