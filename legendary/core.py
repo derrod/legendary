@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from locale import getdefaultlocale
 from multiprocessing import Queue
 from random import choice as randchoice
+from requests import Request
 from requests.exceptions import HTTPError
 from typing import List, Dict
 
@@ -525,8 +526,7 @@ class LegendaryCore:
         old_bytes = self.lgd.load_manifest(app_name, igame.version)
         return old_bytes, igame.base_urls
 
-    def get_cdn_manifest(self, game, platform_override=''):
-        base_urls = []
+    def get_cdn_urls(self, game, platform_override=''):
         platform = 'Windows' if not platform_override else platform_override
         m_api_r = self.egs.get_game_manifest(game.asset_info.namespace,
                                              game.asset_info.catalog_item_id,
@@ -536,26 +536,28 @@ class LegendaryCore:
         if len(m_api_r['elements']) > 1:
             raise ValueError('Manifest response has more than one element!')
 
-        manifest_data = None
-        manifest_info = m_api_r['elements'][0]
-        for manifest in manifest_info['manifests']:
+        base_urls = []
+        manifest_urls = []
+        for manifest in m_api_r['elements'][0]['manifests']:
             base_url = manifest['uri'].rpartition('/')[0]
             if base_url not in base_urls:
                 base_urls.append(base_url)
-            if manifest_data:
-                continue
 
-            params = dict()
+            params = None
             if 'queryParams' in manifest:
-                for param in manifest['queryParams']:
-                    params[param['name']] = param['value']
+                params = {p['name']: p['value'] for p in manifest['queryParams']}
 
-            self.log.debug(f'Downloading manifest from {manifest["uri"]} ...')
-            r = self.egs.unauth_session.get(manifest['uri'], params=params)
-            r.raise_for_status()
-            manifest_data = r.content
+            # build url with a prepared request
+            manifest_urls.append(Request('GET', manifest['uri'], params=params).prepare().url)
 
-        return manifest_data, base_urls
+        return manifest_urls, base_urls
+
+    def get_cdn_manifest(self, game, platform_override=''):
+        manifest_urls, base_urls = self.get_cdn_urls(game, platform_override)
+        self.log.debug(f'Downloading manifest from {manifest_urls[0]} ...')
+        r = self.egs.unauth_session.get(manifest_urls[0])
+        r.raise_for_status()
+        return r.content, base_urls
 
     def get_uri_manfiest(self, uri):
         if uri.startswith('http'):
