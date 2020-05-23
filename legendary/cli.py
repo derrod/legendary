@@ -672,6 +672,9 @@ class LegendaryCLI:
             elif result == VerifyResult.FILE_MISSING:
                 logger.error(f'File is missing: "{path}"')
                 missing.append(path)
+            else:
+                logger.error(f'Other failure (see log), treating file as missing: "{path}"')
+                missing.append(path)
 
         stdout.write(f'Verification progress: {num}/{total} ({num * 100 / total:.01f}%)\t\n')
 
