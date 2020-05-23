@@ -253,7 +253,7 @@ class LegendaryCore:
 
         params = []
 
-        if wrapper := self.lgd.config.get(app_name, 'wrapper', fallback=wrapper):
+        if wrapper or (wrapper := self.lgd.config.get(app_name, 'wrapper')):
             params.extend(shlex.split(wrapper))
 
         if os.name != 'nt' and not disable_wine:

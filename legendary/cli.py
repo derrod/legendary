@@ -839,6 +839,7 @@ def main():
     launch_parser.add_argument('--language', dest='language', action='store', metavar='<two letter language code>',
                                help='Override language for game launch (defaults to system settings)')
     launch_parser.add_argument('--wrapper', dest='wrapper', action='store', metavar='<wrapper command>',
+                               default=os.environ.get('LGDRY_WRAPPER', None),
                                help='Wrapper command to launch game with')
 
     if os.name != 'nt':
