@@ -137,3 +137,4 @@ class VerifyResult(Enum):
     HASH_MATCH = 0
     HASH_MISMATCH = 1
     FILE_MISSING = 2
+    OTHER_ERROR = 3

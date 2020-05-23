@@ -50,16 +50,20 @@ def validate_files(base_path: str, filelist: List[tuple], hash_type='sha1') -> I
             yield VerifyResult.FILE_MISSING, file_path, ''
             continue
 
-        with open(full_path, 'rb') as f:
-            real_file_hash = hashlib.new(hash_type)
-            while chunk := f.read(8192):
-                real_file_hash.update(chunk)
+        try:
+            with open(full_path, 'rb') as f:
+                real_file_hash = hashlib.new(hash_type)
+                while chunk := f.read(1024*1024):
+                    real_file_hash.update(chunk)
 
-            result_hash = real_file_hash.hexdigest()
-            if file_hash != result_hash:
-                yield VerifyResult.HASH_MISMATCH, file_path, result_hash
-            else:
-                yield VerifyResult.HASH_MATCH, file_path, result_hash
+                result_hash = real_file_hash.hexdigest()
+                if file_hash != result_hash:
+                    yield VerifyResult.HASH_MISMATCH, file_path, result_hash
+                else:
+                    yield VerifyResult.HASH_MATCH, file_path, result_hash
+        except Exception as e:
+            logger.fatal(f'Could not verify "{file_path}"; opening failed with: {e!r}')
+            yield VerifyResult.OTHER_ERROR, file_path, ''
 
 
 def clean_filename(filename):
