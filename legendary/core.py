@@ -785,8 +785,6 @@ class LegendaryCore:
 
         return new_manifest, igame
 
-
-
     def exit(self):
         """
         Do cleanup, config saving, and exit.

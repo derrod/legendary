@@ -229,6 +229,10 @@ optional arguments:
                         Override language for game launch (defaults to system settings)
   --wrapper <wrapper command>
                         Wrapper command to launch game with
+  --wine <wine binary>  Override WINE binary being used to launch the game
+  --wine-prefix <wine pfx path>
+                        Override WINE prefix used.
+  --no-wine             Do not use WINE (e.g. if a wrapper is being used)
 
 
 Command: list-games
@@ -330,6 +334,20 @@ optional arguments:
 ````
 
 
+## Environment variables
+
+Legendary supports overriding certain things via environment variables,
+it also passes through any environment variables set before it is called.
+
+Legendary specific environment variables:
++ `LGDRY_WINE_BINARY` - specifies wine binary
++ `LGDRY_WINE_PREFIX` - specified wine prefix
++ `LGDRY_NO_WINE` - disables wine
++ `LGDRY_WRAPPER` - specifies wrapper binary/command line
+
+Note that the priority for settings that occur multiple times is:
+command line > environment variables > config variables.
+
 ## Config file
 
 Legendary supports some options as well as game specific configuration in `~/.config/legendary/config.ini`:
@@ -368,4 +386,10 @@ language = fr
 ; environment variables to set for this game (mostly useful on linux)
 WINEPREFIX = /mnt/tank/games/Game/.wine
 DXVK_CONFIG_FILE = /mnt/tank/games/Game/dxvk.conf
+
+[AppName2]
+; Use a wrapper to run this script
+start_params = /path/to/wrapper wrapper --parameters
+; Do not run this executable with WINE (e.g. when the wrapper handles that)
+no_wine = true
 ````
