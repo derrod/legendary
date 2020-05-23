@@ -372,7 +372,8 @@ class LegendaryCLI:
         params, cwd, env = self.core.get_launch_parameters(app_name=app_name, offline=args.offline,
                                                            extra_args=extra, user=args.user_name_override,
                                                            wine_bin=args.wine_bin, wine_pfx=args.wine_pfx,
-                                                           language=args.language, wrapper=args.wrapper)
+                                                           language=args.language, wrapper=args.wrapper,
+                                                           disable_wine=args.no_wine)
 
         logger.info(f'Launching {app_name}...')
         if args.dry_run:
@@ -847,10 +848,15 @@ def main():
         launch_parser.add_argument('--wine-prefix', dest='wine_pfx', action='store', metavar='<wine pfx path>',
                                    default=os.environ.get('LGDRY_WINE_PREFIX', None),
                                    help='Override WINE prefix used.')
+        launch_parser.add_argument('--no-wine', dest='no_wine', action='store_true',
+                                   default=os.environ.get('LGDRY_NO_WINE', None),
+                                   help='Do not use WINE (e.g. if a wrapper is being used)')
     else:
         # hidden arguments to not break this on Windows
         launch_parser.add_argument('--wine', help=argparse.SUPPRESS, dest='wine_bin')
         launch_parser.add_argument('--wine-prefix', help=argparse.SUPPRESS, dest='wine_pfx')
+        launch_parser.add_argument('--no-wine', dest='no_wine', help=argparse.SUPPRESS,
+                                   action='store_true', default=True)
 
     list_parser.add_argument('--platform', dest='platform_override', action='store', metavar='<Platform>',
                              type=str, help='Override platform that games are shown for')

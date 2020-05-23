@@ -230,8 +230,8 @@ class LegendaryCore:
     def get_launch_parameters(self, app_name: str, offline: bool = False,
                               user: str = None, extra_args: list = None,
                               wine_bin: str = None, wine_pfx: str = None,
-                              language: str = None, wrapper: str = None
-                              ) -> (list, str, dict):
+                              language: str = None, wrapper: str = None,
+                              disable_wine: bool = False) -> (list, str, dict):
         install = self.lgd.get_installed_game(app_name)
         game = self.lgd.get_game_meta(app_name)
 
@@ -256,7 +256,7 @@ class LegendaryCore:
         if wrapper := self.lgd.config.get(app_name, 'wrapper', fallback=wrapper):
             params.extend(shlex.split(wrapper))
 
-        if os.name != 'nt':
+        if os.name != 'nt' and not disable_wine:
             if not wine_bin:
                 # check if there's a default override
                 wine_bin = self.lgd.config.get('default', 'wine_executable', fallback='wine')
