@@ -247,7 +247,8 @@ class LegendaryCore:
         if user:
             user_name = user
 
-        game_exe = os.path.join(install.install_path, install.executable)
+        game_exe = os.path.join(install.install_path,
+                                install.executable.replace('\\', '/').lstrip('/'))
         working_dir = os.path.split(game_exe)[0]
 
         params = []
