@@ -262,7 +262,9 @@ class LegendaryCore:
                 wine_bin = self.lgd.config.get('default', 'wine_executable', fallback='wine')
                 # check if there's a game specific override
                 wine_bin = self.lgd.config.get(app_name, 'wine_executable', fallback=wine_bin)
-            params.append(wine_bin)
+
+            if not self.lgd.config.getboolean(app_name, 'no_wine', fallback=False):
+                params.append(wine_bin)
 
         params.append(game_exe)
 
