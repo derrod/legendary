@@ -752,7 +752,8 @@ class LegendaryCore:
     def uninstall_game(self, installed_game: InstalledGame, delete_files=True):
         self.lgd.remove_installed_game(installed_game.app_name)
         if delete_files:
-            delete_folder(installed_game.install_path, recursive=True)
+            if not delete_folder(installed_game.install_path, recursive=True):
+                self.log.error(f'Unable to delete "{installed_game.install_path}" from disk, please remove manually.')
 
     def prereq_installed(self, app_name):
         igame = self.lgd.get_installed_game(app_name)
