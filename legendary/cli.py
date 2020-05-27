@@ -850,7 +850,7 @@ def main():
         launch_parser.add_argument('--wine-prefix', dest='wine_pfx', action='store', metavar='<wine pfx path>',
                                    default=os.environ.get('LGDRY_WINE_PREFIX', None),
                                    help='Override WINE prefix used.')
-        launch_parser.add_argument('--no-wine', dest='no_wine', action='store_true', type=bool,
+        launch_parser.add_argument('--no-wine', dest='no_wine', action='store_true',
                                    default=strtobool(os.environ.get('LGDRY_NO_WINE', 'False')),
                                    help='Do not use WINE (e.g. if a wrapper is being used)')
     else:
