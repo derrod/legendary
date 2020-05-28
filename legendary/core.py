@@ -696,7 +696,7 @@ class LegendaryCore:
                               install_path=install_path, executable=new_manifest.meta.launch_exe,
                               launch_parameters=new_manifest.meta.launch_command,
                               can_run_offline=offline == 'true', requires_ot=ot == 'true',
-                              is_dlc=base_game is not None)
+                              is_dlc=base_game is not None, install_size=anlres.install_size)
 
         return dlm, anlres, igame
 

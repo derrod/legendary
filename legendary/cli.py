@@ -150,7 +150,14 @@ class LegendaryCLI:
 
         print('\nInstalled games:')
         for game in games:
-            print(f' * {game.title} (App name: {game.app_name} | Version: {game.version})')
+            if game.install_size == 0:
+                logger.debug(f'Updating missing size for {game.app_name}')
+                m = self.core.load_manfiest(self.core.get_installed_manifest(game.app_name)[0])
+                game.install_size = sum(fm.file_size for fm in m.file_manifest_list.elements)
+                self.core.install_game(game)
+
+            print(f' * {game.title} (App name: {game.app_name} | Version: {game.version} | '
+                  f'{game.install_size / (1024*1024*1024):.02f} GiB)')
             if versions[game.app_name] != game.version:
                 print(f'  -> Update available! Installed: {game.version}, Latest: {versions[game.app_name]}')
 
