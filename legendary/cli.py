@@ -120,9 +120,9 @@ class LegendaryCLI:
 
         print('\nAvailable games:')
         for game in games:
-            print(f' * {game.app_title} (App name: {game.app_name}, version: {game.app_version})')
+            print(f' * {game.app_title} (App name: {game.app_name} | Version: {game.app_version})')
             for dlc in dlc_list[game.asset_info.catalog_item_id]:
-                print(f'  + {dlc.app_title} (App name: {dlc.app_name}, version: {dlc.app_version})')
+                print(f'  + {dlc.app_title} (App name: {dlc.app_name} | Version: {dlc.app_version})')
 
         print(f'\nTotal: {len(games)}')
 
@@ -150,7 +150,7 @@ class LegendaryCLI:
 
         print('\nInstalled games:')
         for game in games:
-            print(f' * {game.title} (App name: {game.app_name}, version: {game.version})')
+            print(f' * {game.title} (App name: {game.app_name} | Version: {game.version})')
             if versions[game.app_name] != game.version:
                 print(f'  -> Update available! Installed: {game.version}, Latest: {versions[game.app_name]}')
 
