@@ -4,51 +4,68 @@ import configparser
 import json
 import os
 
+from typing import List
 
-# ToDo make it possible to read manifests from game installs for migration.
-#  Also make paths configurable for importing games from WINE roots in the future
+from legendary.models.egl import EGLManifest
 
-# this is taken directly from rktlnch, needs to be updated
 
 class EPCLFS:
     def __init__(self):
-        self.appdata_path = os.path.expandvars(
-            r'%LOCALAPPDATA%\EpicGamesLauncher\Saved\Config\Windows'
-        )
-        self.programdata_path = os.path.expandvars(
-            r'%PROGRAMDATA%\Epic\EpicGamesLauncher\Data\Manifests'
-        )
+        if os.name == 'nt':
+            self.appdata_path = os.path.expandvars(
+                r'%LOCALAPPDATA%\EpicGamesLauncher\Saved\Config\Windows'
+            )
+            self.programdata_path = os.path.expandvars(
+                r'%PROGRAMDATA%\Epic\EpicGamesLauncher\Data\Manifests'
+            )
+        else:
+            self.appdata_path = self.programdata_path = None
+
         self.config = configparser.ConfigParser(strict=False)
         self.config.optionxform = lambda option: option
 
         self.manifests = dict()
-        self.codename_map = dict()
-        self.guid_map = dict()
 
     def read_config(self):
+        if os.name != 'nt':
+            raise NotImplementedError('Reading EGS config is not implemented on Linux')
         self.config.read(os.path.join(self.appdata_path, 'GameUserSettings.ini'))
 
     def save_config(self):
+        if os.name != 'nt':
+            raise NotImplementedError('Writing EGS config is not implemented on Linux')
         with open(os.path.join(self.appdata_path, 'GameUserSettings.ini'), 'w') as f:
             self.config.write(f, space_around_delimiters=False)
 
     def read_manifests(self):
+        if not self.programdata_path:
+            raise ValueError('EGS ProgramData path is not set')
+
         for f in os.listdir(self.programdata_path):
             if f.endswith('.item'):
                 data = json.load(open(os.path.join(self.programdata_path, f)))
-                self.manifests[data['CatalogItemId']] = data
-                self.codename_map[data['AppName']] = data['CatalogItemId']
-                self.guid_map[data['InstallationGuid'].lower()] = data['CatalogItemId']
+                self.manifests[data['AppName']] = data
 
-    def get_manifest(self, *, game_name=None, install_guid=None, catalog_item_id=None):
-        if not game_name and not install_guid and not catalog_item_id:
-            raise ValueError('What are you doing?')
+    def get_manifests(self) -> List[EGLManifest]:
+        if not self.manifests:
+            self.read_manifests()
 
-        if game_name and game_name in self.codename_map:
-            return self.manifests[self.codename_map[game_name]]
-        elif install_guid and install_guid in self.guid_map:
-            return self.manifests[self.guid_map[install_guid]]
-        elif catalog_item_id and catalog_item_id in self.manifests:
-            return self.manifests[catalog_item_id]
+        return [EGLManifest.from_json(m) for m in self.manifests.values()]
+
+    def get_manifest(self, app_name) -> EGLManifest:
+        if not self.manifests:
+            self.read_manifests()
+
+        if app_name in self.manifests:
+            return EGLManifest.from_json(self.manifests[app_name])
         else:
             raise ValueError('Cannot find manifest')
+
+    def set_manifest(self, manifest: EGLManifest):
+        if not self.programdata_path:
+            raise ValueError('EGS ProgramData path is not set')
+
+        manifest_data = manifest.to_json()
+        self.manifests[manifest.app_name] = manifest_data
+        with open(os.path.join(self.programdata_path, f'{manifest.installation_guid}.item', 'wb')) as f:
+            json.dump(manifest_data, f, indent=4, sort_keys=True)
