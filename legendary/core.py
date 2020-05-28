@@ -326,7 +326,7 @@ class LegendaryCore:
 
         return _saves
 
-    def get_save_path(self, app_name, wine_prefix='~/.wine'):
+    def get_save_path(self, app_name):
         game = self.lgd.get_game_meta(app_name)
         save_path = game.metadata['customAttributes'].get('CloudSaveFolder', {}).get('value')
         if not save_path:
