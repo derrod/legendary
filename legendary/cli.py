@@ -716,16 +716,21 @@ class LegendaryCLI:
         # todo: if there is an Epic Games Launcher manifest in the install path use that instead
         # get everything needed for import from core, then run additional checks.
         manifest, igame = self.core.import_game(game, args.app_path)
+        exe_path = os.path.join(args.app_path, manifest.meta.launch_exe.lstrip('/'))
         # check if most files at least exist or if user might have specified the wrong directory
         total = len(manifest.file_manifest_list.elements)
         found = sum(os.path.exists(os.path.join(args.app_path, f.filename))
                     for f in manifest.file_manifest_list.elements)
-        if found != total:
-            ratio = found / total
-            if ratio < 0.95:
-                logger.fatal(f'{total-found}/{total} files are missing, cannot import.')
-                exit(1)
-            logger.warning('Some files are missing from the game installation, this may be due to newer updates.')
+        ratio = found / total
+
+        if not os.path.exists(exe_path and not args.disable_check):
+            logger.error(f'Game executable could not be found at "{exe_path}", '
+                         f'please verify that the specified path is correct.')
+            exit(1)
+
+        if ratio < 0.95:
+            logger.warning('Some files are missing from the game installation, install may not '
+                           'match latest Epic Games Store version or might be corrupted.')
         else:
             logger.info('Game install appears to be complete.')
 
@@ -899,6 +904,9 @@ def main():
                                    help='Override savegame path (only if app name is specified)')
     sync_saves_parser.add_argument('--disable-filters', dest='disable_filters', action='store_true',
                                    help='Disable save game file filtering (in case it breaks)')
+
+    import_parser.add_argument('--disable-check', dest='disable_check', action='store_true',
+                               help='Disables checks of specified game install.')
 
     args, extra = parser.parse_known_args()
 
