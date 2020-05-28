@@ -755,18 +755,58 @@ class LegendaryCore:
         igame.prereq_info['installed'] = True
         self.lgd.set_installed_game(app_name, igame)
 
-    def import_game(self, game: Game, app_path: str) -> (Manifest, InstalledGame):
-        self.log.info(f'Downloading latest manifest for "{game.app_name}"')
-        manifest_data, base_urls = self.get_cdn_manifest(game)
-        if not game.base_urls:
-            game.base_urls = base_urls
-            self.lgd.set_game_meta(game.app_name, game)
+    def import_game(self, game: Game, app_path: str, egl_guid='') -> (Manifest, InstalledGame):
+        needs_verify = True
+        manifest_data = None
+
+        # check if the game is from an EGL installation, load manifest if possible
+        if os.path.exists(os.path.join(app_path, '.egstore')):
+            mf = None
+            if not egl_guid:
+                for f in os.listdir(os.path.join(app_path, '.egstore')):
+                    if not f.endswith('.mancpn'):
+                        continue
+
+                    self.log.debug(f'Checking mancpn file "{f}"...')
+                    mancpn = json.load(open(os.path.join(app_path, '.egstore', f), 'rb'))
+                    if mancpn['AppName'] == game.app_name:
+                        self.log.info('Found EGL install metadata, verifying...')
+                        mf = f.replace('.mancpn', '.manifest')
+                        break
+            else:
+                mf = f'{egl_guid}.manifest'
+
+            if mf and os.path.exists(os.path.join(app_path, '.egstore', mf)):
+                manifest_data = open(os.path.join(app_path, '.egstore', mf), 'rb').read()
+            else:
+                self.log.warning('.egstore folder exists but manifest file is missing, contiuing as regular import...')
+
+            # If there's no in-progress installation assume the game doesn't need to be verified
+            if mf and not os.path.exists(os.path.join(app_path, '.egstore', 'bps')):
+                needs_verify = False
+                if os.path.exists(os.path.join(app_path, '.egstore',  'Pending')):
+                    if os.listdir(os.path.join(app_path, '.egstore',  'Pending')):
+                        needs_verify = True
+
+                if not needs_verify:
+                    self.log.debug(f'No in-progress installation found, assuming complete...')
+
+        if not manifest_data:
+            self.log.info(f'Downloading latest manifest for "{game.app_name}"')
+            manifest_data, base_urls = self.get_cdn_manifest(game)
+            if not game.base_urls:
+                game.base_urls = base_urls
+                self.lgd.set_game_meta(game.app_name, game)
+        else:
+            # base urls being empty isn't an issue, they'll be fetched when updating/repairing the game
+            base_urls = game.base_urls
 
         # parse and save manifest to disk for verification step of import
         new_manifest = self.load_manfiest(manifest_data)
         self.lgd.save_manifest(game.app_name, manifest_data)
         self.lgd.save_manifest(game.app_name, manifest_data,
                                version=new_manifest.meta.build_version)
+        install_size = sum(fm.file_size for fm in new_manifest.file_manifest_list.elements)
 
         prereq = None
         if new_manifest.meta.prereq_ids:
@@ -779,7 +819,7 @@ class LegendaryCore:
                               install_path=app_path, version=new_manifest.meta.build_version, is_dlc=game.is_dlc,
                               executable=new_manifest.meta.launch_exe, can_run_offline=offline == 'true',
                               launch_parameters=new_manifest.meta.launch_command, requires_ot=ot == 'true',
-                              needs_verification=True)
+                              needs_verification=needs_verify, install_size=install_size, egl_guid=egl_guid)
 
         return new_manifest, igame
 

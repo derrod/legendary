@@ -720,7 +720,6 @@ class LegendaryCLI:
             logger.fatal(f'Did not find game "{args.app_name}" on account.')
             exit(1)
 
-        # todo: if there is an Epic Games Launcher manifest in the install path use that instead
         # get everything needed for import from core, then run additional checks.
         manifest, igame = self.core.import_game(game, args.app_path)
         exe_path = os.path.join(args.app_path, manifest.meta.launch_exe.lstrip('/'))
@@ -742,8 +741,12 @@ class LegendaryCLI:
             logger.info('Game install appears to be complete.')
 
         self.core.install_game(igame)
-        logger.info(f'NOTE: The game installation will have to be verified before it can be updated with legendary. '
-                    f'Run "legendary repair {args.app_name}" to do so.')
+        if igame.needs_verification:
+            logger.info(f'NOTE: The game installation will have to be verified before it can be updated '
+                        f'with legendary. Run "legendary repair {args.app_name}" to do so.')
+        else:
+            logger.info(f'Installation had Epic Games Launcher metadata for version "{igame.version}", '
+                        f'verification will not be requried.')
         logger.info('Game has been imported.')
 
 
