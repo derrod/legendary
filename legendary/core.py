@@ -46,15 +46,10 @@ class LegendaryCore:
         self.log = logging.getLogger('Core')
         self.egs = EPCAPI()
         self.lgd = LGDLFS()
+        self.egl = EPCLFS()
 
         self.local_timezone = datetime.now().astimezone().tzinfo
         self.language_code, self.country_code = ('en', 'US')
-
-        # epic lfs only works on Windows right now
-        if os.name == 'nt':
-            self.egl = EPCLFS()
-        else:
-            self.egl = None
 
     def get_locale(self):
         locale = self.lgd.config.get('Legendary', 'locale', fallback=getdefaultlocale()[0])
