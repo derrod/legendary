@@ -767,7 +767,7 @@ class LegendaryCLI:
                 if os.path.exists(lutris_data_path):
                     logger.info(f'Found Lutris EGL install at "{lutris_data_path}"')
 
-                    if get_boolean_choice('Do you want to use the Lutris install?'):
+                    if args.yes or get_boolean_choice('Do you want to use the Lutris install?'):
                         egl_path = os.path.join(lutris_data_path, 'Manifests')
                         if not os.path.exists(egl_path):
                             print('EGL Data path exists but Manifests directory is missing, creating...')
@@ -819,7 +819,7 @@ class LegendaryCLI:
                 for egl_game in importable:
                     print(' *', egl_game.app_name, '-', egl_game.display_name)
 
-                if get_boolean_choice('Do you want to import the games from EGL?'):
+                if args.yes or get_boolean_choice('Do you want to import the games from EGL?'):
                     for egl_game in importable:
                         logger.info(f'Importing "{egl_game.display_name}"...')
                         self.core.egl_import(egl_game.app_name)
@@ -834,7 +834,7 @@ class LegendaryCLI:
                 for lgd_game in exportable:
                     print(' *', lgd_game.app_name, '-', lgd_game.title)
 
-                if get_boolean_choice('Do you want to export the games to EGL?'):
+                if args.yes or get_boolean_choice('Do you want to export the games to EGL?'):
                     for lgd_game in exportable:
                         logger.info(f'Exporting "{lgd_game.title}"...')
                         self.core.egl_export(lgd_game.app_name)
@@ -844,7 +844,7 @@ class LegendaryCLI:
         print('\nChecking automatic sync...')
         if not self.core.egl_sync_enabled and not args.one_shot:
             if not args.enable_sync:
-                args.enable_sync = get_boolean_choice('Enable automatic synchronization?')
+                args.enable_sync = args.yes or get_boolean_choice('Enable automatic synchronization?')
             self.core.lgd.config.set('Legendary', 'egl_sync', str(args.enable_sync))
         else:
             self.core.egl_sync()
