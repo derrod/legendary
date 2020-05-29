@@ -126,18 +126,18 @@ $ legendary sync-saves
 ## Usage
 
 ````
-usage: legendary [-h] [-v] [-y] [-V] {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game} ...
+usage: legendary [-h] [-v] [-y] [-V] {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game,egl-sync} ...
 
 Legendary v0.0.X - "Codename"
 
 optional arguments:
   -h, --help            show this help message and exit
   -v                    Set loglevel to debug
-  -y                    Default to yes for all prompts
+  -y, --yes             Default to yes for all prompts
   -V                    Print version and exit
 
 Commands:
-  {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game}
+  {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game,egl-sync}
     auth                Authenticate with EPIC
     install (download,update,repair)
                         Download a game
@@ -151,6 +151,7 @@ Commands:
     sync-saves          Sync cloud saves
     verify-game         Verify a game's local files
     import-game         Import an already installed game
+    egl-sync            Setup or run Epic Games Launcher sync
 
 Individual command help:
 
@@ -322,7 +323,7 @@ optional arguments:
 
 
 Command: import-game
-usage: legendary import-game [-h] <App Name> <Installation directory>
+usage: legendary import-game [-h] [--disable-check] <App Name> <Installation directory>
 
 positional arguments:
   <App Name>            Name of the app
@@ -331,6 +332,23 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --disable-check       Disables checks of specified game install.
+
+
+Command: egl-sync
+usage: legendary egl-sync [-h] [--egl-manifest-path EGL_MANIFEST_PATH] [--egl-wine-prefix EGL_WINE_PREFIX] [--enable-sync] [--one-shot] [--import-only] [--export-only] [--unlink]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --egl-manifest-path EGL_MANIFEST_PATH
+                        Path to the Epic Games Launcher's Manifests folder, should point to /ProgramData/Epic/EpicGamesLauncher/Data/Manifests
+  --egl-wine-prefix EGL_WINE_PREFIX
+                        Path to the WINE prefix the Epic Games Launcher is installed in
+  --enable-sync         Enable automatic EGL<->Legendary sync
+  --one-shot            Sync once, do not ask to setup automatic sync.
+  --import-only         Only import games from EGL (no export)
+  --export-only         Only export games to EGL (no import)
+  --unlink              Disable sync and remove EGS flags.
 ````
 
 
