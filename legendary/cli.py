@@ -745,6 +745,19 @@ class LegendaryCLI:
         logger.info('Game has been imported.')
 
     def egs_sync(self, args):
+        if args.unlink:
+            logger.info('Unlinking and resetting EGS and LGD sync...')
+            self.core.lgd.config.remove_option('Legendary', 'egl_programdata')
+            self.core.lgd.config.remove_option('Legendary', 'egl_sync')
+            # remove EGL GUIDs from all games, DO NOT remove .egstore folders because that would fuck things up.
+            for igame in self.core.get_installed_list():
+                igame.egl_guid = ''
+                self.core.install_game(igame)
+            # todo track which games were imported, remove those from LGD and exported ones from EGL
+            logger.info('NOTE: Games have not been removed from the Epic Games Launcher or Legendary.')
+            logger.info('Games will not be removed from EGL or Legendary if it was removed from the other launcher.')
+            return
+
         if not self.core.egl.programdata_path:
             if not args.egl_manifest_path:
                 # search default Lutris install path
@@ -999,6 +1012,8 @@ def main():
                                  help='Only import games from EGL (no export)')
     egl_sync_parser.add_argument('--export-only', dest='export_only', action='store_true',
                                  help='Only export games to EGL (no import)')
+    egl_sync_parser.add_argument('--unlink', dest='unlink', action='store_true',
+                                 help='Disable sync and remove EGS flags.')
 
     args, extra = parser.parse_known_args()
 
