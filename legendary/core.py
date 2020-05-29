@@ -919,6 +919,11 @@ class LegendaryCore:
         # load igame/game
         lgd_game = self.get_game(app_name)
         lgd_igame = self._get_installed_game(app_name)
+        manifest_data, _ = self.get_installed_manifest(app_name)
+        if not manifest_data:
+            self.log.error(f'Game Manifest for "{app_name}" not found, cannot export!')
+            return
+
         # create guid if it's not set already
         if not lgd_igame.egl_guid:
             lgd_igame.egl_guid = str(uuid4()).replace('-', '').upper()
@@ -932,7 +937,6 @@ class LegendaryCore:
             os.makedirs(egstore_folder)
 
         # copy manifest and create mancpn file in .egstore folder
-        manifest_data, _ = self.get_installed_manifest(app_name)
         with open(os.path.join(egstore_folder, f'{egl_game.installation_guid}.manifest',), 'wb') as mf:
             mf.write(manifest_data)
 
