@@ -67,5 +67,12 @@ class EPCLFS:
 
         manifest_data = manifest.to_json()
         self.manifests[manifest.app_name] = manifest_data
-        with open(os.path.join(self.programdata_path, f'{manifest.installation_guid}.item', 'wb')) as f:
+        with open(os.path.join(self.programdata_path, f'{manifest.installation_guid}.item'), 'w') as f:
             json.dump(manifest_data, f, indent=4, sort_keys=True)
+
+    def delete_manifest(self, app_name):
+        if app_name not in self.manifests:
+            raise ValueError('AppName is not in manifests!')
+
+        manifest = EGLManifest.from_json(self.manifests.pop(app_name))
+        os.remove(os.path.join(self.programdata_path, f'{manifest.installation_guid}.item'))
