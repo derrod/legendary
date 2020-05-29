@@ -116,7 +116,7 @@ class InstalledGame:
         tmp.requires_ot = json.get('requires_ot', False)
         tmp.is_dlc = json.get('is_dlc', False)
         tmp.save_path = json.get('save_path', None)
-        tmp.needs_verification = json.get('needs_verification', None)
+        tmp.needs_verification = json.get('needs_verification', False) is True
         tmp.install_size = json.get('install_size', 0)
         tmp.egl_guid = json.get('egl_guid', '')
         return tmp
