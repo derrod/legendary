@@ -15,6 +15,7 @@ from random import choice as randchoice
 from requests import Request
 from requests.exceptions import HTTPError
 from typing import List, Dict
+from uuid import uuid4
 
 from legendary.api.egs import EPCAPI
 from legendary.downloader.manager import DLManager
@@ -22,6 +23,7 @@ from legendary.lfs.egl import EPCLFS
 from legendary.lfs.lgndry import LGDLFS
 from legendary.utils.lfs import clean_filename, delete_folder
 from legendary.models.downloading import AnalysisResult, ConditionCheckResult
+from legendary.models.egl import EGLManifest
 from legendary.models.exceptions import *
 from legendary.models.game import *
 from legendary.models.json_manifest import JSONManifest
@@ -47,6 +49,10 @@ class LegendaryCore:
         self.egs = EPCAPI()
         self.lgd = LGDLFS()
         self.egl = EPCLFS()
+
+        # on non-Windows load the programdata path from config
+        if os.name != 'nt':
+            self.egl.programdata_path = self.lgd.config.get('Legendary', 'egl_programdata', fallback=None)
 
         self.local_timezone = datetime.now().astimezone().tzinfo
         self.language_code, self.country_code = ('en', 'US')
@@ -215,12 +221,27 @@ class LegendaryCore:
         return dlcs[game.asset_info.catalog_item_id]
 
     def get_installed_list(self) -> List[InstalledGame]:
+        if self.egl_sync_enabled:
+            self.log.debug('Running EGL sync...')
+            self.egl_sync()
+
+        return self._get_installed_list()
+
+    def _get_installed_list(self) -> List[InstalledGame]:
         return [g for g in self.lgd.get_installed_list() if not g.is_dlc]
 
     def get_installed_dlc_list(self) -> List[InstalledGame]:
         return [g for g in self.lgd.get_installed_list() if g.is_dlc]
 
     def get_installed_game(self, app_name) -> InstalledGame:
+        igame = self._get_installed_game(app_name)
+        if igame and self.egl_sync_enabled and igame.egl_guid:
+            self.egl_sync(app_name)
+            return self._get_installed_game(app_name)
+        else:
+            return igame
+
+    def _get_installed_game(self, app_name) -> InstalledGame:
         return self.lgd.get_installed_game(app_name)
 
     def get_launch_parameters(self, app_name: str, offline: bool = False,
@@ -501,7 +522,7 @@ class LegendaryCore:
         raise ValueError(f'Could not find {app_name} in asset list!')
 
     def is_installed(self, app_name: str) -> bool:
-        return self.lgd.get_installed_game(app_name) is not None
+        return self.get_installed_game(app_name) is not None
 
     def is_dlc(self, app_name: str) -> bool:
         meta = self.lgd.get_game_meta(app_name)
@@ -517,7 +538,7 @@ class LegendaryCore:
             return Manifest.read_all(data)
 
     def get_installed_manifest(self, app_name):
-        igame = self.get_installed_game(app_name)
+        igame = self._get_installed_game(app_name)
         old_bytes = self.lgd.load_manifest(app_name, igame.version)
         return old_bytes, igame.base_urls
 
@@ -735,7 +756,17 @@ class LegendaryCore:
     def get_default_install_dir(self):
         return os.path.expanduser(self.lgd.config.get('Legendary', 'install_dir', fallback='~/legendary'))
 
-    def install_game(self, installed_game: InstalledGame) -> dict:  # todo class for result?
+    def install_game(self, installed_game: InstalledGame) -> dict:
+        if self.egl_sync_enabled:
+            if not installed_game.egl_guid:
+                installed_game.egl_guid = str(uuid4()).replace('-', '').upper()
+            prereq = self._install_game(installed_game)
+            self.egl_export(installed_game.app_name)
+            return prereq
+        else:
+            return self._install_game(installed_game)
+
+    def _install_game(self, installed_game: InstalledGame) -> dict:
         """Save game metadata and info to mark it "installed" and also show the user the prerequisites"""
         self.lgd.set_installed_game(installed_game.app_name, installed_game)
         if installed_game.prereq_info:
@@ -746,6 +777,9 @@ class LegendaryCore:
 
     def uninstall_game(self, installed_game: InstalledGame, delete_files=True):
         self.lgd.remove_installed_game(installed_game.app_name)
+        if installed_game.egl_guid:
+            self.egl_uninstall(installed_game, delete_files=delete_files)
+
         if delete_files:
             if not delete_folder(installed_game.install_path, recursive=True):
                 self.log.error(f'Unable to delete "{installed_game.install_path}" from disk, please remove manually.')
@@ -823,10 +857,141 @@ class LegendaryCore:
 
         return new_manifest, igame
 
+    def egl_get_importable(self):
+        return [g for g in self.egl.get_manifests()
+                if not self.is_installed(g.app_name) and g.main_game_appname == g.app_name]
+
+    def egl_get_exportable(self):
+        if not self.egl.manifests:
+            self.egl.read_manifests()
+        return [g for g in self.get_installed_list() if g.app_name not in self.egl.manifests]
+
+    def egl_import(self, app_name):
+        # load egl json file
+        try:
+            egl_game = self.egl.get_manifest(app_name=app_name)
+        except ValueError:
+            self.log.fatal(f'EGL Manifest for {app_name} could not be loaded, not importing!')
+            return
+        # convert egl json file
+        lgd_igame = egl_game.to_lgd_igame()
+
+        # check if manifest exists
+        manifest_filename = os.path.join(lgd_igame.install_path, '.egstore', f'{lgd_igame.egl_guid}.manifest')
+        if not os.path.exists(manifest_filename):
+            self.log.error(f'Game Manifest "{manifest_filename}" not found, cannot import!')
+            return
+
+        # load manifest file and copy it over
+        with open(manifest_filename, 'rb') as f:
+            manifest_data = f.read()
+        new_manifest = self.load_manfiest(manifest_data)
+        self.lgd.save_manifest(lgd_igame.app_name, manifest_data)
+        self.lgd.save_manifest(lgd_igame.app_name, manifest_data,
+                               version=new_manifest.meta.build_version)
+        # mark game as installed
+        _ = self._install_game(lgd_igame)
+        return
+
+    def egl_export(self, app_name):
+        # load igame/game
+        lgd_game = self.get_game(app_name)
+        lgd_igame = self._get_installed_game(app_name)
+        # create guid if it's not set already
+        if not lgd_igame.egl_guid:
+            lgd_igame.egl_guid = str(uuid4()).replace('-', '').upper()
+            _ = self._install_game(lgd_igame)
+        # convert to egl manifest
+        egl_game = EGLManifest.from_lgd_game(lgd_game, lgd_igame)
+
+        # make sure .egstore folder exists
+        egstore_folder = os.path.join(lgd_igame.install_path, '.egstore')
+        if not os.path.exists(egstore_folder):
+            os.makedirs(egstore_folder)
+
+        # copy manifest and create mancpn file in .egstore folder
+        manifest_data, _ = self.get_installed_manifest(app_name)
+        with open(os.path.join(egstore_folder, f'{egl_game.installation_guid}.manifest',), 'wb') as mf:
+            mf.write(manifest_data)
+
+        mancpn = dict(FormatVersion=0, AppName=app_name,
+                      CatalogItemId=lgd_game.asset_info.catalog_item_id,
+                      CatalogNamespace=lgd_game.asset_info.namespace)
+        with open(os.path.join(egstore_folder, f'{egl_game.installation_guid}.mancpn',), 'w') as mcpnf:
+            json.dump(mancpn, mcpnf, indent=4, sort_keys=True)
+
+        # And finally, write the file for EGL
+        self.egl.set_manifest(egl_game)
+
+    def egl_uninstall(self, igame: InstalledGame, delete_files=True):
+        try:
+            self.egl.delete_manifest(igame.app_name)
+        except ValueError:
+            self.log.warning(f'Deleting EGL manifest failed: {e!r}')
+
+        if delete_files:
+            delete_folder(os.path.join(igame.install_path, '.egstore'))
+
+    def egl_restore_or_uninstall(self, igame):
+        # check if game binary is still present, if not; uninstall
+        if not os.path.exists(os.path.join(igame.install_path,
+                                           igame.executable.lstrip('/'))):
+            self.log.warning('Synced game\'s files no longer exists, assuming it has been uninstalled.')
+            igame.egl_guid = ''
+            return self.uninstall_game(igame, delete_files=False)
+        else:
+            self.log.info('Game files exist, assuming game is still installed, re-exporting to EGL...')
+            return self.egl_export(igame.app_name)
+
+    def egl_sync(self, app_name=''):
+        """
+        Sync game installs between Legendary and the Epic Games Launcher
+        """
+        # read egl json files
+        if app_name:
+            lgd_igame = self._get_installed_game(app_name)
+            if not self.egl.manifests:
+                self.egl.read_manifests()
+
+            if app_name not in self.egl.manifests:
+                self.log.info(f'Synced app "{app_name}" is no longer in the EGL manifest list.')
+                return self.egl_restore_or_uninstall(lgd_igame)
+            else:
+                egl_igame = self.egl.get_manifest(app_name)
+                if egl_igame.app_version_string != lgd_igame.version:
+                    self.log.info(f'App "{egl_igame.app_name}" has been updated from EGL, syncing...')
+                    return self.egl_import(egl_igame.app_name)
+        else:
+            # check EGL -> Legendary sync
+            for egl_igame in self.egl.get_manifests():
+                if egl_igame.main_game_appname != egl_igame.app_name:  # skip DLC
+                    continue
+
+                if not self.is_installed(egl_igame.app_name):
+                    self.egl_import(egl_igame.app_name)
+                else:
+                    lgd_igame = self._get_installed_game(egl_igame.app_name)
+                    if lgd_igame.version != egl_igame.app_version_string:
+                        self.log.info(f'App "{egl_igame.app_name}" has been updated from EGL, syncing...')
+                        self.egl_import(egl_igame.app_name)
+
+            # Check for games that have been uninstalled
+            for lgd_igame in self._get_installed_list():
+                if not lgd_igame.egl_guid:  # skip non-exported
+                    continue
+                if lgd_igame.app_name in self.egl.manifests:
+                    continue
+
+                self.log.info(f'Synced app "{lgd_igame.app_name}" is no longer in the EGL manifest list.')
+                self.egl_restore_or_uninstall(lgd_igame)
+
+    @property
+    def egl_sync_enabled(self):
+        return self.lgd.config.getboolean('Legendary', 'egl_sync', fallback=False)
+
     def exit(self):
         """
         Do cleanup, config saving, and exit.
         """
-        # self.lgd.clean_tmp_data()
         self.lgd.save_config()
 
