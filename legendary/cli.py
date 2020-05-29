@@ -761,10 +761,14 @@ class LegendaryCLI:
                     if not os.path.exists(egl_path):
                         print('Path is invalid (does not exist)!')
                         exit(1)
-                    egl_path = os.path.join(egl_path, 'drive_c/ProgramData/Epic/EpicGamesLauncher/Data/Manifests')
+                    egl_data_path = os.path.join(egl_path, 'drive_c/ProgramData/Epic/EpicGamesLauncher/Data')
+                    egl_path = os.path.join(egl_data_path, 'Manifests')
                     if not os.path.exists(egl_path):
-                        print('EGL manifests directory does not exist, this may happen if nothing has been installed.')
-                        exit(1)
+                        if not os.path.exists(egl_data_path):
+                            print('Invalid path (wrong directory, WINE prefix, or EGL not installed/launched)')
+                            exit(1)
+                        print('EGL Data path exists but Manifests directory is missing, creating...')
+                        os.makedirs(egl_path)
 
                 if not os.listdir(egl_path):
                     logger.warning('Folder is empty, this may be fine if nothing has been installed yet.')
