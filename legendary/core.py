@@ -56,6 +56,8 @@ class LegendaryCore:
             if self.egl.programdata_path and not os.path.exists(self.egl.programdata_path):
                 self.log.error(f'Config EGL ProgramData path ("{self.egl.programdata_path}") is invalid! Please fix.')
                 self.egl.programdata_path = None
+                self.lgd.config.remove_option('Legendary', 'egl_programdata', fallback=None)
+                self.lgd.save_config()
 
         self.local_timezone = datetime.now().astimezone().tzinfo
         self.language_code, self.country_code = ('en', 'US')
