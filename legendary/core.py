@@ -194,7 +194,8 @@ class LegendaryCore:
                 continue
 
             game = self.lgd.get_game_meta(ga.app_name)
-            if not game or (game and game.app_version != ga.build_version and not platform_override):
+            if update_assets and (not game or
+                                  (game and game.app_version != ga.build_version and not platform_override)):
                 if game and game.app_version != ga.build_version and not platform_override:
                     self.log.info(f'Updating meta for {game.app_name} due to build version mismatch')
 
