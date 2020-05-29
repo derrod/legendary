@@ -19,6 +19,7 @@ from legendary import __version__, __codename__
 from legendary.core import LegendaryCore
 from legendary.models.exceptions import InvalidCredentialsError
 from legendary.models.game import SaveGameStatus, VerifyResult
+from legendary.utils.cli import get_boolean_choice
 from legendary.utils.custom_parser import AliasedSubParsersAction
 from legendary.utils.lfs import validate_files
 
@@ -749,6 +750,76 @@ class LegendaryCLI:
                         f'verification will not be requried.')
         logger.info('Game has been imported.')
 
+    def egs_sync(self, args):
+        if not self.core.egl.programdata_path:
+            if not args.egl_manifest_path:
+                # search default Lutris install path
+                egl_path = os.path.expanduser('~/Games/epic-games-store/drive_c/ProgramData'
+                                              '/Epic/EpicGamesLauncher/Data/Manifests')
+                if os.path.exists(egl_path):
+                    logger.info(f'Found Lutris EGL install at "{egl_path}"')
+                else:
+                    print('EGL path not found, please manually provide the path to the WINEPREFIX it is installed in')
+                    egl_path = input('Path [empty input to quit]: ').strip()
+                    if not egl_path:
+                        print('Empty input, quitting...')
+                        exit(0)
+                    if not os.path.exists(egl_path):
+                        print('Path is invalid (does not exist)!')
+                        exit(1)
+                    egl_path = os.path.join(egl_path, 'drive_c/ProgramData/Epic/EpicGamesLauncher/Data/Manifests')
+                    if not os.path.exists(egl_path):
+                        print('EGL manifests directory does not exist, this may happen if nothing has been installed.')
+                        exit(1)
+
+                if not os.listdir(egl_path):
+                    logger.warning('Folder is empty, this may be fine if nothing has been installed yet.')
+                self.core.egl.programdata_path = egl_path
+                self.core.lgd.config.set('Legendary', 'egl_programdata', egl_path)
+            else:
+                self.core.egl.programdata_path = args.egl_manifest_path
+
+        logger.debug(f'Using EGL ProgramData path "{self.core.egl.programdata_path}"...')
+        logger.info('Reading EGL game manifests...')
+
+        if not args.export_only:
+            print('\nChecking for importable games...')
+            importable = self.core.egl_get_importable()
+            if importable:
+                print('The following games are importable (EGL -> Legendary):')
+                for egl_game in importable:
+                    print(' *', egl_game.app_name, '-', egl_game.display_name)
+
+                if get_boolean_choice('Do you want to import the games from EGL?'):
+                    for egl_game in importable:
+                        logger.info(f'Importing "{egl_game.display_name}"...')
+                        self.core.egl_import(egl_game.app_name)
+            else:
+                print('Nothing to import.')
+
+        if not args.import_only:
+            print('\nChecking for exportable games...')
+            exportable = self.core.egl_get_exportable()
+            if exportable:
+                print('The following games are exportable (Legendary -> EGL)')
+                for lgd_game in exportable:
+                    print(' *', lgd_game.app_name, '-', lgd_game.title)
+
+                if get_boolean_choice('Do you want to export the games to EGL?'):
+                    for lgd_game in exportable:
+                        logger.info(f'Exporting "{lgd_game.title}"...')
+                        self.core.egl_export(lgd_game.app_name)
+            else:
+                print('Nothing to export.')
+
+        print('\nChecking automatic sync...')
+        if not self.core.egl_sync_enabled and not args.one_shot:
+            if not args.enable_sync:
+                args.enable_sync = get_boolean_choice('Enable automatic synchronization?')
+            self.core.lgd.config.set('Legendary', 'egl_sync', str(args.enable_sync))
+        else:
+            self.core.egl_sync()
+
 
 def main():
     parser = argparse.ArgumentParser(description=f'Legendary v{__version__} - "{__codename__}"')
@@ -777,6 +848,7 @@ def main():
     sync_saves_parser = subparsers.add_parser('sync-saves', help='Sync cloud saves')
     verify_parser = subparsers.add_parser('verify-game', help='Verify a game\'s local files')
     import_parser = subparsers.add_parser('import-game', help='Import an already installed game')
+    egl_sync_parser = subparsers.add_parser('egl-sync', help='Setup or run Epic Games Launcher sync')
 
     install_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
     uninstall_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
@@ -918,6 +990,18 @@ def main():
     import_parser.add_argument('--disable-check', dest='disable_check', action='store_true',
                                help='Disables checks of specified game install.')
 
+    egl_sync_parser.add_argument('--egl-manifest-path', dest='egl_manifest_path', action='store',
+                                 help='Path to the Epic Games Launcher\'s ProgramData folder, should '
+                                      'point to /ProgramData/Epic/EpicGamesLauncher/Data/Manifests')
+    egl_sync_parser.add_argument('--enable-sync', dest='enable_sync', action='store_true',
+                                 help='Enable automatic EGL<->Legendary sync')
+    egl_sync_parser.add_argument('--one-shot', dest='one_shot', action='store_true',
+                                 help='Sync once, do not ask to setup automatic sync.')
+    egl_sync_parser.add_argument('--import-only', dest='import_only', action='store_true',
+                                 help='Only import games from EGL (no export)')
+    egl_sync_parser.add_argument('--export-only', dest='export_only', action='store_true',
+                                 help='Only export games to EGL (no import)')
+
     args, extra = parser.parse_known_args()
 
     if args.version:
@@ -927,7 +1011,7 @@ def main():
     if args.subparser_name not in ('auth', 'list-games', 'list-installed', 'list-files',
                                    'launch', 'download', 'uninstall', 'install', 'update',
                                    'repair', 'list-saves', 'download-saves', 'sync-saves',
-                                   'verify-game', 'import-game'):
+                                   'verify-game', 'import-game', 'egl-sync'):
         print(parser.format_help())
 
         # Print the main help *and* the help for all of the subcommands. Thanks stackoverflow!
@@ -977,6 +1061,8 @@ def main():
             cli.verify_game(args)
         elif args.subparser_name == 'import-game':
             cli.import_game(args)
+        elif args.subparser_name == 'egl-sync':
+            cli.egs_sync(args)
     except KeyboardInterrupt:
         logger.info('Command was aborted via KeyboardInterrupt, cleaning up...')
 
