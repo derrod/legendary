@@ -931,7 +931,7 @@ class LegendaryCore:
     def egl_uninstall(self, igame: InstalledGame, delete_files=True):
         try:
             self.egl.delete_manifest(igame.app_name)
-        except ValueError:
+        except ValueError as e:
             self.log.warning(f'Deleting EGL manifest failed: {e!r}')
 
         if delete_files:

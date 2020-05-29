@@ -17,10 +17,10 @@ If you do please [create an issue on GitHub](https://github.com/derrod/legendary
  - Launching games with online authentication (for multiplayer/DRM)
  - Syncing cloud saves (compatible with EGL)
  - Running games with WINE on Linux
+ - Importing/Exporting installed games from/to the Epic Games Launcher
 
 **Planned:**
  - Simple GUI for managing/launching games
- - Importing/Exporting installed games from/to the Epic Games Launcher
  - Better interfaces for other developers to use Legendary in their projects
  - Lots and lots of bug fixes, optimizations, and refactoring...
 
@@ -113,7 +113,7 @@ $ legendary launch Anemone
 
 Importing a previously installed game
 ````
-$ legendary import Anemone /mnt/games/Epic/WorldOfGoo
+$ legendary import-game Anemone /mnt/games/Epic/WorldOfGoo
 ````
 **Note:** Importing will require a full verification so Legendary can correctly update the game later.
 
@@ -360,6 +360,9 @@ max_memory = 1024
 install_dir = /mnt/tank/games
 ; locale override, must be in RFC 1766 format (e.g. "en-US")
 locale = en-US
+; whether or not syncing with egl is enabled
+egl_sync = false
+egl_programdata = /home/user/Games/epic-games-store/drive_c/... 
 
 ; default settings to use (currently limited to WINE executable)
 [default]
