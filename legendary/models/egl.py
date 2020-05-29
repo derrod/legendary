@@ -139,7 +139,7 @@ class EGLManifest:
         tmp.installation_guid = igame.egl_guid
         tmp.launch_command = igame.launch_parameters
         tmp.executable = igame.executable
-        tmp.main_game_appname = game.app_name if game.is_dlc else ''
+        tmp.main_game_appname = game.app_name  # todo for DLC support this needs to be the base game
         tmp.app_folder_name = game.metadata.get('customAttributes', {}).get('FolderName', {}).get('value', '')
         tmp.manifest_location = igame.install_path + '/.egstore'
         tmp.ownership_token = igame.requires_ot
@@ -149,10 +149,10 @@ class EGLManifest:
         tmp.needs_validation = igame.needs_verification
         return tmp
 
-    def to_lgd_game(self) -> InstalledGame:
+    def to_lgd_igame(self) -> InstalledGame:
         return InstalledGame(app_name=self.app_name, title=self.display_name, version=self.app_version_string,
                              base_urls=self.base_urls, install_path=self.install_location, executable=self.executable,
                              launch_parameters=self.launch_command, can_run_offline=self.can_run_offline,
-                             requires_ot=self.ownership_token, is_dlc=bool(self.main_game_appname),
+                             requires_ot=self.ownership_token, is_dlc=False,
                              needs_verification=self.needs_validation, install_size=self.install_size,
                              egl_guid=self.installation_guid)
