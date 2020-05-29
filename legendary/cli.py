@@ -284,11 +284,11 @@ class LegendaryCLI:
 
                 if '%' in save_path or '{' in save_path:
                     logger.warning('Path contains unprocessed variables, please enter the correct path manually.')
-                    yn = 'n'
+                    yn = False
                 else:
-                    yn = input('Is this correct? [Y/n] ')
+                    yn = get_boolean_choice('Is this correct?')
 
-                if yn and yn.lower()[0] != 'y':
+                if not yn:
                     save_path = input('Please enter the correct path (leave empty to skip): ')
                     if not save_path:
                         logger.info('Empty input, skipping...')
@@ -323,8 +323,7 @@ class LegendaryCLI:
                     continue
 
                 if not args.yes and not args.force_download:
-                    choice = input(f'Download cloud save? [Y/n]: ')
-                    if choice and choice.lower()[0] != 'y':
+                    if not get_boolean_choice(f'Download cloud save?'):
                         logger.info('Not downloading...')
                         continue
 
@@ -345,8 +344,7 @@ class LegendaryCLI:
                     continue
 
                 if not args.yes and not args.force_upload:
-                    choice = input(f'Upload local save? [Y/n]: ')
-                    if choice and choice.lower()[0] != 'y':
+                    if not get_boolean_choice(f'Upload local save?'):
                         logger.info('Not uploading...')
                         continue
                 logger.info('Uploading local savegame...')
@@ -457,8 +455,7 @@ class LegendaryCLI:
             if not os.path.exists(repair_file):
                 logger.info('Game has not been verified yet.')
                 if not args.yes:
-                    choice = input(f'Verify "{game.app_name}" now (answer "no" will abort repair)? [Y/n]: ')
-                    if choice and choice.lower()[0] != 'y':
+                    if not get_boolean_choice(f'Verify "{game.app_name}" now ("no" will abort repair)?'):
                         print('Aborting...')
                         exit(0)
 
@@ -521,8 +518,7 @@ class LegendaryCLI:
                     'CTRL-C and resume it using the same command later on.')
 
         if not args.yes:
-            choice = input(f'Do you wish to install "{igame.title}"? [Y/n]: ')
-            if choice and choice.lower()[0] != 'y':
+            if not get_boolean_choice(f'Do you wish to install "{igame.title}"?'):
                 print('Aborting...')
                 exit(0)
 
@@ -561,8 +557,7 @@ class LegendaryCLI:
 
                     install_dlcs = True
                     if not args.yes:
-                        choice = input(f'Do you wish to automatically install DLCs ? [Y/n]: ')
-                        if choice and choice.lower()[0] != 'y':
+                        if not get_boolean_choice(f'Do you wish to automatically install DLCs?'):
                             install_dlcs = False
 
                     if install_dlcs:
@@ -624,8 +619,7 @@ class LegendaryCLI:
             exit(1)
 
         if not args.yes:
-            choice = input(f'Do you wish to uninstall "{igame.title}"? [y/N]: ')
-            if not choice or choice.lower()[0] != 'y':
+            if not get_boolean_choice(f'Do you wish to uninstall "{igame.title}"?', default=False):
                 print('Aborting...')
                 exit(0)
 
