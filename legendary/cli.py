@@ -759,7 +759,7 @@ class LegendaryCLI:
             return
 
         if not self.core.egl.programdata_path:
-            if not args.egl_manifest_path:
+            if not args.egl_manifest_path and not args.egl_wine_prefix:
                 # search default Lutris install path
                 lutris_data_path = os.path.expanduser('~/Games/epic-games-store/drive_c/ProgramData'
                                                       '/Epic/EpicGamesLauncher/Data')
@@ -795,6 +795,16 @@ class LegendaryCLI:
                     logger.warning('Folder is empty, this may be fine if nothing has been installed yet.')
                 self.core.egl.programdata_path = egl_path
                 self.core.lgd.config.set('Legendary', 'egl_programdata', egl_path)
+            elif args.egl_wine_prefix:
+                egl_data_path = os.path.join(args.egl_wine_prefix,
+                                             'drive_c/ProgramData/Epic/EpicGamesLauncher/Data')
+                egl_path = os.path.join(egl_data_path, 'Manifests')
+                if not os.path.exists(egl_path):
+                    if not os.path.exists(egl_data_path):
+                        print('Invalid path (wrong directory, WINE prefix, or EGL not installed/launched)')
+                        exit(1)
+                    print('EGL Data path exists but Manifests directory is missing, creating...')
+                    os.makedirs(egl_path)
             else:
                 self.core.egl.programdata_path = args.egl_manifest_path
 
@@ -1010,8 +1020,10 @@ def main():
                                help='Disables checks of specified game install.')
 
     egl_sync_parser.add_argument('--egl-manifest-path', dest='egl_manifest_path', action='store',
-                                 help='Path to the Epic Games Launcher\'s ProgramData folder, should '
+                                 help='Path to the Epic Games Launcher\'s Manifests folder, should '
                                       'point to /ProgramData/Epic/EpicGamesLauncher/Data/Manifests')
+    egl_sync_parser.add_argument('--egl-wine-prefix', dest='egl_wine_prefix', action='store',
+                                 help='Path to the WINE prefix the Epic Games Launcher is installed in')
     egl_sync_parser.add_argument('--enable-sync', dest='enable_sync', action='store_true',
                                  help='Enable automatic EGL<->Legendary sync')
     egl_sync_parser.add_argument('--one-shot', dest='one_shot', action='store_true',
