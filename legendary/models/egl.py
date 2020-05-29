@@ -1,3 +1,4 @@
+from copy import deepcopy
 from distutils.util import strtobool
 
 from legendary.models.game import InstalledGame, Game
@@ -73,6 +74,7 @@ class EGLManifest:
 
     @classmethod
     def from_json(cls, json: dict):
+        json = deepcopy(json)
         tmp = cls()
         tmp.app_name = json.pop('AppName')
         tmp.app_version_string = json.pop('AppVersionString', None)
