@@ -881,6 +881,19 @@ class LegendaryCore:
         # convert egl json file
         lgd_igame = egl_game.to_lgd_igame()
 
+        # fix path on Linux if the game is installed inside the wine prefix
+        if os.name != 'nt' and not lgd_igame.install_path.startswith('/'):
+            # todo use ${WINEPREFIX}/dosdevices to make sure this is correct
+            if lgd_igame.install_path.startswith('Z:'):
+                new_path = lgd_igame.install_path[2:]
+            else:
+                wine_pfx = self.egl.programdata_path.partition('ProgramData')[0]
+                new_path = os.path.join(wine_pfx,
+                                        lgd_igame.install_path.replace('\\', '/')[2:].lstrip('/'))
+
+            self.log.info(f'Adjusted game install path from "{lgd_igame.install_path}" to "{new_path}"')
+            lgd_igame.install_path = new_path
+
         # check if manifest exists
         manifest_filename = os.path.join(lgd_igame.install_path, '.egstore', f'{lgd_igame.egl_guid}.manifest')
         if not os.path.exists(manifest_filename):
