@@ -530,6 +530,9 @@ class LegendaryCore:
     def is_installed(self, app_name: str) -> bool:
         return self.get_installed_game(app_name) is not None
 
+    def _is_installed(self, app_name: str) -> bool:
+        return self._get_installed_game(app_name) is not None
+
     def is_dlc(self, app_name: str) -> bool:
         meta = self.lgd.get_game_meta(app_name)
         if not meta:
@@ -986,7 +989,7 @@ class LegendaryCore:
                 if egl_igame.main_game_appname != egl_igame.app_name:  # skip DLC
                     continue
 
-                if not self.is_installed(egl_igame.app_name):
+                if not self._is_installed(egl_igame.app_name):
                     self.egl_import(egl_igame.app_name)
                 else:
                     lgd_igame = self._get_installed_game(egl_igame.app_name)
