@@ -889,7 +889,7 @@ class LegendaryCore:
         if os.name != 'nt' and not lgd_igame.install_path.startswith('/'):
             # todo use ${WINEPREFIX}/dosdevices to make sure this is correct
             if lgd_igame.install_path.startswith('Z:'):
-                new_path = lgd_igame.install_path[2:]
+                new_path = lgd_igame.install_path[2:].replace('\\', '/')
             else:
                 wine_pfx = self.egl.programdata_path.partition('ProgramData')[0]
                 new_path = os.path.join(wine_pfx,
