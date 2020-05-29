@@ -761,12 +761,20 @@ class LegendaryCLI:
         if not self.core.egl.programdata_path:
             if not args.egl_manifest_path:
                 # search default Lutris install path
-                egl_path = os.path.expanduser('~/Games/epic-games-store/drive_c/ProgramData'
-                                              '/Epic/EpicGamesLauncher/Data/Manifests')
-                if os.path.exists(egl_path):
-                    logger.info(f'Found Lutris EGL install at "{egl_path}"')
-                else:
-                    print('EGL path not found, please manually provide the path to the WINEPREFIX it is installed in')
+                lutris_data_path = os.path.expanduser('~/Games/epic-games-store/drive_c/ProgramData'
+                                                      '/Epic/EpicGamesLauncher/Data')
+                egl_path = None
+                if os.path.exists(lutris_data_path):
+                    logger.info(f'Found Lutris EGL install at "{lutris_data_path}"')
+
+                    if get_boolean_choice('Do you want to use the Lutris install?'):
+                        egl_path = os.path.join(lutris_data_path, 'Manifests')
+                        if not os.path.exists(egl_path):
+                            print('EGL Data path exists but Manifests directory is missing, creating...')
+                            os.makedirs(egl_path)
+
+                if not egl_path:
+                    print('EGL path not found, please manually provide the path to the WINE prefix it is installed in')
                     egl_path = input('Path [empty input to quit]: ').strip()
                     if not egl_path:
                         print('Empty input, quitting...')
