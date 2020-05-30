@@ -605,7 +605,8 @@ class LegendaryCore:
                          platform_override: str = '', file_prefix_filter: list = None,
                          file_exclude_filter: list = None, file_install_tag: list = None,
                          dl_optimizations: bool = False, dl_timeout: int = 10,
-                         repair: bool = False) -> (DLManager, AnalysisResult, ManifestMeta):
+                         repair: bool = False, egl_guid: str = ''
+                         ) -> (DLManager, AnalysisResult, ManifestMeta):
         # load old manifest
         old_manifest = None
 
@@ -650,6 +651,9 @@ class LegendaryCore:
         # reuse existing installation's directory
         if igame := self.get_installed_game(base_game.app_name if base_game else game.app_name):
             install_path = igame.install_path
+            # make sure to re-use the epic guid we assigned on first install
+            if not game.is_dlc and igame.egl_guid:
+                egl_guid = igame.egl_guid
         else:
             if not game_folder:
                 if game.is_dlc:
@@ -726,7 +730,8 @@ class LegendaryCore:
                               install_path=install_path, executable=new_manifest.meta.launch_exe,
                               launch_parameters=new_manifest.meta.launch_command,
                               can_run_offline=offline == 'true', requires_ot=ot == 'true',
-                              is_dlc=base_game is not None, install_size=anlres.install_size)
+                              is_dlc=base_game is not None, install_size=anlres.install_size,
+                              egl_guid=egl_guid)
 
         return dlm, anlres, igame
 
