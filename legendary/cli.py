@@ -901,20 +901,20 @@ def main():
     # importing only works on Windows right now
     if os.name == 'nt':
         auth_parser.add_argument('--import', dest='import_egs_auth', action='store_true',
-                                 help='Import EGS authentication data')
+                                 help='Import Epic Games Launcher authentication data (logs out of EGL)')
     auth_parser.add_argument('--code', dest='auth_code', action='store', metavar='<exchange code>',
-                             help='Use specified exchange code instead of interactive authentication.')
+                             help='Use specified exchange code instead of interactive authentication')
     auth_parser.add_argument('--delete', dest='auth_delete', action='store_true',
-                             help='Remove existing authentication data')
+                             help='Remove existing authentication (log out)')
 
     install_parser.add_argument('--base-path', dest='base_path', action='store', metavar='<path>',
                                 help='Path for game installations (defaults to ~/legendary)')
     install_parser.add_argument('--game-folder', dest='game_folder', action='store', metavar='<path>',
-                                help='Folder for game installation (defaults to folder in metadata)')
+                                help='Folder for game installation (defaults to folder specified in metadata)')
     install_parser.add_argument('--max-shared-memory', dest='shared_memory', action='store', metavar='<size>',
                                 type=int, help='Maximum amount of shared memory to use (in MiB), default: 1 GiB')
     install_parser.add_argument('--max-workers', dest='max_workers', action='store', metavar='<num>',
-                                type=int, help='Maximum amount of download workers, default: 2 * logical CPU')
+                                type=int, help='Maximum amount of download workers, default: min(2 * CPUs, 16)')
     install_parser.add_argument('--manifest', dest='override_manifest', action='store', metavar='<uri>',
                                 help='Manifest URL or path to use instead of the CDN one (e.g. for downgrading)')
     install_parser.add_argument('--old-manifest', dest='override_old_manifest', action='store', metavar='<uri>',
@@ -922,31 +922,32 @@ def main():
     install_parser.add_argument('--base-url', dest='override_base_url', action='store', metavar='<url>',
                                 help='Base URL to download from (e.g. to test or switch to a different CDNs)')
     install_parser.add_argument('--force', dest='force', action='store_true',
-                                help='Ignore existing files (overwrite)')
+                                help='Download all files / ignore existing (overwrite)')
     install_parser.add_argument('--disable-patching', dest='disable_patching', action='store_true',
-                                help='Do not attempt to patch existing installations (download entire changed file)')
+                                help='Do not attempt to patch existing installation (download entire changed files)')
     install_parser.add_argument('--download-only', '--no-install', dest='no_install', action='store_true',
-                                help='Do not mark game as intalled and do not run prereq installers after download')
+                                help='Do not intall app and do not run prerequisite installers after download')
     install_parser.add_argument('--update-only', dest='update_only', action='store_true',
-                                help='Abort if game is not already installed (for automation)')
+                                help='Only update, do not do anything if specified app is not installed')
     install_parser.add_argument('--dlm-debug', dest='dlm_debug', action='store_true',
                                 help='Set download manager and worker processes\' loglevel to debug')
     install_parser.add_argument('--platform', dest='platform_override', action='store', metavar='<Platform>',
-                                type=str, help='Platform override for download (disables install)')
+                                type=str, help='Platform override for download (also sets --no-install)')
     install_parser.add_argument('--prefix', dest='file_prefix', action='append', metavar='<prefix>',
                                 help='Only fetch files whose path starts with <prefix> (case insensitive)')
     install_parser.add_argument('--exclude', dest='file_exclude_prefix', action='append', metavar='<prefix>',
                                 type=str, help='Exclude files starting with <prefix> (case insensitive)')
     install_parser.add_argument('--install-tag', dest='install_tag', action='append', metavar='<tag>',
-                                type=str, help='Only download files with the specified install tag (testing)')
+                                type=str, help='Only download files with the specified install tag')
     install_parser.add_argument('--enable-reordering', dest='order_opt', action='store_true',
-                                help='Enable reordering to attempt to optimize RAM usage during download')
+                                help='Enable reordering optimization to reduce RAM requirements '
+                                     'during download (may have adverse results for some titles)')
     install_parser.add_argument('--dl-timeout', dest='dl_timeout', action='store', metavar='<sec>', type=int,
                                 help='Connection timeout for downloader (default: 10 seconds)')
     install_parser.add_argument('--save-path', dest='save_path', action='store', metavar='<path>',
-                                help='Set save game path during install.')
+                                help='Set save game path to be used for sync-saves')
     install_parser.add_argument('--repair', dest='repair_mode', action='store_true',
-                                help='Repair already installed game by downloading corrupted/missing files')
+                                help='Repair installed game by checking and redownloading corrupted/missing files')
 
     launch_parser.add_argument('--offline', dest='offline', action='store_true',
                                default=False, help='Skip login and launch game without online authentication')
@@ -957,7 +958,7 @@ def main():
     launch_parser.add_argument('--dry-run', dest='dry_run', action='store_true',
                                help='Print the command line that would have been used to launch the game and exit')
     launch_parser.add_argument('--language', dest='language', action='store', metavar='<two letter language code>',
-                               help='Override language for game launch (defaults to system settings)')
+                               help='Override language for game launch (defaults to system locale)')
     launch_parser.add_argument('--wrapper', dest='wrapper', action='store', metavar='<wrapper command>',
                                default=os.environ.get('LGDRY_WRAPPER', None),
                                help='Wrapper command to launch game with')
@@ -965,13 +966,13 @@ def main():
     if os.name != 'nt':
         launch_parser.add_argument('--wine', dest='wine_bin', action='store', metavar='<wine binary>',
                                    default=os.environ.get('LGDRY_WINE_BINARY', None),
-                                   help='Override WINE binary being used to launch the game')
+                                   help='Set WINE binary to use to launch the app')
         launch_parser.add_argument('--wine-prefix', dest='wine_pfx', action='store', metavar='<wine pfx path>',
                                    default=os.environ.get('LGDRY_WINE_PREFIX', None),
-                                   help='Override WINE prefix used.')
+                                   help='Set WINE prefix to use')
         launch_parser.add_argument('--no-wine', dest='no_wine', action='store_true',
                                    default=strtobool(os.environ.get('LGDRY_NO_WINE', 'False')),
-                                   help='Do not use WINE (e.g. if a wrapper is being used)')
+                                   help='Do not run game with WINE (e.g. if a wrapper is used)')
     else:
         # hidden arguments to not break this on Windows
         launch_parser.add_argument('--wine', help=argparse.SUPPRESS, dest='wine_bin')
@@ -980,14 +981,14 @@ def main():
                                    action='store_true', default=True)
 
     list_parser.add_argument('--platform', dest='platform_override', action='store', metavar='<Platform>',
-                             type=str, help='Override platform that games are shown for')
+                             type=str, help='Override platform that games are shown for (e.g. Win32/Mac)')
     list_parser.add_argument('--include-ue', dest='include_ue', action='store_true',
-                             help='Also include Unreal Engine content in list')
+                             help='Also include Unreal Engine content (Engine/Marketplace) in list')
     list_parser.add_argument('--csv', dest='csv', action='store_true', help='List games in CSV format')
     list_parser.add_argument('--tsv', dest='tsv', action='store_true', help='List games in TSV format')
 
     list_installed_parser.add_argument('--check-updates', dest='check_updates', action='store_true',
-                                       help='Check for updates when listing installed games')
+                                       help='Check for updates for installed games')
     list_installed_parser.add_argument('--csv', dest='csv', action='store_true',
                                        help='List games in CSV format')
     list_installed_parser.add_argument('--tsv', dest='tsv', action='store_true',
@@ -1002,7 +1003,7 @@ def main():
     list_files_parser.add_argument('--csv', dest='csv', action='store_true', help='Output in CSV format')
     list_files_parser.add_argument('--tsv', dest='tsv', action='store_true', help='Output in TSV format')
     list_files_parser.add_argument('--hashlist', dest='hashlist', action='store_true',
-                                   help='Output file hash list in hashcheck/sha1sum compatible format')
+                                   help='Output file hash list in hashcheck/sha1sum -c compatible format')
     list_files_parser.add_argument('--install-tag', dest='install_tag', action='store', metavar='<tag>',
                                    type=str, help='Show only files with specified install tag')
 
@@ -1015,12 +1016,13 @@ def main():
     sync_saves_parser.add_argument('--force-download', dest='force_download', action='store_true',
                                    help='Force download even if local saves are newer')
     sync_saves_parser.add_argument('--save-path', dest='save_path', action='store', metavar='<path>',
-                                   help='Override savegame path (only if app name is specified)')
+                                   help='Override savegame path (requires single app name to be specified)')
     sync_saves_parser.add_argument('--disable-filters', dest='disable_filters', action='store_true',
-                                   help='Disable save game file filtering (in case it breaks)')
+                                   help='Disable save game file filtering')
 
     import_parser.add_argument('--disable-check', dest='disable_check', action='store_true',
-                               help='Disables checks of specified game install.')
+                               help='Disables completeness check of the to-be-imported game installation '
+                                    '(useful if the imported game is a much older version or missing files)')
 
     egl_sync_parser.add_argument('--egl-manifest-path', dest='egl_manifest_path', action='store',
                                  help='Path to the Epic Games Launcher\'s Manifests folder, should '
@@ -1028,15 +1030,15 @@ def main():
     egl_sync_parser.add_argument('--egl-wine-prefix', dest='egl_wine_prefix', action='store',
                                  help='Path to the WINE prefix the Epic Games Launcher is installed in')
     egl_sync_parser.add_argument('--enable-sync', dest='enable_sync', action='store_true',
-                                 help='Enable automatic EGL<->Legendary sync')
+                                 help='Enable automatic EGL <-> Legendary sync')
     egl_sync_parser.add_argument('--one-shot', dest='one_shot', action='store_true',
-                                 help='Sync once, do not ask to setup automatic sync.')
+                                 help='Sync once, do not ask to setup automatic sync')
     egl_sync_parser.add_argument('--import-only', dest='import_only', action='store_true',
                                  help='Only import games from EGL (no export)')
     egl_sync_parser.add_argument('--export-only', dest='export_only', action='store_true',
                                  help='Only export games to EGL (no import)')
     egl_sync_parser.add_argument('--unlink', dest='unlink', action='store_true',
-                                 help='Disable sync and remove EGS flags.')
+                                 help='Disable sync and remove EGL metadata from installed games')
 
     args, extra = parser.parse_known_args()
 

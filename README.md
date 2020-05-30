@@ -169,10 +169,10 @@ usage: legendary auth [-h] [--import] [--code <exchange code>] [--delete]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --import              Import EGS authentication data
+  --import              Import Epic Games Launcher authentication data (logs out of EGL)
   --code <exchange code>
-                        Use specified exchange code instead of interactive authentication.
-  --delete              Remove existing authentication data
+                        Use specified exchange code instead of interactive authentication
+  --delete              Remove existing authentication (log out)
 
 
 Command: install
@@ -186,28 +186,28 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   --base-path <path>    Path for game installations (defaults to ~/legendary)
-  --game-folder <path>  Folder for game installation (defaults to folder in metadata)
+  --game-folder <path>  Folder for game installation (defaults to folder specified in metadata)
   --max-shared-memory <size>
                         Maximum amount of shared memory to use (in MiB), default: 1 GiB
-  --max-workers <num>   Maximum amount of download workers, default: 2 * logical CPU
+  --max-workers <num>   Maximum amount of download workers, default: min(2 * CPUs, 16)
   --manifest <uri>      Manifest URL or path to use instead of the CDN one (e.g. for downgrading)
   --old-manifest <uri>  Manifest URL or path to use as the old one (e.g. for testing patching)
   --base-url <url>      Base URL to download from (e.g. to test or switch to a different CDNs)
-  --force               Ignore existing files (overwrite)
-  --disable-patching    Do not attempt to patch existing installations (download entire changed file)
+  --force               Download all files / ignore existing (overwrite)
+  --disable-patching    Do not attempt to patch existing installation (download entire changed files)
   --download-only, --no-install
-                        Do not mark game as intalled and do not run prereq installers after download
-  --update-only         Abort if game is not already installed (for automation)
+                        Do not intall app and do not run prerequisite installers after download
+  --update-only         Only update, do not do anything if specified app is not installed
   --dlm-debug           Set download manager and worker processes' loglevel to debug
   --platform <Platform>
-                        Platform override for download (disables install)
+                        Platform override for download (also sets --no-install)
   --prefix <prefix>     Only fetch files whose path starts with <prefix> (case insensitive)
   --exclude <prefix>    Exclude files starting with <prefix> (case insensitive)
-  --install-tag <tag>   Only download files with the specified install tag (testing)
-  --enable-reordering   Enable reordering to attempt to optimize RAM usage during download
+  --install-tag <tag>   Only download files with the specified install tag
+  --enable-reordering   Enable reordering optimization to reduce RAM requirements during download (may have adverse results for some titles)
   --dl-timeout <sec>    Connection timeout for downloader (default: 10 seconds)
-  --save-path <path>    Set save game path during install.
-  --repair              Repair already installed game by downloading corrupted/missing files
+  --save-path <path>    Set save game path to be used for sync-saves
+  --repair              Repair installed game by checking and redownloading corrupted/missing files
 
 
 Command: uninstall
@@ -236,13 +236,13 @@ optional arguments:
                         Override username used when launching the game (only works with some titles)
   --dry-run             Print the command line that would have been used to launch the game and exit
   --language <two letter language code>
-                        Override language for game launch (defaults to system settings)
+                        Override language for game launch (defaults to system locale)
   --wrapper <wrapper command>
                         Wrapper command to launch game with
-  --wine <wine binary>  Override WINE binary being used to launch the game
+  --wine <wine binary>  Set WINE binary to use to launch the app
   --wine-prefix <wine pfx path>
-                        Override WINE prefix used.
-  --no-wine             Do not use WINE (e.g. if a wrapper is being used)
+                        Set WINE prefix to use
+  --no-wine             Do not run game with WINE (e.g. if a wrapper is used)
 
 
 Command: list-games
@@ -251,8 +251,8 @@ usage: legendary list-games [-h] [--platform <Platform>] [--include-ue] [--csv] 
 optional arguments:
   -h, --help            show this help message and exit
   --platform <Platform>
-                        Override platform that games are shown for
-  --include-ue          Also include Unreal Engine content in list
+                        Override platform that games are shown for (e.g. Win32/Mac)
+  --include-ue          Also include Unreal Engine content (Engine/Marketplace) in list
   --csv                 List games in CSV format
   --tsv                 List games in TSV format
 
@@ -262,7 +262,7 @@ usage: legendary list-installed [-h] [--check-updates] [--csv] [--tsv]
 
 optional arguments:
   -h, --help       show this help message and exit
-  --check-updates  Check for updates when listing installed games
+  --check-updates  Check for updates for installed games
   --csv            List games in CSV format
   --tsv            List games in TSV format
 
@@ -281,7 +281,7 @@ optional arguments:
   --manifest <uri>      Manifest URL or path to use instead of the CDN one
   --csv                 Output in CSV format
   --tsv                 Output in TSV format
-  --hashlist            Output file hash list in hashcheck/sha1sum compatible format
+  --hashlist            Output file hash list in hashcheck/sha1sum -c compatible format
   --install-tag <tag>   Show only files with specified install tag
 
 
@@ -317,8 +317,8 @@ optional arguments:
   --skip-download     Only upload new saves from cloud, don't download
   --force-upload      Force upload even if local saves are older
   --force-download    Force download even if local saves are newer
-  --save-path <path>  Override savegame path (only if app name is specified)
-  --disable-filters   Disable save game file filtering (in case it breaks)
+  --save-path <path>  Override savegame path (requires single app name to be specified)
+  --disable-filters   Disable save game file filtering
 
 
 Command: verify-game
@@ -341,7 +341,7 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  --disable-check       Disables checks of specified game install.
+  --disable-check       Disables completeness check of the to-be-imported game installation (useful if the imported game is a much older version or missing files)
 
 
 Command: egl-sync
@@ -353,11 +353,11 @@ optional arguments:
                         Path to the Epic Games Launcher's Manifests folder, should point to /ProgramData/Epic/EpicGamesLauncher/Data/Manifests
   --egl-wine-prefix EGL_WINE_PREFIX
                         Path to the WINE prefix the Epic Games Launcher is installed in
-  --enable-sync         Enable automatic EGL<->Legendary sync
-  --one-shot            Sync once, do not ask to setup automatic sync.
+  --enable-sync         Enable automatic EGL <-> Legendary sync
+  --one-shot            Sync once, do not ask to setup automatic sync
   --import-only         Only import games from EGL (no export)
   --export-only         Only export games to EGL (no import)
-  --unlink              Disable sync and remove EGS flags.
+  --unlink              Disable sync and remove EGL metadata from installed games
 ````
 
 
