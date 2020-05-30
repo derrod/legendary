@@ -881,6 +881,7 @@ class LegendaryCore:
         return [g for g in self.get_installed_list() if g.app_name not in self.egl.manifests]
 
     def egl_import(self, app_name):
+        self.log.debug(f'Importing "{app_name}" from EGL')
         # load egl json file
         try:
             egl_game = self.egl.get_manifest(app_name=app_name)
@@ -921,6 +922,7 @@ class LegendaryCore:
         return
 
     def egl_export(self, app_name):
+        self.log.debug(f'Exporting "{app_name}" to EGL')
         # load igame/game
         lgd_game = self.get_game(app_name)
         lgd_igame = self._get_installed_game(app_name)
