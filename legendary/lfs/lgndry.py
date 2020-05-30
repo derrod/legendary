@@ -37,6 +37,9 @@ class LGDLFS:
 
         # try loading config
         self.config.read(os.path.join(self.path, 'config.ini'))
+        # make sure "Legendary" section exists
+        if 'Legendary' not in self.config:
+            self.config['Legendary'] = dict()
 
         try:
             self._installed = json.load(open(os.path.join(self.path, 'installed.json')))
