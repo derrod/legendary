@@ -34,13 +34,17 @@ If you do please [create an issue on GitHub](https://github.com/derrod/legendary
 
 ### Package Manager
 
-Several distros already have (unofficial) packages available, check out the [Available Linux Packages](https://github.com/derrod/legendary/wiki/Available-Linux-Packages) wiki page for details.
+Several distros already have packages available, check out the [Available Linux Packages](https://github.com/derrod/legendary/wiki/Available-Linux-Packages) wiki page for details.
 
 Currently this includes
 [Arch](https://github.com/derrod/legendary/wiki/Available-Linux-Packages#arch-aur),
-[Fedora](https://github.com/derrod/legendary/wiki/Available-Linux-Packages#fedora), and
-[openSUSE](https://github.com/derrod/legendary/wiki/Available-Linux-Packages#opensuse)
+[Fedora](https://github.com/derrod/legendary/wiki/Available-Linux-Packages#fedora),
+[openSUSE](https://github.com/derrod/legendary/wiki/Available-Linux-Packages#opensuse), and
+[Gentoo](https://github.com/derrod/legendary/wiki/Available-Linux-Packages#gentoo)
 but more will be available in the future.
+
+Note that since packages are maintained by third parties it may take a bit for them to be updated to the latest version.
+If you always want to have the latest features and fixes available then using the PyPI distribution is recommended.
 
 ### Standalone
 Download the `legendary` or `legendary.exe` binary from [the latest release](https://github.com/derrod/legendary/releases/latest)
@@ -122,6 +126,11 @@ Sync savegames with the Epic Cloud
 $ legendary sync-saves
 ````
 **Note:** When this command is run the first time after a supported game has been installed it will ask you to confirm or provide the path to where the savegame is located.
+
+Automatically sync all games with the Epic Games Launcher
+````
+$ legendary -y egl-sync
+````
 
 ## Usage
 
@@ -380,6 +389,7 @@ install_dir = /mnt/tank/games
 locale = en-US
 ; whether or not syncing with egl is enabled
 egl_sync = false
+; path to the "Manifests" folder in the EGL ProgramData directory
 egl_programdata = /home/user/Games/epic-games-store/drive_c/... 
 
 ; default settings to use (currently limited to WINE executable)
@@ -410,7 +420,7 @@ DXVK_CONFIG_FILE = /mnt/tank/games/Game/dxvk.conf
 
 [AppName2]
 ; Use a wrapper to run this script
-start_params = /path/to/wrapper wrapper --parameters
+wrapper = /path/to/wrapper --parameters
 ; Do not run this executable with WINE (e.g. when the wrapper handles that)
 no_wine = true
 ````
