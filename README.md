@@ -172,6 +172,7 @@ optional arguments:
   --import              Import Epic Games Launcher authentication data (logs out of EGL)
   --code <exchange code>
                         Use specified exchange code instead of interactive authentication
+  --sid <session id>    Use specified session id instead of interactive authentication
   --delete              Remove existing authentication (log out)
 
 
