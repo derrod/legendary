@@ -11,6 +11,7 @@ import time
 import webbrowser
 
 from distutils.util import strtobool
+from getpass import getuser
 from logging.handlers import QueueListener
 from multiprocessing import freeze_support, Queue as MPQueue
 from sys import exit, stdout
@@ -63,18 +64,49 @@ class LegendaryCLI:
             logger.error('Stored credentials were found but were no longer valid. Continuing with login...')
             self.core.lgd.invalidate_userdata()
 
-        if os.name == 'nt' and args.import_egs_auth:
+        if args.import_egs_auth:
+            # get appdata path on Linux
+            if not self.core.egl.appdata_path:
+                wine_pfx_users = None
+                lutris_wine_users = os.path.expanduser('~/Games/epic-games-store/drive_c/users')
+                if os.path.exists(lutris_wine_users):
+                    logger.info(f'Found Lutris EGL WINE prefix at "{lutris_wine_users}"')
+                    if args.yes or get_boolean_choice('Do you want to use the Lutris install?'):
+                        wine_pfx_users = lutris_wine_users
+
+                if not wine_pfx_users:
+                    logger.info('Please enter the path to the Wine prefix that has EGL installed')
+                    wine_pfx = input('Path [empty input to quit]: ').strip()
+                    if not wine_pfx:
+                        print('Empty input, quitting...')
+                        exit(0)
+                    if not os.path.exists(wine_pfx):
+                        print('Path is invalid (does not exist)!')
+                        exit(1)
+                    wine_pfx_users = os.path.join(wine_pfx, 'drive_c/users')
+
+                # todo instead of getuser() this should read from the user.reg in the WINE prefix
+                appdata_dir = os.path.join(wine_pfx_users, getuser(),
+                                           'Local Settings/Application Data/EpicGamesLauncher',
+                                           'Saved/Config/Windows')
+                if not os.path.exists(appdata_dir):
+                    logger.error(f'Wine prefix does not have EGL appdata path at "{appdata_dir}"')
+                    exit(0)
+                else:
+                    logger.info(f'Using EGL appdata path at "{appdata_dir}"')
+                    self.core.egl.appdata_path = appdata_dir
+
             logger.info('Importing login session from the Epic Launcher...')
             try:
                 if self.core.auth_import():
                     logger.info('Successfully imported login session from EGS!')
                     logger.info(f'Now logged in as user "{self.core.lgd.userdata["displayName"]}"')
-                    exit(0)
+                    return
                 else:
                     logger.warning('Login session from EGS seems to no longer be valid.')
                     exit(1)
             except ValueError:
-                logger.error('No EGS login session found, please login normally.')
+                logger.error('No EGS login session found, please login manually.')
                 exit(1)
 
         exchange_token = ''
@@ -905,10 +937,8 @@ def main():
     import_parser.add_argument('app_path', help='Path where the game is installed',
                                metavar='<Installation directory>')
 
-    # importing only works on Windows right now
-    if os.name == 'nt':
-        auth_parser.add_argument('--import', dest='import_egs_auth', action='store_true',
-                                 help='Import Epic Games Launcher authentication data (logs out of EGL)')
+    auth_parser.add_argument('--import', dest='import_egs_auth', action='store_true',
+                             help='Import Epic Games Launcher authentication data (logs out of EGL)')
     auth_parser.add_argument('--code', dest='auth_code', action='store', metavar='<exchange code>',
                              help='Use specified exchange code instead of interactive authentication')
     auth_parser.add_argument('--sid', dest='session_id', action='store', metavar='<session id>',

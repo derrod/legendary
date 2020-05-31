@@ -27,13 +27,15 @@ class EPCLFS:
         self.manifests = dict()
 
     def read_config(self):
-        if os.name != 'nt':
-            raise NotImplementedError('Reading EGS config is not implemented on Linux')
+        if not self.appdata_path:
+            raise ValueError('EGS AppData path is not set')
+
         self.config.read(os.path.join(self.appdata_path, 'GameUserSettings.ini'))
 
     def save_config(self):
-        if os.name != 'nt':
-            raise NotImplementedError('Writing EGS config is not implemented on Linux')
+        if not self.appdata_path:
+            raise ValueError('EGS AppData path is not set')
+
         with open(os.path.join(self.appdata_path, 'GameUserSettings.ini'), 'w') as f:
             self.config.write(f, space_around_delimiters=False)
 
