@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from locale import getdefaultlocale
 from multiprocessing import Queue
 from random import choice as randchoice
-from requests import Request
+from requests import Request, session
 from requests.exceptions import HTTPError
 from typing import List, Dict
 from uuid import uuid4
@@ -87,6 +87,34 @@ class LegendaryCore:
         :return:
         """
         raise NotImplementedError
+
+    def auth_sid(self, sid) -> str:
+        """
+        Handles getting an exchange code from a session id
+        :param sid: session id
+        :return: exchange code
+        """
+        s = session()
+        s.headers.update({
+            'X-Epic-Event-Action': 'login',
+            'X-Epic-Event-Category': 'login',
+            'X-Epic-Strategy-Flags': '',
+            'X-Requested-With': 'XMLHttpRequest'
+        })
+
+        # get first set of cookies (EPIC_BEARER_TOKEN etc.)
+        _ = s.get('https://www.epicgames.com/id/api/set-sid', params=dict(sid=sid))
+        # get XSRF-TOKEN and EPIC_SESSION_AP cookie
+        _ = s.get('https://www.epicgames.com/id/api/csrf')
+        # finally, get the exchange code
+        r = s.post('https://www.epicgames.com/id/api/exchange/generate',
+                   headers={'X-XSRF-TOKEN': s.cookies['XSRF-TOKEN']})
+
+        if r.status_code == 200:
+            return r.json()['code']
+        else:
+            self.log.error(f'Getting exchange code failed: {r.json()}')
+            return ''
 
     def auth_code(self, code) -> bool:
         """
