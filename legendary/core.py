@@ -99,7 +99,12 @@ class LegendaryCore:
             'X-Epic-Event-Action': 'login',
             'X-Epic-Event-Category': 'login',
             'X-Epic-Strategy-Flags': '',
-            'X-Requested-With': 'XMLHttpRequest'
+            'X-Requested-With': 'XMLHttpRequest',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                          'AppleWebKit/537.36 (KHTML, like Gecko) '
+                          'EpicGamesLauncher/10.16.1-13343695+++Portal+Release-Live '
+                          'UnrealEngine/4.23.0-13343695+++Portal+Release-Live '
+                          'Chrome/59.0.3071.15 Safari/537.36'
         })
 
         # get first set of cookies (EPIC_BEARER_TOKEN etc.)

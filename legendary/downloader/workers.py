@@ -22,7 +22,7 @@ class DLWorker(Process):
         self.o_q = out_queue
         self.session = requests.session()
         self.session.headers.update({
-            'User-Agent': 'EpicGamesLauncher/10.16.0-13286290+++Portal+Release-Live Windows/10.0.18363.1.256.64bit'
+            'User-Agent': 'EpicGamesLauncher/10.16.1-13343695+++Portal+Release-Live Windows/10.0.18363.1.256.64bit'
         })
         self.max_retries = max_retries
         self.shm = SharedMemory(name=shm)
