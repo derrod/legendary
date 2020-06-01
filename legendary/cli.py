@@ -399,6 +399,11 @@ class LegendaryCLI:
             logger.error(f'{app_name} is DLC; please launch the base game instead!')
             exit(1)
 
+        if args.reset_defaults:
+            logger.info(f'Removing configuration section for "{app_name}"...')
+            self.core.lgd.config.remove_section(app_name)
+            return
+
         # override with config value
         args.offline = self.core.is_offline_game(app_name) or args.offline
         if not args.offline:
@@ -421,18 +426,39 @@ class LegendaryCLI:
                                                            language=args.language, wrapper=args.wrapper,
                                                            disable_wine=args.no_wine)
 
-        logger.info(f'Launching {app_name}...')
+        if args.set_defaults:
+            self.core.lgd.config[app_name] = dict()
+            # we have to do this if-cacophony here because an empty value is still
+            # valid and could cause issues when relying on config.get()'s fallback
+            if args.offline:
+                self.core.lgd.config[app_name]['offline'] = 'true'
+            if args.skip_version_check:
+                self.core.lgd.config[app_name]['skip_update_check'] = 'true'
+            if extra:
+                self.core.lgd.config[app_name]['start_params'] = shlex.join(extra)
+            if args.wine_bin:
+                self.core.lgd.config[app_name]['wine_executable'] = args.wine_bin
+            if args.wine_pfx:
+                self.core.lgd.config[app_name]['wine_prefix'] = args.wine_pfx
+            if args.no_wine:
+                self.core.lgd.config[app_name]['no_wine'] = 'true'
+            if args.language:
+                self.core.lgd.config[app_name]['language'] = args.language
+            if args.wrapper:
+                self.core.lgd.config[app_name]['wrapper'] = args.wrapper
+
         if args.dry_run:
+            logger.info(f'Not Launching {app_name} (dry run)')
             logger.info(f'Launch parameters: {shlex.join(params)}')
             logger.info(f'Working directory: {cwd}')
             if env:
                 logger.info('Environment overrides:', env)
         else:
+            logger.info(f'Launching {app_name}...')
             logger.debug(f'Launch parameters: {shlex.join(params)}')
             logger.debug(f'Working directory: {cwd}')
             if env:
                 logger.debug('Environment overrides:', env)
-
             subprocess.Popen(params, cwd=cwd, env=env)
 
     def install_game(self, args):
@@ -1009,6 +1035,10 @@ def main():
     launch_parser.add_argument('--wrapper', dest='wrapper', action='store', metavar='<wrapper command>',
                                default=os.environ.get('LGDRY_WRAPPER', None),
                                help='Wrapper command to launch game with')
+    launch_parser.add_argument('--set-defaults', dest='set_defaults', action='store_true',
+                               help='Save parameters used to launch to config (does not include env vars)')
+    launch_parser.add_argument('--reset-defaults', dest='reset_defaults', action='store_true',
+                               help='Reset config settings for app and exit')
 
     if os.name != 'nt':
         launch_parser.add_argument('--wine', dest='wine_bin', action='store', metavar='<wine binary>',
