@@ -850,7 +850,11 @@ class LegendaryCLI:
                 self.core.egl.programdata_path = egl_path
                 self.core.lgd.config.set('Legendary', 'egl_programdata', egl_path)
             else:
+                if not os.path.exists(args.egl_manifest_path):
+                    logger.fatal('Path specified via --egl-manifest-path does not exist')
+                    exit(1)
                 self.core.egl.programdata_path = args.egl_manifest_path
+                self.core.lgd.config.set('Legendary', 'egl_programdata', args.egl_manifest_path)
 
         logger.debug(f'Using EGL ProgramData path "{self.core.egl.programdata_path}"...')
         logger.info('Reading EGL game manifests...')
