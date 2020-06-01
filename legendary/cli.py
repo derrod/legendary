@@ -892,10 +892,9 @@ class LegendaryCLI:
         print('\nChecking automatic sync...')
         if not self.core.egl_sync_enabled and not args.one_shot:
             if not args.enable_sync:
-                choice = get_boolean_choice('Enable automatic synchronization?')
-                if not choice:  # if user chooses no, still run the sync once
+                args.enable_sync = args.yes or get_boolean_choice('Enable automatic synchronization?')
+                if not args.enable_sync:  # if user chooses no, still run the sync once
                     self.core.egl_sync()
-                args.enable_sync = args.yes or choice
             self.core.lgd.config.set('Legendary', 'egl_sync', str(args.enable_sync))
         else:
             self.core.egl_sync()
