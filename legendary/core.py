@@ -371,6 +371,10 @@ class LegendaryCore:
 
         if wine_pfx:
             env['WINEPREFIX'] = wine_pfx
+        elif 'WINEPREFIX' not in env:
+            # only use config variable if not already set in environment
+            if wine_pfx := self.lgd.config.get(app_name, 'wine_prefix', fallback=None):
+                env['WINEPREFIX'] = wine_pfx
 
         return params, working_dir, env
 
