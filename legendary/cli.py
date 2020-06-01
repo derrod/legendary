@@ -822,6 +822,10 @@ class LegendaryCLI:
             logger.info('NOTE: Games have not been removed from the Epic Games Launcher or Legendary.')
             logger.info('Games will not be removed from EGL or Legendary if it was removed from the other launcher.')
             return
+        elif args.disable_sync:
+            logger.info('Disabling EGS/LGD sync...')
+            self.core.lgd.config.remove_option('Legendary', 'egl_sync')
+            return
 
         if not self.core.egl.programdata_path:
             if not args.egl_manifest_path and not args.egl_wine_prefix:
@@ -1108,6 +1112,8 @@ def main():
                                  help='Path to the WINE prefix the Epic Games Launcher is installed in')
     egl_sync_parser.add_argument('--enable-sync', dest='enable_sync', action='store_true',
                                  help='Enable automatic EGL <-> Legendary sync')
+    egl_sync_parser.add_argument('--disable-sync', dest='disable_sync', action='store_true',
+                                 help='Disable automatic sync and exit')
     egl_sync_parser.add_argument('--one-shot', dest='one_shot', action='store_true',
                                  help='Sync once, do not ask to setup automatic sync')
     egl_sync_parser.add_argument('--import-only', dest='import_only', action='store_true',
