@@ -1111,6 +1111,11 @@ def main():
         logging.getLogger('requests').setLevel(logging.WARNING)
         logging.getLogger('urllib3').setLevel(logging.WARNING)
 
+    # -y having to be specified before the subcommand is a little counter-intuitive
+    # For now show a warning if a user is misusing that flag
+    if '-y' in extra or '--yes' in extra:
+        logger.warning('-y/--yes flag needs to be specified *before* the command name')
+
     # technically args.func() with setdefaults could work (see docs on subparsers)
     # but that would require all funcs to accept args and extra...
     try:
