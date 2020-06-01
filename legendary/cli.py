@@ -844,6 +844,11 @@ class LegendaryCLI:
                         exit(1)
                     print('EGL Data path exists but Manifests directory is missing, creating...')
                     os.makedirs(egl_path)
+
+                if not os.listdir(egl_path):
+                    logger.warning('Folder is empty, this may be fine if nothing has been installed yet.')
+                self.core.egl.programdata_path = egl_path
+                self.core.lgd.config.set('Legendary', 'egl_programdata', egl_path)
             else:
                 self.core.egl.programdata_path = args.egl_manifest_path
 
