@@ -73,6 +73,8 @@ class EPCLFS:
             json.dump(manifest_data, f, indent=4, sort_keys=True)
 
     def delete_manifest(self, app_name):
+        if not self.manifests:
+            self.read_manifests()
         if app_name not in self.manifests:
             raise ValueError('AppName is not in manifests!')
 
