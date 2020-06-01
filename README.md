@@ -348,7 +348,7 @@ optional arguments:
 
 
 Command: egl-sync
-usage: legendary egl-sync [-h] [--egl-manifest-path EGL_MANIFEST_PATH] [--egl-wine-prefix EGL_WINE_PREFIX] [--enable-sync] [--one-shot] [--import-only] [--export-only] [--unlink]
+usage: legendary egl-sync [-h] [--egl-manifest-path EGL_MANIFEST_PATH] [--egl-wine-prefix EGL_WINE_PREFIX] [--enable-sync] [--disable-sync] [--one-shot] [--import-only] [--export-only] [--unlink]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -357,6 +357,7 @@ optional arguments:
   --egl-wine-prefix EGL_WINE_PREFIX
                         Path to the WINE prefix the Epic Games Launcher is installed in
   --enable-sync         Enable automatic EGL <-> Legendary sync
+  --disable-sync        Disable automatic sync and exit
   --one-shot            Sync once, do not ask to setup automatic sync
   --import-only         Only import games from EGL (no export)
   --export-only         Only export games to EGL (no import)
