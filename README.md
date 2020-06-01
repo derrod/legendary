@@ -165,7 +165,7 @@ Commands:
 Individual command help:
 
 Command: auth
-usage: legendary auth [-h] [--import] [--code <exchange code>] [--delete]
+usage: legendary auth [-h] [--import] [--code <exchange code>] [--sid <session id>] [--delete]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -240,6 +240,8 @@ optional arguments:
                         Override language for game launch (defaults to system locale)
   --wrapper <wrapper command>
                         Wrapper command to launch game with
+  --set-defaults        Save parameters used to launch to config (does not include env vars)
+  --reset-defaults      Reset config settings for app and exit
   --wine <wine binary>  Set WINE binary to use to launch the app
   --wine-prefix <wine pfx path>
                         Set WINE prefix to use
@@ -397,6 +399,8 @@ egl_programdata = /home/user/Games/epic-games-store/drive_c/...
 [default]
 ; (linux) specify wine executable to use
 wine_executable = wine
+; wine prefix (alternative to using environment variable)
+wine_prefix = /home/user/.wine
 
 ; default environment variables to set (overriden by game specific ones)
 [default.env]
