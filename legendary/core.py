@@ -928,23 +928,26 @@ class LegendaryCore:
         # convert egl json file
         lgd_igame = egl_game.to_lgd_igame()
 
-        # fix path on Linux if the game is installed inside the wine prefix
+        # fix path on Linux if the game is installed to a Windows drive mapping
         if os.name != 'nt' and not lgd_igame.install_path.startswith('/'):
-            # todo use ${WINEPREFIX}/dosdevices to make sure this is correct
-            if lgd_igame.install_path.startswith('Z:'):
-                new_path = lgd_igame.install_path[2:].replace('\\', '/')
-            else:
-                wine_pfx = self.egl.programdata_path.partition('ProgramData')[0]
-                new_path = os.path.join(wine_pfx,
-                                        lgd_igame.install_path.replace('\\', '/')[2:].lstrip('/'))
+            drive_letter = lgd_igame.install_path[:2].lower()
+            drive_c_path = self.egl.programdata_path.partition('ProgramData')[0]
+            wine_pfx = os.path.realpath(os.path.join(drive_c_path, '..'))
+            mapped_path = os.path.realpath(os.path.join(wine_pfx, 'dosdevices', drive_letter))
+            if 'dosdevices' in mapped_path:
+                self.log.error(f'Unable to resolve path for mapped drive "{drive_letter}" '
+                               f'for WINE prefix at "{wine_pfx}"')
+                return
 
+            game_path = lgd_igame.install_path[2:].replace('\\', '/').lstrip('/')
+            new_path = os.path.realpath(os.path.join(mapped_path, game_path))
             self.log.info(f'Adjusted game install path from "{lgd_igame.install_path}" to "{new_path}"')
             lgd_igame.install_path = new_path
 
         # check if manifest exists
         manifest_filename = os.path.join(lgd_igame.install_path, '.egstore', f'{lgd_igame.egl_guid}.manifest')
         if not os.path.exists(manifest_filename):
-            self.log.error(f'Game Manifest "{manifest_filename}" not found, cannot import!')
+            self.log.warning(f'Game Manifest "{manifest_filename}" not found, cannot import!')
             return
 
         # load manifest file and copy it over
