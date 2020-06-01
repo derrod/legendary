@@ -68,7 +68,7 @@ class Manifest:
         self.size_uncompressed = 0
         self.sha_hash = ''
         self.stored_as = 0
-        self.version = 17
+        self.version = 18
         self.data = b''
 
         # remainder
@@ -87,7 +87,7 @@ class Manifest:
         _tmp = BytesIO(_m.data)
 
         _m.meta = ManifestMeta.read(_tmp)
-        _m.chunk_data_list = CDL.read(_tmp, _m.version)
+        _m.chunk_data_list = CDL.read(_tmp, _m.meta.feature_level)
         _m.file_manifest_list = FML.read(_tmp)
         _m.custom_fields = CustomFields.read(_tmp)
 
@@ -175,7 +175,7 @@ class ManifestMeta:
     def __init__(self):
         self.meta_size = 0
         self.data_version = 0
-        self.feature_level = 17
+        self.feature_level = 18
         self.is_file_data = False
         self.app_id = 0
         self.app_name = ''
@@ -208,11 +208,14 @@ class ManifestMeta:
         _meta = cls()
 
         _meta.meta_size = struct.unpack('<I', bio.read(4))[0]
-        _meta.data_version = struct.unpack('B', bio.read(1))[0]  # always 0?
-        _meta.feature_level = struct.unpack('<I', bio.read(4))[0]  # same as manifest version
+        _meta.data_version = struct.unpack('B', bio.read(1))[0]
+        # Usually same as manifest version, but can be different
+        # e.g. if JSON manifest has been converted to binary manifest.
+        _meta.feature_level = struct.unpack('<I', bio.read(4))[0]
         # As far as I can tell this was used for very old manifests that didn't use chunks at all
         _meta.is_file_data = struct.unpack('B', bio.read(1))[0] == 1
-        _meta.app_id = struct.unpack('<I', bio.read(4))[0]  # always 0?
+        # 0 for most apps, generally not used
+        _meta.app_id = struct.unpack('<I', bio.read(4))[0]
         _meta.app_name = read_fstring(bio)
         _meta.build_version = read_fstring(bio)
         _meta.launch_exe = read_fstring(bio)
@@ -233,9 +236,6 @@ class ManifestMeta:
 
         if bio.tell() != _meta.meta_size:
             raise ValueError('Did not read entire meta!')
-
-        # seek to end if not already
-        # bio.seek(0 + _meta.meta_size)
 
         return _meta
 
@@ -275,7 +275,7 @@ class CDL:
         self.size = 0
         self.count = 0
         self.elements = []
-        self._manifest_version = 17
+        self._manifest_version = 18
         self._guid_map = None
         self._guid_int_map = None
         self._path_map = None
@@ -328,7 +328,7 @@ class CDL:
         return self.elements[index]
 
     @classmethod
-    def read(cls, bio, manifest_version=17):
+    def read(cls, bio, manifest_version=18):
         cdl_start = bio.tell()
         _cdl = cls()
         _cdl._manifest_version = manifest_version
@@ -397,7 +397,7 @@ class CDL:
 
 
 class ChunkInfo:
-    def __init__(self, manifest_version=17):
+    def __init__(self, manifest_version=18):
         self.guid = None
         self.hash = 0
         self.sha_hash = b''

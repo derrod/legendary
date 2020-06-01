@@ -73,7 +73,12 @@ class JSONManifest(Manifest):
         return _manifest
 
     def write(self, *args, **kwargs):
-        raise NotImplementedError('Serializing JSON manifests is not supported')
+        # The version here only matters for the manifest header,
+        # the feature level in meta determines chunk folders etc.
+        # So all that's required for successful serialization is
+        # setting it to something high enough to be a binary manifest
+        self.version = 18
+        return super().write(*args, **kwargs)
 
 
 class JSONManifestMeta(ManifestMeta):
