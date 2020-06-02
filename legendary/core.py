@@ -54,9 +54,10 @@ class LegendaryCore:
         if os.name != 'nt':
             self.egl.programdata_path = self.lgd.config.get('Legendary', 'egl_programdata', fallback=None)
             if self.egl.programdata_path and not os.path.exists(self.egl.programdata_path):
-                self.log.error(f'Config EGL ProgramData path ("{self.egl.programdata_path}") is invalid! Please fix.')
+                self.log.error(f'Config EGL path ("{self.egl.programdata_path}") is invalid! Disabling sync...')
                 self.egl.programdata_path = None
-                self.lgd.config.remove_option('Legendary', 'egl_programdata', fallback=None)
+                self.lgd.config.remove_option('Legendary', 'egl_programdata')
+                self.lgd.config.remove_option('Legendary', 'egl_sync')
                 self.lgd.save_config()
 
         self.local_timezone = datetime.now().astimezone().tzinfo
