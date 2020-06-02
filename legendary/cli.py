@@ -393,12 +393,17 @@ class LegendaryCLI:
 
     def launch_game(self, args, extra):
         app_name = args.app_name
-        if not self.core.is_installed(app_name):
+        igame = self.core.get_installed_game(app_name)
+        if not igame:
             logger.error(f'Game {app_name} is not currently installed!')
             exit(1)
 
-        if self.core.is_dlc(app_name):
+        if igame.is_dlc:
             logger.error(f'{app_name} is DLC; please launch the base game instead!')
+            exit(1)
+
+        if not os.path.exists(igame.install_path):
+            logger.fatal(f'Install directory "{igame.install_path}" appears to be deleted, cannot launch {app_name}!')
             exit(1)
 
         if args.reset_defaults:
@@ -416,9 +421,8 @@ class LegendaryCLI:
 
             if not args.skip_version_check and not self.core.is_noupdate_game(app_name):
                 logger.info('Checking for updates...')
-                installed = self.core.lgd.get_installed_game(app_name)
                 latest = self.core.get_asset(app_name, update=True)
-                if latest.build_version != installed.version:
+                if latest.build_version != igame.version:
                     logger.error('Game is out of date, please update or launch with update check skipping!')
                     exit(1)
 
