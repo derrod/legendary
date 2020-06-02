@@ -200,7 +200,9 @@ class LegendaryCLI:
                   f'{game.install_size / (1024*1024*1024):.02f} GiB)')
             if args.include_dir:
                 print(f'  + Location: {game.install_path}')
-            if versions[game.app_name] != game.version:
+            if not os.path.exists(game.install_path):
+                print(f'  ! Game does no longer appear to be installed (directory "{game.install_path}" missing)!')
+            elif versions[game.app_name] != game.version:
                 print(f'  -> Update available! Installed: {game.version}, Latest: {versions[game.app_name]}')
 
         print(f'\nTotal: {len(games)}')
