@@ -261,13 +261,14 @@ optional arguments:
 
 
 Command: list-installed
-usage: legendary list-installed [-h] [--check-updates] [--csv] [--tsv]
+usage: legendary list-installed [-h] [--check-updates] [--csv] [--tsv] [--show-dirs]
 
 optional arguments:
   -h, --help       show this help message and exit
   --check-updates  Check for updates for installed games
   --csv            List games in CSV format
   --tsv            List games in TSV format
+  --show-dirs      Print installation directory in output
 
 
 Command: list-files
