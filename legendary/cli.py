@@ -198,6 +198,8 @@ class LegendaryCLI:
 
             print(f' * {game.title} (App name: {game.app_name} | Version: {game.version} | '
                   f'{game.install_size / (1024*1024*1024):.02f} GiB)')
+            if args.include_dir:
+                print(f'  + Location: {game.install_path}')
             if versions[game.app_name] != game.version:
                 print(f'  -> Update available! Installed: {game.version}, Latest: {versions[game.app_name]}')
 
@@ -1074,6 +1076,8 @@ def main():
                                        help='List games in CSV format')
     list_installed_parser.add_argument('--tsv', dest='tsv', action='store_true',
                                        help='List games in TSV format')
+    list_installed_parser.add_argument('--show-dirs', dest='include_dir', action='store_true',
+                                       help='Print installation directory in output')
 
     list_files_parser.add_argument('--force-download', dest='force_download', action='store_true',
                                    help='Always download instead of using on-disk manifest')
