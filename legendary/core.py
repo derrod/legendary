@@ -488,6 +488,7 @@ class LegendaryCore:
         if not os.path.exists(save_path):
             os.makedirs(save_path)
 
+        _save_dir = save_dir
         savegames = self.egs.get_user_cloud_saves(app_name=app_name)
         files = savegames['files']
         for fname, f in files.items():
@@ -498,13 +499,13 @@ class LegendaryCore:
             if manifest_name and f_parts[4] != manifest_name:
                 continue
             if not save_dir:
-                save_dir = os.path.join(save_path, f'{f_parts[2]}/{f_parts[4].rpartition(".")[0]}')
-                if not os.path.exists(save_dir):
-                    os.makedirs(save_dir)
+                _save_dir = os.path.join(save_path, f'{f_parts[2]}/{f_parts[4].rpartition(".")[0]}')
+                if not os.path.exists(_save_dir):
+                    os.makedirs(_save_dir)
 
             if clean_dir:
                 self.log.info('Deleting old save files...')
-                delete_folder(save_dir)
+                delete_folder(_save_dir)
 
             self.log.info(f'Downloading "{fname.split("/", 2)[2]}"...')
             # download manifest
@@ -530,7 +531,7 @@ class LegendaryCore:
 
             for fm in m.file_manifest_list.elements:
                 dirs, fname = os.path.split(fm.filename)
-                fdir = os.path.join(save_dir, dirs)
+                fdir = os.path.join(_save_dir, dirs)
                 fpath = os.path.join(fdir, fname)
                 if not os.path.exists(fdir):
                     os.makedirs(fdir)
