@@ -96,15 +96,15 @@ class DLManager(Process):
         """
 
         analysis_res = AnalysisResult()
-        analysis_res.install_size = sum(fm.file_size for fm in manifest.file_manifest_list.elements)
-        analysis_res.biggest_chunk = max(c.window_size for c in manifest.chunk_data_list.elements)
-        analysis_res.biggest_file_size = max(f.file_size for f in manifest.file_manifest_list.elements)
+        analysis_res.install_size = sum(f_manifest.file_size for f_manifest in manifest.file_manifest_list.elements)
+        analysis_res.biggest_chunk = max(chunk.window_size for chunk in manifest.chunk_data_list.elements)
+        analysis_res.biggest_file_size = max(file.file_size for file in manifest.file_manifest_list.elements)
         is_1mib = analysis_res.biggest_chunk == 1024 * 1024
         self.log.debug(f'Biggest chunk size: {analysis_res.biggest_chunk} bytes (== 1 MiB? {is_1mib})')
 
         self.log.debug(f'Creating manifest comparison...')
-        mc = ManifestComparison.create(manifest, old_manifest)
-        analysis_res.manifest_comparison = mc
+        manifest_comp = ManifestComparison.create(manifest, old_manifest)
+        analysis_res.manifest_comparison = manifest_comp
 
         if resume and self.resume_file and os.path.exists(self.resume_file):
             self.log.info('Found previously interrupted download. Download will be resumed if possible.')
@@ -130,9 +130,9 @@ class DLManager(Process):
                     self.log.warning(f'{mismatch} existing file(s) have been changed and will be redownloaded.')
 
                 # remove completed files from changed/added and move them to unchanged for the analysis.
-                mc.added -= completed_files
-                mc.changed -= completed_files
-                mc.unchanged |= completed_files
+                manifest_comp.added -= completed_files
+                manifest_comp.changed -= completed_files
+                manifest_comp.unchanged |= completed_files
                 self.log.info(f'Skipping {len(completed_files)} files based on resume data.')
             except Exception as e:
                 self.log.warning(f'Reading resume file failed: {e!r}, continuing as normal...')
@@ -143,55 +143,55 @@ class DLManager(Process):
             if isinstance(file_install_tag, str):
                 file_install_tag = [file_install_tag]
 
-            files_to_skip = set(i.filename for i in manifest.file_manifest_list.elements
-                                if not any(fit in i.install_tags for fit in file_install_tag))
+            files_to_skip = set(file.filename for file in manifest.file_manifest_list.elements
+                                if not any(fit in file.install_tags for fit in file_install_tag))
             self.log.info(f'Found {len(files_to_skip)} files to skip based on install tag.')
-            mc.added -= files_to_skip
-            mc.changed -= files_to_skip
-            mc.unchanged |= files_to_skip
+            manifest_comp.added -= files_to_skip
+            manifest_comp.changed -= files_to_skip
+            manifest_comp.unchanged |= files_to_skip
 
         # if include/exclude prefix has been set: mark all files that are not to be downloaded as unchanged
         if file_exclude_filter:
             if isinstance(file_exclude_filter, str):
                 file_exclude_filter = [file_exclude_filter]
 
-            file_exclude_filter = [f.lower() for f in file_exclude_filter]
-            files_to_skip = set(i.filename for i in manifest.file_manifest_list.elements if
-                                any(i.filename.lower().startswith(pfx) for pfx in file_exclude_filter))
+            file_exclude_filter = [file.lower() for file in file_exclude_filter]
+            files_to_skip = set(file.filename for file in manifest.file_manifest_list.elements if
+                                any(file.filename.lower().startswith(prefix) for prefix in file_exclude_filter))
             self.log.info(f'Found {len(files_to_skip)} files to skip based on exclude prefix.')
-            mc.added -= files_to_skip
-            mc.changed -= files_to_skip
-            mc.unchanged |= files_to_skip
+            manifest_comp.added -= files_to_skip
+            manifest_comp.changed -= files_to_skip
+            manifest_comp.unchanged |= files_to_skip
 
         if file_prefix_filter:
             if isinstance(file_prefix_filter, str):
                 file_prefix_filter = [file_prefix_filter]
 
-            file_prefix_filter = [f.lower() for f in file_prefix_filter]
-            files_to_skip = set(i.filename for i in manifest.file_manifest_list.elements if not
-                                any(i.filename.lower().startswith(pfx) for pfx in file_prefix_filter))
+            file_prefix_filter = [file.lower() for file in file_prefix_filter]
+            files_to_skip = set(file.filename for file in manifest.file_manifest_list.elements if not
+                                any(file.filename.lower().startswith(prefix) for prefix in file_prefix_filter))
             self.log.info(f'Found {len(files_to_skip)} files to skip based on include prefix(es)')
-            mc.added -= files_to_skip
-            mc.changed -= files_to_skip
-            mc.unchanged |= files_to_skip
+            manifest_comp.added -= files_to_skip
+            manifest_comp.changed -= files_to_skip
+            manifest_comp.unchanged |= files_to_skip
 
         if file_prefix_filter or file_exclude_filter or file_install_tag:
-            self.log.info(f'Remaining files after filtering: {len(mc.added) + len(mc.changed)}')
+            self.log.info(f'Remaining files after filtering: {len(manifest_comp.added) + len(manifest_comp.changed)}')
             # correct install size after filtering
-            analysis_res.install_size = sum(fm.file_size for fm in manifest.file_manifest_list.elements
-                                            if fm.filename in mc.added)
+            analysis_res.install_size = sum(f_manifest.file_size for f_manifest in manifest.file_manifest_list.elements
+                                            if f_manifest.filename in manifest_comp.added)
 
-        if mc.removed:
-            analysis_res.removed = len(mc.removed)
+        if manifest_comp.removed:
+            analysis_res.removed = len(manifest_comp.removed)
             self.log.debug(f'{analysis_res.removed} removed files')
-        if mc.added:
-            analysis_res.added = len(mc.added)
+        if manifest_comp.added:
+            analysis_res.added = len(manifest_comp.added)
             self.log.debug(f'{analysis_res.added} added files')
-        if mc.changed:
-            analysis_res.changed = len(mc.changed)
+        if manifest_comp.changed:
+            analysis_res.changed = len(manifest_comp.changed)
             self.log.debug(f'{analysis_res.changed} changed files')
-        if mc.unchanged:
-            analysis_res.unchanged = len(mc.unchanged)
+        if manifest_comp.unchanged:
+            analysis_res.unchanged = len(manifest_comp.unchanged)
             self.log.debug(f'{analysis_res.unchanged} unchanged files')
 
         if processing_optimization and len(manifest.file_manifest_list.elements) > 8_000:
@@ -203,21 +203,21 @@ class DLManager(Process):
         # count references to chunks for determining runtime cache size later
         references = Counter()
         file_to_chunks = defaultdict(set)
-        fmlist = sorted(manifest.file_manifest_list.elements,
+        fileman_list = sorted(manifest.file_manifest_list.elements,
                         key=lambda a: a.filename.lower())
 
-        for fm in fmlist:
-            self.hash_map[fm.filename] = fm.sha_hash.hex()
+        for f_manifest in fileman_list:
+            self.hash_map[f_manifest.filename] = f_manifest.sha_hash.hex()
 
             # chunks of unchanged files are not downloaded so we can skip them
-            if fm.filename in mc.unchanged:
-                analysis_res.unchanged += fm.file_size
+            if f_manifest.filename in manifest_comp.unchanged:
+                analysis_res.unchanged += f_manifest.file_size
                 continue
 
-            for cp in fm.chunk_parts:
-                references[cp.guid_num] += 1
+            for chunk_parts in f_manifest.chunk_parts:
+                references[chunk_parts.guid_num] += 1
                 if processing_optimization:
-                    file_to_chunks[fm.filename].add(cp.guid_num)
+                    file_to_chunks[f_manifest.filename].add(chunk_parts.guid_num)
 
         if processing_optimization:
             # reorder the file manifest list to group files that share many chunks
@@ -226,7 +226,7 @@ class DLManager(Process):
             # enumerate the file list to try and find a "partner" for
             # each file that shares the most chunks with it.
             partners = dict()
-            filenames = [fm.filename for fm in fmlist]
+            filenames = [f_manifest.filename for f_manifest in fileman_list]
 
             for num, filename in enumerate(filenames[:int((len(filenames) + 1) / 2)]):
                 chunks = file_to_chunks[filename]
@@ -245,13 +245,13 @@ class DLManager(Process):
             # iterate over all the files again and this time around
             _fmlist = []
             processed = set()
-            for fm in fmlist:
-                if fm.filename in processed:
+            for f_manifest in fileman_list:
+                if f_manifest.filename in processed:
                     continue
-                _fmlist.append(fm)
-                processed.add(fm.filename)
+                _fmlist.append(f_manifest)
+                processed.add(f_manifest.filename)
                 # try to find the file's "partner"
-                f_partners = partners.get(fm.filename, None)
+                f_partners = partners.get(f_manifest.filename, None)
                 if not f_partners:
                     continue
                 # add each partner to list at this point
@@ -263,28 +263,28 @@ class DLManager(Process):
                     _fmlist.append(partner_fm)
                     processed.add(partner)
 
-            fmlist = _fmlist
+            fileman_list = _fmlist
 
         # determine reusable chunks and prepare lookup table for reusable ones
         re_usable = defaultdict(dict)
-        if old_manifest and mc.changed and patch:
+        if old_manifest and manifest_comp.changed and patch:
             self.log.debug('Analyzing manifests for re-usable chunks...')
-            for changed in mc.changed:
+            for changed in manifest_comp.changed:
                 old_file = old_manifest.file_manifest_list.get_file_by_path(changed)
                 new_file = manifest.file_manifest_list.get_file_by_path(changed)
 
                 existing_chunks = dict()
                 off = 0
-                for cp in old_file.chunk_parts:
-                    existing_chunks[(cp.guid_num, cp.offset, cp.size)] = off
-                    off += cp.size
+                for chunk_parts in old_file.chunk_parts:
+                    existing_chunks[(chunk_parts.guid_num, chunk_parts.offset, chunk_parts.size)] = off
+                    off += chunk_parts.size
 
-                for cp in new_file.chunk_parts:
-                    key = (cp.guid_num, cp.offset, cp.size)
+                for chunk_parts in new_file.chunk_parts:
+                    key = (chunk_parts.guid_num, chunk_parts.offset, chunk_parts.size)
                     if key in existing_chunks:
-                        references[cp.guid_num] -= 1
+                        references[chunk_parts.guid_num] -= 1
                         re_usable[changed][key] = existing_chunks[key]
-                        analysis_res.reuse_size += cp.size
+                        analysis_res.reuse_size += chunk_parts.size
 
         last_cache_size = current_cache_size = 0
         # set to determine whether a file is currently cached or not
@@ -297,9 +297,9 @@ class DLManager(Process):
         # run through the list of files and create the download jobs and also determine minimum
         # runtime cache requirement by simulating adding/removing from cache during download.
         self.log.debug('Creating filetasks and chunktasks...')
-        for current_file in fmlist:
+        for current_file in fileman_list:
             # skip unchanged and empty files
-            if current_file.filename in mc.unchanged:
+            if current_file.filename in manifest_comp.unchanged:
                 continue
             elif not current_file.chunk_parts:
                 self.tasks.append(FileTask(current_file.filename, empty=True))
@@ -309,39 +309,39 @@ class DLManager(Process):
             chunk_tasks = []
             reused = 0
 
-            for cp in current_file.chunk_parts:
-                ct = ChunkTask(cp.guid_num, cp.offset, cp.size)
+            for chunk_parts in current_file.chunk_parts:
+                chunk_task = ChunkTask(chunk_parts.guid_num, chunk_parts.offset, chunk_parts.size)
 
                 # re-use the chunk from the existing file if we can
-                if existing_chunks and (cp.guid_num, cp.offset, cp.size) in existing_chunks:
+                if existing_chunks and (chunk_parts.guid_num, chunk_parts.offset, chunk_parts.size) in existing_chunks:
                     reused += 1
-                    ct.chunk_file = current_file.filename
-                    ct.chunk_offset = existing_chunks[(cp.guid_num, cp.offset, cp.size)]
+                    chunk_task.chunk_file = current_file.filename
+                    chunk_task.chunk_offset = existing_chunks[(chunk_parts.guid_num, chunk_parts.offset, chunk_parts.size)]
                 else:
                     # add to DL list if not already in it
-                    if cp.guid_num not in chunks_in_dl_list:
-                        self.chunks_to_dl.append(cp.guid_num)
-                        chunks_in_dl_list.add(cp.guid_num)
+                    if chunk_parts.guid_num not in chunks_in_dl_list:
+                        self.chunks_to_dl.append(chunk_parts.guid_num)
+                        chunks_in_dl_list.add(chunk_parts.guid_num)
 
                     # if chunk has more than one use or is already in cache,
                     # check if we need to add or remove it again.
-                    if references[cp.guid_num] > 1 or cp.guid_num in cached:
-                        references[cp.guid_num] -= 1
+                    if references[chunk_parts.guid_num] > 1 or chunk_parts.guid_num in cached:
+                        references[chunk_parts.guid_num] -= 1
 
                         # delete from cache if no references left
-                        if references[cp.guid_num] < 1:
+                        if references[chunk_parts.guid_num] < 1:
                             current_cache_size -= analysis_res.biggest_chunk
-                            cached.remove(cp.guid_num)
-                            ct.cleanup = True
+                            cached.remove(chunk_parts.guid_num)
+                            chunk_task.cleanup = True
                         # add to cache if not already cached
-                        elif cp.guid_num not in cached:
-                            dl_cache_guids.add(cp.guid_num)
-                            cached.add(cp.guid_num)
+                        elif chunk_parts.guid_num not in cached:
+                            dl_cache_guids.add(chunk_parts.guid_num)
+                            cached.add(chunk_parts.guid_num)
                             current_cache_size += analysis_res.biggest_chunk
                     else:
-                        ct.cleanup = True
+                        chunk_task.cleanup = True
 
-                chunk_tasks.append(ct)
+                chunk_tasks.append(chunk_task)
 
             if reused:
                 self.log.debug(f' + Reusing {reused} chunks from: {current_file.filename}')
@@ -374,12 +374,12 @@ class DLManager(Process):
 
         # calculate actual dl and patch write size.
         analysis_res.dl_size = \
-            sum(c.file_size for c in manifest.chunk_data_list.elements if c.guid_num in chunks_in_dl_list)
+            sum(chunk.file_size for chunk in manifest.chunk_data_list.elements if chunk.guid_num in chunks_in_dl_list)
         analysis_res.uncompressed_dl_size = \
-            sum(c.window_size for c in manifest.chunk_data_list.elements if c.guid_num in chunks_in_dl_list)
+            sum(chunk.window_size for chunk in manifest.chunk_data_list.elements if chunk.guid_num in chunks_in_dl_list)
 
         # add jobs to remove files
-        for fname in mc.removed:
+        for fname in manifest_comp.removed:
             self.tasks.append(FileTask(fname, delete=True))
 
         analysis_res.num_chunks_cache = len(dl_cache_guids)
@@ -489,27 +489,27 @@ class DLManager(Process):
                     break
             else:  # only enter blocking code if the loop did not break
                 try:
-                    res = self.dl_result_q.get(timeout=1)
+                    result = self.dl_result_q.get(timeout=1)
                     self.active_tasks -= 1
                     with task_cond:
                         task_cond.notify()
 
-                    if res.success:
-                        self.log.debug(f'Download for {res.guid} succeeded, adding to in_buffer...')
-                        in_buffer[res.guid] = res
-                        self.bytes_downloaded_since_last += res.compressed_size
-                        self.bytes_decompressed_since_last += res.size
+                    if result.success:
+                        self.log.debug(f'Download for {result.guid} succeeded, adding to in_buffer...')
+                        in_buffer[result.guid] = result
+                        self.bytes_downloaded_since_last += result.compressed_size
+                        self.bytes_decompressed_since_last += result.size
                     else:
-                        self.log.error(f'Download for {res.guid} failed, retrying...')
+                        self.log.error(f'Download for {result.guid} failed, retrying...')
                         try:
                             self.dl_worker_queue.put(DownloaderTask(
-                                url=res.url, chunk_guid=res.guid, shm=res.shm
+                                url=result.url, chunk_guid=result.guid, shm=result.shm
                             ), timeout=1.0)
                             self.active_tasks += 1
                         except Exception as e:
                             self.log.warning(f'Failed adding retry task to queue! {e!r}')
                             # If this failed for whatever reason, put the chunk at the front of the DL list
-                            self.chunks_to_dl.appendleft(res.chunk_guid)
+                            self.chunks_to_dl.appendleft(result.chunk_guid)
                 except Empty:
                     pass
                 except Exception as e:
@@ -520,32 +520,32 @@ class DLManager(Process):
     def fw_results_handler(self, shm_cond: Condition):
         while self.running:
             try:
-                res = self.writer_result_q.get(timeout=1.0)
+                result = self.writer_result_q.get(timeout=1.0)
                 self.num_tasks_processed_since_last += 1
 
-                if res.closed and self.resume_file and res.success:
-                    file_hash = self.hash_map[res.filename]
+                if result.closed and self.resume_file and result.success:
+                    file_hash = self.hash_map[result.filename]
                     # write last completed file to super simple resume file
                     with open(self.resume_file, 'ab') as rf:
-                        rf.write(f'{file_hash}:{res.filename}\n'.encode('utf-8'))
+                        rf.write(f'{file_hash}:{result.filename}\n'.encode('utf-8'))
 
-                if res.kill:
+                if result.kill:
                     self.log.debug('Got termination command in FW result handler')
                     break
 
-                if not res.success:
+                if not result.success:
                     # todo make this kill the installation process or at least skip the file and mark it as failed
-                    self.log.fatal(f'Writing for {res.filename} failed!')
-                if res.release_memory:
-                    self.sms.appendleft(res.shm)
+                    self.log.fatal(f'Writing for {result.filename} failed!')
+                if result.release_memory:
+                    self.sms.appendleft(result.shm)
                     with shm_cond:
                         shm_cond.notify()
 
-                if res.chunk_guid:
-                    self.bytes_written_since_last += res.size
+                if result.chunk_guid:
+                    self.bytes_written_since_last += result.size
                     # if there's no shared memory we must have read from disk.
-                    if not res.shm:
-                        self.bytes_read_since_last += res.size
+                    if not result.shm:
+                        self.bytes_read_since_last += result.size
                     self.num_processed_since_last += 1
 
             except Empty:
@@ -580,10 +580,10 @@ class DLManager(Process):
                     cond.notify()
 
             # make sure threads are dead.
-            for t in self.threads:
-                t.join(timeout=5.0)
-                if t.is_alive():
-                    self.log.warning(f'Thread did not terminate! {repr(t)}')
+            for thread in self.threads:
+                thread.join(timeout=5.0)
+                if thread.is_alive():
+                    self.log.warning(f'Thread did not terminate! {repr(thread)}')
 
             # clean up all the queues, otherwise this process won't terminate properly
             for name, q in zip(('Download jobs', 'Writer jobs', 'Download results', 'Writer results'),
@@ -601,9 +601,9 @@ class DLManager(Process):
         self.log.debug(f'Created shared memory of size: {self.shared_memory.size / 1024 / 1024:.02f} MiB')
 
         # create the shared memory segments and add them to their respective pools
-        for i in range(int(self.shared_memory.size / self.analysis.biggest_chunk)):
-            _sms = SharedMemorySegment(offset=i * self.analysis.biggest_chunk,
-                                       end=i * self.analysis.biggest_chunk + self.analysis.biggest_chunk)
+        for mem in range(int(self.shared_memory.size / self.analysis.biggest_chunk)):
+            _sms = SharedMemorySegment(offset=mem * self.analysis.biggest_chunk,
+                                       end=mem * self.analysis.biggest_chunk + self.analysis.biggest_chunk)
             self.sms.append(_sms)
 
         self.log.debug(f'Created {len(self.sms)} shared memory segments.')
@@ -615,12 +615,12 @@ class DLManager(Process):
         self.writer_result_q = MPQueue(-1)
 
         self.log.info(f'Starting download workers...')
-        for i in range(self.max_workers):
-            w = DLWorker(f'DLWorker {i + 1}', self.dl_worker_queue, self.dl_result_q,
+        for worker in range(self.max_workers):
+            worker_q = DLWorker(f'DLWorker {worker + 1}', self.dl_worker_queue, self.dl_result_q,
                          self.shared_memory.name, logging_queue=self.logging_queue,
                          dl_timeout=self.dl_timeout)
-            self.children.append(w)
-            w.start()
+            self.children.append(worker_q)
+            worker_q.start()
 
         self.log.info('Starting file writing worker...')
         writer_p = FileWorker(self.writer_queue, self.writer_result_q, self.dl_dir,
@@ -628,7 +628,7 @@ class DLManager(Process):
         self.children.append(writer_p)
         writer_p.start()
 
-        num_chunk_tasks = sum(isinstance(t, ChunkTask) for t in self.tasks)
+        num_chunk_tasks = sum(isinstance(task, ChunkTask) for task in self.tasks)
         num_dl_tasks = len(self.chunks_to_dl)
         num_tasks = len(self.tasks)
         num_shared_memory_segments = len(self.sms)
@@ -652,8 +652,8 @@ class DLManager(Process):
         self.threads.append(Thread(target=self.dl_results_handler, args=(task_cond,)))
         self.threads.append(Thread(target=self.fw_results_handler, args=(shm_cond,)))
 
-        for t in self.threads:
-            t.start()
+        for thread in self.threads:
+            thread.start()
 
         last_update = time.time()
 
@@ -722,7 +722,7 @@ class DLManager(Process):
 
             time.sleep(self.update_interval)
 
-        for i in range(self.max_workers):
+        for worker in range(self.max_workers):
             self.dl_worker_queue.put_nowait(DownloaderTask(kill=True))
 
         self.log.info('Waiting for installation to finish...')
@@ -739,9 +739,9 @@ class DLManager(Process):
                 child.terminate()
 
         # make sure all the threads are dead.
-        for t in self.threads:
-            t.join(timeout=5.0)
-            if t.is_alive():
+        for thread in self.threads:
+            thread.join(timeout=5.0)
+            if thread.is_alive():
                 self.log.warning(f'Thread did not terminate! {repr(t)}')
 
         # clean up resume file
