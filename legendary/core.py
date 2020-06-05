@@ -513,7 +513,7 @@ class LegendaryCore:
             if r.status_code != 200:
                 self.log.error(f'Download failed, status code: {r.status_code}')
                 continue
-            m = self.load_manfiest(r.content)
+            m = self.load_manifest(r.content)
 
             # download chunks required for extraction
             chunks = dict()
@@ -579,7 +579,7 @@ class LegendaryCore:
         return meta.is_dlc
 
     @staticmethod
-    def load_manfiest(data: bytes) -> Manifest:
+    def load_manifest(data: bytes) -> Manifest:
         if data[0:1] == b'{':
             return JSONManifest.read_all(data)
         else:
@@ -623,7 +623,7 @@ class LegendaryCore:
         r.raise_for_status()
         return r.content, base_urls
 
-    def get_uri_manfiest(self, uri):
+    def get_uri_manifest(self, uri):
         if uri.startswith('http'):
             r = self.egs.unauth_session.get(uri)
             r.raise_for_status()
@@ -652,8 +652,8 @@ class LegendaryCore:
         # load old manifest if we have one
         if override_old_manifest:
             self.log.info(f'Overriding old manifest with "{override_old_manifest}"')
-            old_bytes, _ = self.get_uri_manfiest(override_old_manifest)
-            old_manifest = self.load_manfiest(old_bytes)
+            old_bytes, _ = self.get_uri_manifest(override_old_manifest)
+            old_manifest = self.load_manifest(old_bytes)
         elif not disable_patching and not force and self.is_installed(game.app_name):
             old_bytes, _base_urls = self.get_installed_manifest(game.app_name)
             if _base_urls and not game.base_urls:
@@ -662,13 +662,13 @@ class LegendaryCore:
             if not old_bytes:
                 self.log.error(f'Could not load old manifest, patching will not work!')
             else:
-                old_manifest = self.load_manfiest(old_bytes)
+                old_manifest = self.load_manifest(old_bytes)
 
         base_urls = list(game.base_urls)  # copy list for manipulation
 
         if override_manifest:
             self.log.info(f'Overriding manifest with "{override_manifest}"')
-            new_manifest_data, _base_urls = self.get_uri_manfiest(override_manifest)
+            new_manifest_data, _base_urls = self.get_uri_manifest(override_manifest)
             # if override manifest has a base URL use that instead
             if _base_urls:
                 base_urls = _base_urls
@@ -680,7 +680,7 @@ class LegendaryCore:
             self.lgd.set_game_meta(game.app_name, game)
 
         self.log.info('Parsing game manifest...')
-        new_manifest = self.load_manfiest(new_manifest_data)
+        new_manifest = self.load_manifest(new_manifest_data)
         self.log.debug(f'Base urls: {base_urls}')
         self.lgd.save_manifest(game.app_name, new_manifest_data)
         # save manifest with version name as well for testing/downgrading/etc.
@@ -889,7 +889,7 @@ class LegendaryCore:
             base_urls = game.base_urls
 
         # parse and save manifest to disk for verification step of import
-        new_manifest = self.load_manfiest(manifest_data)
+        new_manifest = self.load_manifest(manifest_data)
         self.lgd.save_manifest(game.app_name, manifest_data)
         self.lgd.save_manifest(game.app_name, manifest_data,
                                version=new_manifest.meta.build_version)
@@ -955,7 +955,7 @@ class LegendaryCore:
         # load manifest file and copy it over
         with open(manifest_filename, 'rb') as f:
             manifest_data = f.read()
-        new_manifest = self.load_manfiest(manifest_data)
+        new_manifest = self.load_manifest(manifest_data)
         self.lgd.save_manifest(lgd_igame.app_name, manifest_data)
         self.lgd.save_manifest(lgd_igame.app_name, manifest_data,
                                version=new_manifest.meta.build_version)

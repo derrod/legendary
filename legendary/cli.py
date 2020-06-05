@@ -192,7 +192,7 @@ class LegendaryCLI:
         for game in games:
             if game.install_size == 0:
                 logger.debug(f'Updating missing size for {game.app_name}')
-                m = self.core.load_manfiest(self.core.get_installed_manifest(game.app_name)[0])
+                m = self.core.load_manifest(self.core.get_installed_manifest(game.app_name)[0])
                 game.install_size = sum(fm.file_size for fm in m.file_manifest_list.elements)
                 self.core.install_game(game)
 
@@ -218,7 +218,7 @@ class LegendaryCLI:
         # check if we even need to log in
         if args.override_manifest:
             logger.info(f'Loading manifest from "{args.override_manifest}"')
-            manifest_data, _ = self.core.get_uri_manfiest(args.override_manifest)
+            manifest_data, _ = self.core.get_uri_manifest(args.override_manifest)
         elif self.core.is_installed(args.app_name) and not args.force_download:
             logger.info(f'Loading installed manifest for "{args.app_name}"')
             manifest_data, _ = self.core.get_installed_manifest(args.app_name)
@@ -230,7 +230,7 @@ class LegendaryCLI:
             game = self.core.get_game(args.app_name, update_meta=True)
             manifest_data, _ = self.core.get_cdn_manifest(game, platform_override=args.platform_override)
 
-        manifest = self.core.load_manfiest(manifest_data)
+        manifest = self.core.load_manifest(manifest_data)
         files = sorted(manifest.file_manifest_list.elements,
                        key=lambda a: a.filename.lower())
 
@@ -720,7 +720,7 @@ class LegendaryCLI:
         logger.info(f'Loading installed manifest for "{args.app_name}"')
         igame = self.core.get_installed_game(args.app_name)
         manifest_data, _ = self.core.get_installed_manifest(args.app_name)
-        manifest = self.core.load_manfiest(manifest_data)
+        manifest = self.core.load_manifest(manifest_data)
 
         files = sorted(manifest.file_manifest_list.elements,
                        key=lambda a: a.filename.lower())
