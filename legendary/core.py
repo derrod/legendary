@@ -275,7 +275,7 @@ class LegendaryCore:
 
     def get_installed_game(self, app_name) -> InstalledGame:
         igame = self._get_installed_game(app_name)
-        if igame and self.egl_sync_enabled and igame.egl_guid:
+        if igame and self.egl_sync_enabled and igame.egl_guid and not igame.is_dlc:
             self.egl_sync(app_name)
             return self._get_installed_game(app_name)
         else:
@@ -810,7 +810,7 @@ class LegendaryCore:
         return os.path.expanduser(self.lgd.config.get('Legendary', 'install_dir', fallback='~/legendary'))
 
     def install_game(self, installed_game: InstalledGame) -> dict:
-        if self.egl_sync_enabled:
+        if self.egl_sync_enabled and not installed_game.is_dlc:
             if not installed_game.egl_guid:
                 installed_game.egl_guid = str(uuid4()).replace('-', '').upper()
             prereq = self._install_game(installed_game)
