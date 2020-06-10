@@ -21,7 +21,7 @@ from legendary.api.egs import EPCAPI
 from legendary.downloader.manager import DLManager
 from legendary.lfs.egl import EPCLFS
 from legendary.lfs.lgndry import LGDLFS
-from legendary.utils.lfs import clean_filename, delete_folder
+from legendary.utils.lfs import clean_filename, delete_folder, delete_filelist
 from legendary.models.downloading import AnalysisResult, ConditionCheckResult
 from legendary.models.egl import EGLManifest
 from legendary.models.exceptions import *
@@ -828,14 +828,20 @@ class LegendaryCore:
 
         return dict()
 
-    def uninstall_game(self, installed_game: InstalledGame, delete_files=True):
-        self.lgd.remove_installed_game(installed_game.app_name)
+    def uninstall_game(self, installed_game: InstalledGame, delete_files=True, delete_root_directory=False):
         if installed_game.egl_guid:
             self.egl_uninstall(installed_game, delete_files=delete_files)
 
         if delete_files:
-            if not delete_folder(installed_game.install_path, recursive=True):
-                self.log.error(f'Unable to delete "{installed_game.install_path}" from disk, please remove manually.')
+            try:
+                manifest = self.load_manifest(self.get_installed_manifest(installed_game.app_name)[0])
+                filelist = [fm.filename for fm in manifest.file_manifest_list.elements]
+                if not delete_filelist(installed_game.install_path, filelist, delete_root_directory):
+                    self.log.error(f'Deleting "{installed_game.install_path}" failed, please remove manually.')
+            except Exception as e:
+                self.log.error(f'Deleting failed with {e!r}, please remove {installed_game.install_path} manually.')
+
+        self.lgd.remove_installed_game(installed_game.app_name)
 
     def prereq_installed(self, app_name):
         igame = self.lgd.get_installed_game(app_name)

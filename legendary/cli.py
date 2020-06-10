@@ -697,17 +697,15 @@ class LegendaryCLI:
                 exit(0)
 
         try:
-            logger.info(f'Removing "{igame.title}" from "{igame.install_path}"...')
-            self.core.uninstall_game(igame)
-
-            # DLCs are already removed once we delete the main game, so this just removes them from the list
+            # Remove DLC first so directory is empty when game uninstall runs
             dlcs = self.core.get_dlc_for_game(igame.app_name)
             for dlc in dlcs:
-                idlc = self.core.get_installed_game(dlc.app_name)
-                if self.core.is_installed(dlc.app_name):
+                if (idlc := self.core.get_installed_game(dlc.app_name)) is not None:
                     logger.info(f'Uninstalling DLC "{dlc.app_name}"...')
-                    self.core.uninstall_game(idlc, delete_files=False)
+                    self.core.uninstall_game(idlc)
 
+            logger.info(f'Removing "{igame.title}" from "{igame.install_path}"...')
+            self.core.uninstall_game(igame, delete_root_directory=True)
             logger.info('Game has been uninstalled.')
         except Exception as e:
             logger.warning(f'Removing game failed: {e!r}, please remove {igame.install_path} manually.')
