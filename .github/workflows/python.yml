@@ -13,6 +13,9 @@ jobs:
       matrix:
         os: ['ubuntu-20.04', 'windows-latest']
 
+      fail-fast: true
+      max-parallel: 3
+
     steps:
     - uses: actions/checkout@v2
 
@@ -21,7 +24,8 @@ jobs:
         python-version: '3.8'
 
     - name: Dependencies
-      run: pip3 install --user --upgrade pyinstaller
+      shell: bash
+      run: sudo pip3 install --user --upgrade pyinstaller
 
     - name: Build
       working-directory: legendary
