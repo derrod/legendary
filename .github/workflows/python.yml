@@ -19,7 +19,7 @@ jobs:
     - name: Build
       working-directory: legendary
       run: |
-        pyinstaller cli.py
+        pyinstaller --onefile cli.py
         mv dist/cli dist/legendary
 
     - uses: actions/upload-artifact@v2
