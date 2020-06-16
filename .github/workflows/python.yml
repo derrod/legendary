@@ -24,11 +24,24 @@ jobs:
         python-version: '3.8'
 
     - name: Dependencies
-      run: pip3 install --upgrade pyinstaller
+      run: pip3 install --upgrade
+        pyinstaller
+        requests
+        setuptools
+        wheel
+
+    - name: Strip
+      id: strip
+      run: echo ::set-output name=option::--strip
+      if: runner.os != 'Windows'
 
     - name: Build
       working-directory: legendary
-      run: pyinstaller --onefile cli.py --name legendary
+      run: pyinstaller
+        --onefile
+        --name legendary
+        ${{ steps.strip.outputs.option }}
+        cli.py
 
     - uses: actions/upload-artifact@v2
       with:
