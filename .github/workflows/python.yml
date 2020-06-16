@@ -24,8 +24,7 @@ jobs:
         python-version: '3.8'
 
     - name: Dependencies
-      shell: bash
-      run: sudo pip3 install --user --upgrade pyinstaller
+      run: pip3 install --upgrade pyinstaller
 
     - name: Build
       working-directory: legendary
@@ -33,5 +32,5 @@ jobs:
 
     - uses: actions/upload-artifact@v2
       with:
-        name: ${{ matrix.os }}-package
+        name: ${{ runner.os }}-package
         path: legendary/dist/*
