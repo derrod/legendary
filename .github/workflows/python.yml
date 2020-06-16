@@ -1,0 +1,49 @@
+name: Python
+
+on:
+  push:
+    branches: [ '*' ]
+  pull_request:
+    branches: [ '*' ]
+
+jobs:
+  pyinstaller:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ['ubuntu-20.04', 'windows-latest']
+
+      fail-fast: true
+      max-parallel: 3
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+
+    - name: Dependencies
+      run: pip3 install --upgrade
+        pyinstaller
+        requests
+        setuptools
+        wheel
+
+    - name: Strip
+      id: strip
+      run: echo ::set-output name=option::--strip
+      if: runner.os != 'Windows'
+
+    - name: Build
+      working-directory: legendary
+      run: pyinstaller
+        --onefile
+        --name legendary
+        ${{ steps.strip.outputs.option }}
+        cli.py
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: ${{ runner.os }}-package
+        path: legendary/dist/*
