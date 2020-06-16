@@ -1,0 +1,28 @@
+name: Python
+
+on:
+  push:
+    branches: [ '*' ]
+  pull_request:
+    branches: [ '*' ]
+
+jobs:
+  linux:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Dependencies
+      run: sudo pip3 install --upgrade pyinstaller
+
+    - name: Build
+      working-directory: legendary
+      run: |
+        pyinstaller cli.py
+        mv dist/cli dist/legendary
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: linux_package
+        path: legendary/dist/legendary
