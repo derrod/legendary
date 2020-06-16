@@ -26,3 +26,23 @@ jobs:
       with:
         name: linux_package
         path: legendary/dist/legendary
+
+  windows:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Dependencies
+      run: pip3 install --upgrade pyinstaller
+
+    - name: Build
+      working-directory: legendary
+      run: |
+        pyinstaller --onefile cli.py
+        move dist/cli.exe dist/legendary.exe
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: windows_package
+        path: legendary/dist/legendary.exe
