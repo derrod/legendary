@@ -63,10 +63,10 @@ jobs:
     - name: Dependencies
       run: sudo apt install
         python3-all
-        debhelper
+        python3-stdeb
         dh-python
         python3-requests
-        pyton3-setuptools
+        python3-setuptools
         python3-wheel
 
     - name: Build
