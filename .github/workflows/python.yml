@@ -47,3 +47,38 @@ jobs:
       with:
         name: ${{ runner.os }}-package
         path: legendary/dist/*
+
+  deb:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ['ubuntu-20.04']
+
+      fail-fast: true
+      max-parallel: 3
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Dependencies
+      run: sudo apt install
+        python3-all
+        debhelper
+        dh-python
+        python3-requests
+        pyton3-setuptools
+        python3-wheel
+
+    - name: Build
+      run: python3 setup.py --command-packages=stdeb.command bdist_deb
+
+    - name: Os version
+      id: os_version
+      run: |
+        source /etc/os-release
+        echo ::set-output name=version::$NAME-$VERSION_ID
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: ${{ steps.os_version.outputs.version }}-deb-package
+        path: deb_dist/*.deb
