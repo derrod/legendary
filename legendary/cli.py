@@ -183,8 +183,12 @@ class LegendaryCLI:
 
         if args.csv or args.tsv:
             writer = csv.writer(stdout, dialect='excel-tab' if args.tsv else 'excel')
-            writer.writerow(['App name', 'App title', 'Installed version', 'Available version', 'Update available'])
-            writer.writerows((game.app_name, game.title, game.version, versions[game.app_name],
+            writer.writerow(['App name', 'App title', 'Installed version', 'Available version', 'Update available'] + (['Location'] if args.include_dir else []))
+            if(args.include_dir): 
+                writer.writerows((game.app_name, game.title, game.version, versions[game.app_name],
+                              versions[game.app_name] != game.version,game.install_path) for game in games)
+            else:
+                writer.writerows((game.app_name, game.title, game.version, versions[game.app_name],
                               versions[game.app_name] != game.version) for game in games)
             return
 
