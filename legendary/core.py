@@ -802,7 +802,7 @@ class LegendaryCore:
         if free < min_disk_space:
             free_mib = free / 1024 / 1024
             required_mib = min_disk_space / 1024 / 1024
-            results.failures.add(f'Not enough available disk space! {free_mib:.02f} MiB < {required_mib:.02f} MiB')
+            results.warnings.add(f'Not enough available disk space! {free_mib:.02f} MiB < {required_mib:.02f} MiB')
 
         return results
 
