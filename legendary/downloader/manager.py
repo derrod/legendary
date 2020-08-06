@@ -524,6 +524,9 @@ class DLManager(Process):
                 self.num_tasks_processed_since_last += 1
 
                 if res.closed and self.resume_file and res.success:
+                    if res.filename.endswith('.tmp'):
+                        res.filename = res.filename[:-4]
+
                     file_hash = self.hash_map[res.filename]
                     # write last completed file to super simple resume file
                     with open(self.resume_file, 'ab') as rf:
