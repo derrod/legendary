@@ -513,6 +513,11 @@ class LegendaryCore:
             if r.status_code != 200:
                 self.log.error(f'Download failed, status code: {r.status_code}')
                 continue
+
+            if not r.content:
+                self.log.error('Manifest is empty! Skipping...')
+                continue
+
             m = self.load_manifest(r.content)
 
             # download chunks required for extraction
