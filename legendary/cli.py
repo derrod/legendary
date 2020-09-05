@@ -552,7 +552,9 @@ class LegendaryCLI:
                                                           file_install_tag=args.install_tag,
                                                           dl_optimizations=args.order_opt,
                                                           dl_timeout=args.dl_timeout,
-                                                          repair=args.repair_mode)
+                                                          repair=args.repair_mode,
+                                                          repair_use_latest=args.repair_and_update,
+                                                          disable_delta=args.disable_delta)
 
         # game is either up to date or hasn't changed, so we have nothing to do
         if not analysis.dl_size:
@@ -574,7 +576,9 @@ class LegendaryCLI:
         logger.info(f'Reusable size: {analysis.reuse_size / 1024 / 1024:.02f} MiB (chunks) / '
                     f'{analysis.unchanged / 1024 / 1024:.02f} MiB (unchanged)')
 
-        res = self.core.check_installation_conditions(analysis=analysis, install=igame)
+        res = self.core.check_installation_conditions(analysis=analysis, install=igame,
+                                                      updating=self.core.is_installed(args.app_name),
+                                                      ignore_space_req=args.ignore_space)
 
         if res.failures:
             logger.fatal('Download cannot proceed, the following errors occured:')
@@ -1031,6 +1035,12 @@ def main():
                                 help='Set save game path to be used for sync-saves')
     install_parser.add_argument('--repair', dest='repair_mode', action='store_true',
                                 help='Repair installed game by checking and redownloading corrupted/missing files')
+    install_parser.add_argument('--repair-and-update', dest='repair_and_update', action='store_true',
+                                help='Update game to the latest version when repairing')
+    install_parser.add_argument('--ignore-free-space', dest='ignore_space', action='store_true',
+                                help='Do not abort if not enough free space is available')
+    install_parser.add_argument('--disable-delta-manifests', dest='disable_delta', action='store_true',
+                                help='Do not use delta manfiests when updating (may increase download size)')
 
     launch_parser.add_argument('--offline', dest='offline', action='store_true',
                                default=False, help='Skip login and launch game without online authentication')
