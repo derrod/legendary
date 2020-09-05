@@ -183,9 +183,11 @@ class LegendaryCLI:
 
         if args.csv or args.tsv:
             writer = csv.writer(stdout, dialect='excel-tab' if args.tsv else 'excel')
-            writer.writerow(['App name', 'App title', 'Installed version', 'Available version', 'Update available'])
+            writer.writerow(['App name', 'App title', 'Installed version', 'Available version',
+                             'Update available', 'Install size', 'Install path'])
             writer.writerows((game.app_name, game.title, game.version, versions[game.app_name],
-                              versions[game.app_name] != game.version) for game in games)
+                              versions[game.app_name] != game.version, game.install_size, game.install_path)
+                             for game in games)
             return
 
         print('\nInstalled games:')
@@ -774,7 +776,7 @@ class LegendaryCLI:
     def import_game(self, args):
         # make sure path is absolute
         args.app_path = os.path.abspath(args.app_path)
-        
+
         if not os.path.exists(args.app_path):
             logger.error(f'Specified path "{args.app_path}" does not exist!')
             exit(1)
