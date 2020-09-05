@@ -273,18 +273,21 @@ class DLManager(Process):
                 old_file = old_manifest.file_manifest_list.get_file_by_path(changed)
                 new_file = manifest.file_manifest_list.get_file_by_path(changed)
 
-                existing_chunks = dict()
+                existing_chunks = defaultdict(list)
                 off = 0
                 for cp in old_file.chunk_parts:
-                    existing_chunks[(cp.guid_num, cp.offset, cp.size)] = off
+                    existing_chunks[cp.guid_num].append((off, cp.offset, cp.offset + cp.size))
                     off += cp.size
 
                 for cp in new_file.chunk_parts:
                     key = (cp.guid_num, cp.offset, cp.size)
-                    if key in existing_chunks:
-                        references[cp.guid_num] -= 1
-                        re_usable[changed][key] = existing_chunks[key]
-                        analysis_res.reuse_size += cp.size
+                    for file_o, cp_o, cp_end_o in existing_chunks[cp.guid_num]:
+                        # check if new chunk part is wholly contained in the old chunk part
+                        if cp_o <= cp.offset and (cp.offset + cp.size) <= cp_end_o:
+                            references[cp.guid_num] -= 1
+                            re_usable[changed][key] = file_o
+                            analysis_res.reuse_size += cp.size
+                            break
 
         last_cache_size = current_cache_size = 0
         # set to determine whether a file is currently cached or not
