@@ -657,7 +657,8 @@ class LegendaryCore:
                          platform_override: str = '', file_prefix_filter: list = None,
                          file_exclude_filter: list = None, file_install_tag: list = None,
                          dl_optimizations: bool = False, dl_timeout: int = 10,
-                         repair: bool = False, egl_guid: str = ''
+                         repair: bool = False, repair_use_latest: bool = False,
+                         disable_delta: bool = False, egl_guid: str = ''
                          ) -> (DLManager, AnalysisResult, ManifestMeta):
         # load old manifest
         old_manifest = None
@@ -700,7 +701,7 @@ class LegendaryCore:
         self.lgd.save_manifest(game.app_name, new_manifest_data,
                                version=new_manifest.meta.build_version)
         # also fetch optimized delta manifest (may not exist)
-        if old_manifest and new_manifest and not (override_old_manifest or override_manifest):
+        if old_manifest and new_manifest and not (override_old_manifest or override_manifest or disable_delta):
             delta_manifest_data = self.get_delta_manifest(randchoice(base_urls),
                                                           old_manifest.meta.build_id,
                                                           new_manifest.meta.build_id)
@@ -739,9 +740,11 @@ class LegendaryCore:
         self.log.info(f'Install path: {install_path}')
 
         if repair:
-            # use installed manifest for repairs, do not update to latest version (for now)
-            new_manifest = old_manifest
-            old_manifest = None
+            if not repair_use_latest:
+                # use installed manifest for repairs instead of updating
+                new_manifest = old_manifest
+                old_manifest = None
+
             filename = clean_filename(f'{game.app_name}.repair')
             resume_file = os.path.join(self.lgd.get_tmp_path(), filename)
             force = False
