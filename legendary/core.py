@@ -802,7 +802,10 @@ class LegendaryCore:
         return dlm, anlres, igame
 
     @staticmethod
-    def check_installation_conditions(analysis: AnalysisResult, install: InstalledGame) -> ConditionCheckResult:
+    def check_installation_conditions(analysis: AnalysisResult,
+                                      install: InstalledGame,
+                                      updating: bool = False,
+                                      ignore_space_req: bool = False) -> ConditionCheckResult:
         results = ConditionCheckResult(failures=set(), warnings=set())
 
         # if on linux, check for eac in the files
@@ -824,12 +827,20 @@ class LegendaryCore:
             results.warnings.add('This game is not marked for offline use (may still work).')
 
         # check if enough disk space is free (dl size is the approximate amount the installation will grow)
-        min_disk_space = analysis.uncompressed_dl_size + analysis.biggest_file_size
+        min_disk_space = analysis.uncompressed_dl_size
+        if updating:
+            min_disk_space += analysis.biggest_file_size
+
         _, _, free = shutil.disk_usage(os.path.split(install.install_path)[0])
         if free < min_disk_space:
             free_mib = free / 1024 / 1024
             required_mib = min_disk_space / 1024 / 1024
-            results.failures.add(f'Not enough available disk space! {free_mib:.02f} MiB < {required_mib:.02f} MiB')
+            if ignore_space_req:
+                results.warnings.add(f'Potentially not enough available disk space! '
+                                     f'{free_mib:.02f} MiB < {required_mib:.02f} MiB')
+            else:
+                results.failures.add(f'Not enough available disk space!'
+                                     f'{free_mib:.02f} MiB < {required_mib:.02f} MiB')
 
         return results
 
