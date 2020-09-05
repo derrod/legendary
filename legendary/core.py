@@ -711,6 +711,8 @@ class LegendaryCore:
                               f'"{old_manifest.meta.build_id}" to'
                               f'"{new_manifest.meta.build_id}"...')
                 new_manifest = delta_manifest
+            else:
+                self.log.debug(f'No Delta manifest received from CDN.')
 
         # reuse existing installation's directory
         if igame := self.get_installed_game(base_game.app_name if base_game else game.app_name):
