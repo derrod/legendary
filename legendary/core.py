@@ -641,6 +641,14 @@ class LegendaryCore:
 
         return new_manifest_data, base_urls
 
+    def get_delta_manifest(self, base_url, old_build_id, new_build_id):
+        """Get optimized delta manifest (doesn't seem to exist for most games)"""
+        r = self.egs.unauth_session.get(f'{base_url}/Deltas/{new_build_id}/{old_build_id}.delta')
+        if r.status_code == 200:
+            return r.content
+        else:
+            return None
+
     def prepare_download(self, game: Game, base_game: Game = None, base_path: str = '',
                          status_q: Queue = None, max_shm: int = 0, max_workers: int = 0,
                          force: bool = False, disable_patching: bool = False,
@@ -691,6 +699,17 @@ class LegendaryCore:
         # save manifest with version name as well for testing/downgrading/etc.
         self.lgd.save_manifest(game.app_name, new_manifest_data,
                                version=new_manifest.meta.build_version)
+        # also fetch optimized delta manifest (may not exist)
+        if old_manifest and new_manifest and not (override_old_manifest or override_manifest):
+            delta_manifest_data = self.get_delta_manifest(randchoice(base_urls),
+                                                          old_manifest.meta.build_id,
+                                                          new_manifest.meta.build_id)
+            if delta_manifest_data:
+                delta_manifest = self.load_manifest(delta_manifest_data)
+                self.log.info(f'Using optimized delta manifest to upgrade from build'
+                              f'"{old_manifest.meta.build_id}" to'
+                              f'"{new_manifest.meta.build_id}"...')
+                new_manifest = delta_manifest
 
         # reuse existing installation's directory
         if igame := self.get_installed_game(base_game.app_name if base_game else game.app_name):
