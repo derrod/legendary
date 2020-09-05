@@ -772,6 +772,9 @@ class LegendaryCLI:
                 logger.info(f'Run "legendary repair {args.app_name}" to repair your game installation.')
 
     def import_game(self, args):
+        # make sure path is absolute
+        args.app_path = os.path.abspath(args.app_path)
+        
         if not os.path.exists(args.app_path):
             logger.error(f'Specified path "{args.app_path}" does not exist!')
             exit(1)
