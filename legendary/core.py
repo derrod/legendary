@@ -662,6 +662,7 @@ class LegendaryCore:
                          ) -> (DLManager, AnalysisResult, ManifestMeta):
         # load old manifest
         old_manifest = None
+        delta_manifest_used = False
 
         # load old manifest if we have one
         if override_old_manifest:
@@ -711,6 +712,7 @@ class LegendaryCore:
                               f'"{old_manifest.meta.build_id}" to'
                               f'"{new_manifest.meta.build_id}"...')
                 new_manifest = delta_manifest
+                delta_manifest_used = True
             else:
                 self.log.debug(f'No Delta manifest received from CDN.')
 
@@ -782,7 +784,8 @@ class LegendaryCore:
                                   file_prefix_filter=file_prefix_filter,
                                   file_exclude_filter=file_exclude_filter,
                                   file_install_tag=file_install_tag,
-                                  processing_optimization=process_opt)
+                                  processing_optimization=process_opt,
+                                  delta_manifest_used=delta_manifest_used)
 
         prereq = None
         if new_manifest.meta.prereq_ids:
