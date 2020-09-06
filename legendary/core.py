@@ -103,8 +103,8 @@ class LegendaryCore:
             'X-Requested-With': 'XMLHttpRequest',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
                           'AppleWebKit/537.36 (KHTML, like Gecko) '
-                          'EpicGamesLauncher/10.16.1-13343695+++Portal+Release-Live '
-                          'UnrealEngine/4.23.0-13343695+++Portal+Release-Live '
+                          'EpicGamesLauncher/10.18.6-14188424+++Portal+Release-Live '
+                          'UnrealEngine/4.23.0-14188424+++Portal+Release-Live '
                           'Chrome/59.0.3071.15 Safari/537.36'
         })
 
