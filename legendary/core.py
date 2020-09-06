@@ -702,7 +702,8 @@ class LegendaryCore:
         self.lgd.save_manifest(game.app_name, new_manifest_data,
                                version=new_manifest.meta.build_version)
         # also fetch optimized delta manifest (may not exist)
-        if old_manifest and new_manifest and not (override_old_manifest or override_manifest or disable_delta):
+        if old_manifest and new_manifest and not (override_old_manifest or override_manifest or disable_delta or
+                                                  old_manifest.meta.build_id == new_manifest.meta.build_id):
             delta_manifest_data = self.get_delta_manifest(randchoice(base_urls),
                                                           old_manifest.meta.build_id,
                                                           new_manifest.meta.build_id)
