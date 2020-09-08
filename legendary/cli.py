@@ -957,6 +957,18 @@ class LegendaryCLI:
         else:
             self.core.egl_sync()
 
+    def status(self, args):
+        if not args.offline:
+            if not self.core.login():
+                logger.error('Log in failed!')
+                exit(1)
+
+        print(f'Epic account: {self.core.lgd.userdata["displayName"]}')
+        print(f'Games available: {len(self.core.get_game_list(update_assets=not args.offline))}')
+        print(f'Games installed: {len(self.core.get_installed_list())}')
+        print(f'EGL Sync enabled: {self.core.egl_sync_enabled}')
+        print(f'Config directory: {self.core.lgd.path}')
+
 
 def main():
     parser = argparse.ArgumentParser(description=f'Legendary v{__version__} - "{__codename__}"')
@@ -986,6 +998,7 @@ def main():
     verify_parser = subparsers.add_parser('verify-game', help='Verify a game\'s local files')
     import_parser = subparsers.add_parser('import-game', help='Import an already installed game')
     egl_sync_parser = subparsers.add_parser('egl-sync', help='Setup or run Epic Games Launcher sync')
+    status_parser = subparsers.add_parser('status', help='Show legendary status information')
 
     install_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
     uninstall_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
@@ -1159,6 +1172,9 @@ def main():
     egl_sync_parser.add_argument('--unlink', dest='unlink', action='store_true',
                                  help='Disable sync and remove EGL metadata from installed games')
 
+    status_parser.add_argument('--offline', dest='offline', action='store_true',
+                               help='Only print offline status information, do not login')
+
     args, extra = parser.parse_known_args()
 
     if args.version:
@@ -1168,7 +1184,7 @@ def main():
     if args.subparser_name not in ('auth', 'list-games', 'list-installed', 'list-files',
                                    'launch', 'download', 'uninstall', 'install', 'update',
                                    'repair', 'list-saves', 'download-saves', 'sync-saves',
-                                   'verify-game', 'import-game', 'egl-sync'):
+                                   'verify-game', 'import-game', 'egl-sync', 'status'):
         print(parser.format_help())
 
         # Print the main help *and* the help for all of the subcommands. Thanks stackoverflow!
@@ -1225,6 +1241,8 @@ def main():
             cli.import_game(args)
         elif args.subparser_name == 'egl-sync':
             cli.egs_sync(args)
+        elif args.subparser_name == 'status':
+            cli.status(args)
     except KeyboardInterrupt:
         logger.info('Command was aborted via KeyboardInterrupt, cleaning up...')
 
