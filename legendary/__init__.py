@@ -1,4 +1,4 @@
 """Legendary!"""
 
-__version__ = '0.0.19'
-__codename__ = 'Interloper'
+__version__ = '0.20.0'
+__codename__ = 'Endgame'
