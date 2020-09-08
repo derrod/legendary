@@ -204,7 +204,10 @@ class LegendaryCore:
         if update:
             self.get_assets(update_assets=True)
 
-        return next(i for i in self.lgd.assets if i.app_name == app_name)
+        try:
+            return next(i for i in self.lgd.assets if i.app_name == app_name)
+        except StopIteration:
+            raise ValueError
 
     def get_game(self, app_name, update_meta=False) -> Game:
         if update_meta:

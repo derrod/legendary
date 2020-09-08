@@ -179,7 +179,12 @@ class LegendaryCLI:
 
         versions = dict()
         for game in games:
-            versions[game.app_name] = self.core.get_asset(game.app_name).build_version
+            try:
+                versions[game.app_name] = self.core.get_asset(game.app_name).build_version
+            except ValueError:
+                logger.warning(f'Metadata for "{game.app_name}" is missing, the game may have been removed from '
+                               f'your account or not be in legendary\'s database yet, try rerunning the command '
+                               f'with "--check-updates".')
 
         if args.csv or args.tsv:
             writer = csv.writer(stdout, dialect='excel-tab' if args.tsv else 'excel')
@@ -187,7 +192,7 @@ class LegendaryCLI:
                              'Update available', 'Install size', 'Install path'])
             writer.writerows((game.app_name, game.title, game.version, versions[game.app_name],
                               versions[game.app_name] != game.version, game.install_size, game.install_path)
-                             for game in games)
+                             for game in games if game.app_name in versions)
             return
 
         print('\nInstalled games:')
@@ -204,7 +209,7 @@ class LegendaryCLI:
                 print(f'  + Location: {game.install_path}')
             if not os.path.exists(game.install_path):
                 print(f'  ! Game does no longer appear to be installed (directory "{game.install_path}" missing)!')
-            elif versions[game.app_name] != game.version:
+            elif game.app_name in versions and versions[game.app_name] != game.version:
                 print(f'  -> Update available! Installed: {game.version}, Latest: {versions[game.app_name]}')
 
         print(f'\nTotal: {len(games)}')
@@ -425,7 +430,12 @@ class LegendaryCLI:
 
             if not args.skip_version_check and not self.core.is_noupdate_game(app_name):
                 logger.info('Checking for updates...')
-                latest = self.core.get_asset(app_name, update=True)
+                try:
+                    latest = self.core.get_asset(app_name, update=True)
+                except ValueError:
+                    logger.fatal(f'Metadata for "{app_name}" does not exist, cannot launch!')
+                    exit(1)
+
                 if latest.build_version != igame.version:
                     logger.error('Game is out of date, please update or launch with update check skipping!')
                     exit(1)
