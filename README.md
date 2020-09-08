@@ -135,9 +135,9 @@ $ legendary -y egl-sync
 ## Usage
 
 ````
-usage: legendary [-h] [-v] [-y] [-V] {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game,egl-sync} ...
+usage: legendary [-h] [-v] [-y] [-V] {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game,egl-sync,status} ...
 
-Legendary v0.0.X - "Codename"
+Legendary v0.X.X - "Codename"
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -146,7 +146,7 @@ optional arguments:
   -V                    Print version and exit
 
 Commands:
-  {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game,egl-sync}
+  {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game,egl-sync,status}
     auth                Authenticate with EPIC
     install (download,update,repair)
                         Download a game
@@ -161,6 +161,7 @@ Commands:
     verify-game         Verify a game's local files
     import-game         Import an already installed game
     egl-sync            Setup or run Epic Games Launcher sync
+    status              Show legendary status information
 
 Individual command help:
 
@@ -209,6 +210,10 @@ optional arguments:
   --dl-timeout <sec>    Connection timeout for downloader (default: 10 seconds)
   --save-path <path>    Set save game path to be used for sync-saves
   --repair              Repair installed game by checking and redownloading corrupted/missing files
+  --repair-and-update   Update game to the latest version when repairing
+  --ignore-free-space   Do not abort if not enough free space is available
+  --disable-delta-manifests
+                        Do not use delta manfiests when updating (may increase download size)
 
 
 Command: uninstall
@@ -249,7 +254,7 @@ optional arguments:
 
 
 Command: list-games
-usage: legendary list-games [-h] [--platform <Platform>] [--include-ue] [--csv] [--tsv]
+usage: legendary list-games [-h] [--platform <Platform>] [--include-ue] [--csv] [--tsv] [--json]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -258,21 +263,23 @@ optional arguments:
   --include-ue          Also include Unreal Engine content (Engine/Marketplace) in list
   --csv                 List games in CSV format
   --tsv                 List games in TSV format
+  --json                List games in JSON format
 
 
 Command: list-installed
-usage: legendary list-installed [-h] [--check-updates] [--csv] [--tsv] [--show-dirs]
+usage: legendary list-installed [-h] [--check-updates] [--csv] [--tsv] [--json] [--show-dirs]
 
 optional arguments:
   -h, --help       show this help message and exit
   --check-updates  Check for updates for installed games
   --csv            List games in CSV format
   --tsv            List games in TSV format
+  --json           List games in JSON format
   --show-dirs      Print installation directory in output
 
 
 Command: list-files
-usage: legendary list-files [-h] [--force-download] [--platform <Platform>] [--manifest <uri>] [--csv] [--tsv] [--hashlist] [--install-tag <tag>] [<App Name>]
+usage: legendary list-files [-h] [--force-download] [--platform <Platform>] [--manifest <uri>] [--csv] [--tsv] [--json] [--hashlist] [--install-tag <tag>] [<App Name>]
 
 positional arguments:
   <App Name>            Name of the app (optional)
@@ -285,6 +292,7 @@ optional arguments:
   --manifest <uri>      Manifest URL or path to use instead of the CDN one
   --csv                 Output in CSV format
   --tsv                 Output in TSV format
+  --json                Output in JSON format
   --hashlist            Output file hash list in hashcheck/sha1sum -c compatible format
   --install-tag <tag>   Show only files with specified install tag
 
@@ -363,6 +371,15 @@ optional arguments:
   --import-only         Only import games from EGL (no export)
   --export-only         Only export games to EGL (no import)
   --unlink              Disable sync and remove EGL metadata from installed games
+
+
+Command: status
+usage: legendary status [-h] [--offline] [--json]
+
+optional arguments:
+  -h, --help  show this help message and exit
+  --offline   Only print offline status information, do not login
+  --json      Show status in JSON format
 ````
 
 
@@ -427,7 +444,8 @@ DXVK_CONFIG_FILE = /mnt/tank/games/Game/dxvk.conf
 
 [AppName2]
 ; Use a wrapper to run this script
-wrapper = /path/to/wrapper --parameters
+; Note that the path might have to be quoted if it contains spaces
+wrapper = "/path/to/Proton 5.0/proton" run
 ; Do not run this executable with WINE (e.g. when the wrapper handles that)
 no_wine = true
 ````
