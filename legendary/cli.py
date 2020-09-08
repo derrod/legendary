@@ -922,6 +922,9 @@ class LegendaryCLI:
                 for egl_game in importable:
                     print(' *', egl_game.app_name, '-', egl_game.display_name)
 
+                print('\nNote: Only games that are also in Legendary\'s database are listed, '
+                      'if anything is missing run "list-games" first to update it.')
+
                 if args.yes or get_boolean_choice('Do you want to import the games from EGL?'):
                     for egl_game in importable:
                         logger.info(f'Importing "{egl_game.display_name}"...')
