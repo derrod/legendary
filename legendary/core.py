@@ -209,6 +209,9 @@ class LegendaryCore:
         except StopIteration:
             raise ValueError
 
+    def asset_valid(self, app_name) -> bool:
+        return any(i.app_name == app_name for i in self.lgd.assets)
+
     def get_game(self, app_name, update_meta=False) -> Game:
         if update_meta:
             self.get_game_list(True)
@@ -965,7 +968,9 @@ class LegendaryCore:
 
     def egl_get_importable(self):
         return [g for g in self.egl.get_manifests()
-                if not self.is_installed(g.app_name) and g.main_game_appname == g.app_name]
+                if not self.is_installed(g.app_name) and
+                g.main_game_appname == g.app_name and
+                self.asset_valid(g.app_name)]
 
     def egl_get_exportable(self):
         if not self.egl.manifests:
@@ -973,6 +978,9 @@ class LegendaryCore:
         return [g for g in self.get_installed_list() if g.app_name not in self.egl.manifests]
 
     def egl_import(self, app_name):
+        if not self.asset_valid(app_name):
+            raise ValueError(f'To-be-imported game {app_name} not in game asset database!')
+
         self.log.debug(f'Importing "{app_name}" from EGL')
         # load egl json file
         try:
@@ -1093,6 +1101,8 @@ class LegendaryCore:
             # check EGL -> Legendary sync
             for egl_igame in self.egl.get_manifests():
                 if egl_igame.main_game_appname != egl_igame.app_name:  # skip DLC
+                    continue
+                if not self.asset_valid(egl_igame.app_name):  # skip non-owned games
                     continue
 
                 if not self._is_installed(egl_igame.app_name):
