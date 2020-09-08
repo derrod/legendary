@@ -3,6 +3,7 @@
 
 import argparse
 import csv
+import json
 import logging
 import os
 import shlex
@@ -158,6 +159,16 @@ class LegendaryCLI:
                     writer.writerow((dlc.app_name, dlc.app_title, dlc.app_version, True))
             return
 
+        if args.json:
+            _out = []
+            for game in games:
+                _j = vars(game)
+                _j['dlcs'] = [vars(dlc) for dlc in dlc_list[game.asset_info.catalog_item_id]]
+                _out.append(_j)
+
+            print(json.dumps(_out, sort_keys=True, indent=2))
+            return
+
         print('\nAvailable games:')
         for game in games:
             print(f' * {game.app_title} (App name: {game.app_name} | Version: {game.app_version})')
@@ -193,6 +204,10 @@ class LegendaryCLI:
             writer.writerows((game.app_name, game.title, game.version, versions[game.app_name],
                               versions[game.app_name] != game.version, game.install_size, game.install_path)
                              for game in games if game.app_name in versions)
+            return
+
+        if args.json:
+            print(json.dumps([vars(g) for g in games], indent=2, sort_keys=True))
             return
 
         print('\nInstalled games:')
@@ -251,6 +266,17 @@ class LegendaryCLI:
             writer = csv.writer(stdout, dialect='excel-tab' if args.tsv else 'excel')
             writer.writerow(['path', 'hash', 'size', 'install_tags'])
             writer.writerows((fm.filename, fm.hash.hex(), fm.file_size, '|'.join(fm.install_tags))for fm in files)
+        elif args.json:
+            _files = []
+            for fm in files:
+                _files.append(dict(
+                    filename=fm.filename,
+                    sha_hash=fm.hash.hex(),
+                    install_tags=fm.install_tags,
+                    file_size=fm.file_size,
+                    flags=fm.flags,
+                ))
+            print(json.dumps(_files, sort_keys=True, indent=2))
         else:
             install_tags = set()
             for fm in files:
@@ -963,6 +989,16 @@ class LegendaryCLI:
                 logger.error('Log in failed!')
                 exit(1)
 
+        if args.json:
+            print(json.dumps(dict(
+                account=self.core.lgd.userdata["displayName"],
+                games_available=len(self.core.get_game_list(update_assets=not args.offline)),
+                games_installed=len(self.core.get_installed_list()),
+                egl_sync_enabled=self.core.egl_sync_enabled,
+                config_directory=self.core.lgd.path
+            ), indent=2, sort_keys=True))
+            return
+
         print(f'Epic account: {self.core.lgd.userdata["displayName"]}')
         print(f'Games available: {len(self.core.get_game_list(update_assets=not args.offline))}')
         print(f'Games installed: {len(self.core.get_installed_list())}')
@@ -1114,6 +1150,7 @@ def main():
                              help='Also include Unreal Engine content (Engine/Marketplace) in list')
     list_parser.add_argument('--csv', dest='csv', action='store_true', help='List games in CSV format')
     list_parser.add_argument('--tsv', dest='tsv', action='store_true', help='List games in TSV format')
+    list_parser.add_argument('--json', dest='json', action='store_true', help='List games in JSON format')
 
     list_installed_parser.add_argument('--check-updates', dest='check_updates', action='store_true',
                                        help='Check for updates for installed games')
@@ -1121,6 +1158,8 @@ def main():
                                        help='List games in CSV format')
     list_installed_parser.add_argument('--tsv', dest='tsv', action='store_true',
                                        help='List games in TSV format')
+    list_installed_parser.add_argument('--json', dest='json', action='store_true',
+                                       help='List games in JSON format')
     list_installed_parser.add_argument('--show-dirs', dest='include_dir', action='store_true',
                                        help='Print installation directory in output')
 
@@ -1132,6 +1171,7 @@ def main():
                                    help='Manifest URL or path to use instead of the CDN one')
     list_files_parser.add_argument('--csv', dest='csv', action='store_true', help='Output in CSV format')
     list_files_parser.add_argument('--tsv', dest='tsv', action='store_true', help='Output in TSV format')
+    list_files_parser.add_argument('--json', dest='json', action='store_true', help='Output in JSON format')
     list_files_parser.add_argument('--hashlist', dest='hashlist', action='store_true',
                                    help='Output file hash list in hashcheck/sha1sum -c compatible format')
     list_files_parser.add_argument('--install-tag', dest='install_tag', action='store', metavar='<tag>',
@@ -1174,6 +1214,8 @@ def main():
 
     status_parser.add_argument('--offline', dest='offline', action='store_true',
                                help='Only print offline status information, do not login')
+    status_parser.add_argument('--json', dest='json', action='store_true',
+                               help='Show status in JSON format')
 
     args, extra = parser.parse_known_args()
 
