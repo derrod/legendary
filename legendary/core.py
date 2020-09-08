@@ -316,7 +316,9 @@ class LegendaryCore:
 
         params = []
 
-        if wrapper or (wrapper := self.lgd.config.get(app_name, 'wrapper', fallback=None)):
+        if wrapper or (wrapper := self.lgd.config.get(app_name, 'wrapper',
+                                                      fallback=self.lgd.config.get('default', 'wrapper',
+                                                                                   fallback=None))):
             params.extend(shlex.split(wrapper))
 
         if os.name != 'nt' and not disable_wine:
@@ -326,7 +328,8 @@ class LegendaryCore:
                 # check if there's a game specific override
                 wine_bin = self.lgd.config.get(app_name, 'wine_executable', fallback=wine_bin)
 
-            if not self.lgd.config.getboolean(app_name, 'no_wine', fallback=False):
+            if not self.lgd.config.getboolean(app_name, 'no_wine',
+                                              fallback=self.lgd.config.get('default', 'no_wine', fallback=False)):
                 params.append(wine_bin)
 
         params.append(game_exe)
