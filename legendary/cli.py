@@ -985,23 +985,34 @@ class LegendaryCLI:
 
     def status(self, args):
         if not args.offline:
-            if not self.core.login():
-                logger.error('Log in failed!')
-                exit(1)
+            try:
+                if not self.core.login():
+                    logger.error('Log in failed!')
+                    exit(1)
+            except ValueError:
+                pass
 
+        if not self.core.lgd.userdata:
+            user_name = '<not logged in>'
+            args.offline = True
+        else:
+            user_name = self.core.lgd.userdata['displayName']
+
+        games_available = len(self.core.get_game_list(update_assets=not args.offline))
+        games_installed = len(self.core.get_installed_list())
         if args.json:
             print(json.dumps(dict(
-                account=self.core.lgd.userdata["displayName"],
-                games_available=len(self.core.get_game_list(update_assets=not args.offline)),
-                games_installed=len(self.core.get_installed_list()),
+                account=user_name,
+                games_available=games_available,
+                games_installed=games_installed,
                 egl_sync_enabled=self.core.egl_sync_enabled,
                 config_directory=self.core.lgd.path
             ), indent=2, sort_keys=True))
             return
 
-        print(f'Epic account: {self.core.lgd.userdata["displayName"]}')
-        print(f'Games available: {len(self.core.get_game_list(update_assets=not args.offline))}')
-        print(f'Games installed: {len(self.core.get_installed_list())}')
+        print(f'Epic account: {user_name}')
+        print(f'Games available: {games_available}')
+        print(f'Games installed: {games_installed}')
         print(f'EGL Sync enabled: {self.core.egl_sync_enabled}')
         print(f'Config directory: {self.core.lgd.path}')
 
