@@ -1022,9 +1022,9 @@ def main():
     parser.register('action', 'parsers', AliasedSubParsersAction)
 
     # general arguments
-    parser.add_argument('-v', dest='debug', action='store_true', help='Set loglevel to debug')
+    parser.add_argument('-v', '--debug', dest='debug', action='store_true', help='Set loglevel to debug')
     parser.add_argument('-y', '--yes', dest='yes', action='store_true', help='Default to yes for all prompts')
-    parser.add_argument('-V', dest='version', action='store_true', help='Print version and exit')
+    parser.add_argument('-V', '--version', dest='version', action='store_true', help='Print version and exit')
 
     # all the commands
     subparsers = parser.add_subparsers(title='Commands', dest='subparser_name')
