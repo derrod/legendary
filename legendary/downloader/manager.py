@@ -285,7 +285,7 @@ class DLManager(Process):
                         # check if new chunk part is wholly contained in the old chunk part
                         if cp_o <= cp.offset and (cp.offset + cp.size) <= cp_end_o:
                             references[cp.guid_num] -= 1
-                            re_usable[changed][key] = file_o
+                            re_usable[changed][key] = file_o + (cp.offset - cp_o)
                             analysis_res.reuse_size += cp.size
                             break
 
