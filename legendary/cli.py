@@ -250,6 +250,9 @@ class LegendaryCLI:
                 logger.error('Login failed! Cannot continue with download process.')
                 exit(1)
             game = self.core.get_game(args.app_name, update_meta=True)
+            if not game:
+                logger.fatal(f'Could not fetch metadata for "{args.app_name}" (check spelling/account ownership)')
+                exit(1)
             manifest_data, _ = self.core.get_cdn_manifest(game, platform_override=args.platform_override)
 
         manifest = self.core.load_manifest(manifest_data)
