@@ -31,6 +31,7 @@ from legendary.models.manifest import Manifest, ManifestMeta
 from legendary.models.chunk import Chunk
 from legendary.utils.game_workarounds import is_opt_enabled
 from legendary.utils.savegame_helper import SaveGameHelper
+from legendary.utils.manifests import combine_manifests
 
 
 # ToDo: instead of true/false return values for success/failure actually raise an exception that the CLI/GUI
@@ -652,6 +653,9 @@ class LegendaryCore:
 
     def get_delta_manifest(self, base_url, old_build_id, new_build_id):
         """Get optimized delta manifest (doesn't seem to exist for most games)"""
+        if old_build_id == new_build_id:
+            return None
+
         r = self.egs.unauth_session.get(f'{base_url}/Deltas/{new_build_id}/{old_build_id}.delta')
         if r.status_code == 200:
             return r.content
@@ -667,11 +671,10 @@ class LegendaryCore:
                          file_exclude_filter: list = None, file_install_tag: list = None,
                          dl_optimizations: bool = False, dl_timeout: int = 10,
                          repair: bool = False, repair_use_latest: bool = False,
-                         disable_delta: bool = False, egl_guid: str = ''
-                         ) -> (DLManager, AnalysisResult, ManifestMeta):
+                         disable_delta: bool = False, override_delta_manifest: str = '',
+                         egl_guid: str = '') -> (DLManager, AnalysisResult, ManifestMeta):
         # load old manifest
         old_manifest = None
-        delta_manifest_used = False
 
         # load old manifest if we have one
         if override_old_manifest:
@@ -710,19 +713,23 @@ class LegendaryCore:
         # save manifest with version name as well for testing/downgrading/etc.
         self.lgd.save_manifest(game.app_name, new_manifest_data,
                                version=new_manifest.meta.build_version)
-        # also fetch optimized delta manifest (may not exist)
-        if old_manifest and new_manifest and not (override_old_manifest or override_manifest or disable_delta or
-                                                  old_manifest.meta.build_id == new_manifest.meta.build_id):
-            delta_manifest_data = self.get_delta_manifest(randchoice(base_urls),
-                                                          old_manifest.meta.build_id,
-                                                          new_manifest.meta.build_id)
+
+        # check if we should use a delta manifest or not
+        disable_delta = disable_delta or ((override_old_manifest or override_manifest) and not override_delta_manifest)
+        if old_manifest and new_manifest and not disable_delta:
+            if override_delta_manifest:
+                self.log.info(f'Overriding delta manifest with "{override_delta_manifest}"')
+                delta_manifest_data, _ = self.get_uri_manifest(override_delta_manifest)
+            else:
+                delta_manifest_data = self.get_delta_manifest(randchoice(base_urls),
+                                                              old_manifest.meta.build_id,
+                                                              new_manifest.meta.build_id)
             if delta_manifest_data:
                 delta_manifest = self.load_manifest(delta_manifest_data)
-                self.log.info(f'Using optimized delta manifest to upgrade from build'
-                              f'"{old_manifest.meta.build_id}" to'
+                self.log.info(f'Using optimized delta manifest to upgrade from build '
+                              f'"{old_manifest.meta.build_id}" to '
                               f'"{new_manifest.meta.build_id}"...')
-                new_manifest = delta_manifest
-                delta_manifest_used = True
+                combine_manifests(new_manifest, delta_manifest)
             else:
                 self.log.debug(f'No Delta manifest received from CDN.')
 
@@ -794,8 +801,7 @@ class LegendaryCore:
                                   file_prefix_filter=file_prefix_filter,
                                   file_exclude_filter=file_exclude_filter,
                                   file_install_tag=file_install_tag,
-                                  processing_optimization=process_opt,
-                                  delta_manifest_used=delta_manifest_used)
+                                  processing_optimization=process_opt)
 
         prereq = None
         if new_manifest.meta.prereq_ids:
