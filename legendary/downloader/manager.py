@@ -79,7 +79,7 @@ class DLManager(Process):
     def run_analysis(self, manifest: Manifest, old_manifest: Manifest = None,
                      patch=True, resume=True, file_prefix_filter=None,
                      file_exclude_filter=None, file_install_tag=None,
-                     processing_optimization=False, delta_manifest_used=False) -> AnalysisResult:
+                     processing_optimization=False) -> AnalysisResult:
         """
         Run analysis on manifest and old manifest (if not None) and return a result
         with a summary resources required in order to install the provided manifest.
@@ -92,7 +92,6 @@ class DLManager(Process):
         :param file_exclude_filter: Exclude files with this prefix from download
         :param file_install_tag: Only install files with the specified tag
         :param processing_optimization: Attempt to optimize processing order and RAM usage
-        :param delta_manifest_used: whether or not the manifest is a delta manifest
         :return: AnalysisResult
         """
 
@@ -181,10 +180,6 @@ class DLManager(Process):
             # correct install size after filtering
             analysis_res.install_size = sum(fm.file_size for fm in manifest.file_manifest_list.elements
                                             if fm.filename in mc.added)
-
-        # todo properly handle delta manifests
-        if delta_manifest_used:
-            mc.removed = set()
 
         if mc.removed:
             analysis_res.removed = len(mc.removed)
