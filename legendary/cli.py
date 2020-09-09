@@ -595,7 +595,8 @@ class LegendaryCLI:
                                                           dl_timeout=args.dl_timeout,
                                                           repair=args.repair_mode,
                                                           repair_use_latest=args.repair_and_update,
-                                                          disable_delta=args.disable_delta)
+                                                          disable_delta=args.disable_delta,
+                                                          override_delta_manifest=args.override_delta_manifest)
 
         # game is either up to date or hasn't changed, so we have nothing to do
         if not analysis.dl_size:
@@ -1087,6 +1088,8 @@ def main():
                                 help='Manifest URL or path to use instead of the CDN one (e.g. for downgrading)')
     install_parser.add_argument('--old-manifest', dest='override_old_manifest', action='store', metavar='<uri>',
                                 help='Manifest URL or path to use as the old one (e.g. for testing patching)')
+    install_parser.add_argument('--delta-manifest', dest='override_delta_manifest', action='store', metavar='<uri>',
+                                help='Manifest URL or path to use as the delta one (e.g. for testing)')
     install_parser.add_argument('--base-url', dest='override_base_url', action='store', metavar='<url>',
                                 help='Base URL to download from (e.g. to test or switch to a different CDNs)')
     install_parser.add_argument('--force', dest='force', action='store_true',
