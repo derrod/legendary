@@ -5,7 +5,7 @@
 [![Discord](https://discordapp.com/api/guilds/695233346627698689/widget.png?style=shield)](https://discord.gg/UJKBwPw) [![Twitter Follow](https://img.shields.io/twitter/follow/legendary_gl?label=Follow%20us%20for%20updates%21&style=social)](https://twitter.com/legendary_gl)
 
 Legendary is an open-source game launcher that can download and install games from the Epic Games platform on Linux and Windows.
-It's name as a tongue-in-cheek play on tiers of [item rarity in many MMORPGs](https://wow.gamepedia.com/Quality).
+Its name as a tongue-in-cheek play on tiers of [item rarity in many MMORPGs](https://wow.gamepedia.com/Quality).
 
 Right now Legendary is in beta and not feature-complete. You might run into some bugs or issues.
 If you do please [create an issue on GitHub](https://github.com/derrod/legendary/issues/new) so we can fix it.
@@ -87,49 +87,49 @@ Note that in this example we used `sudo` to install the package on the system, t
 
 To log in:
 ````
-$ legendary auth
+legendary auth
 ````
 Authentication is a little finicky since we have to go through the Epic website. The login page should open in your browser and after logging in you should be presented with a JSON response that contains a code, just copy and paste the code into your terminal to log in.
 On Windows you can use the `--import` flag to import the authentication from the Epic Games Launcher. Note that this will log you out of the Epic Launcher.
 
 Listing your games
 ````
-$ legendary list-games
+legendary list-games
 ````
 This will fetch a list of games available on your account, the first time may take a while depending on how many games you have.
 
 Installing a game
 ````
-$ legendary install Anemone
+legendary install Anemone
 ````
 **Important:** the name used for these commands is the app name, *not* the game's name! The app name is in the parentheses after the game title in the games list.
 
 List installed games and check for updates
 ````
-$ legendary list-installed --check-updates
+legendary list-installed --check-updates
 ````
 
 Launch (run) a game with online authentication
 ````
-$ legendary launch Anemone
+legendary launch Anemone
 ````
 **Tip:** most games will run fine offline (`--offline`), and thus won't require launching through legendary for online authentication. You can run `legendary launch <App Name> --offline --dry-run` to get a command line that will launch the game with all parameters that would be used by the Epic Launcher. These can then be entered into any other game launcher (e.g. Lutris/Steam) if the game requires them.
 
 Importing a previously installed game
 ````
-$ legendary import-game Anemone /mnt/games/Epic/WorldOfGoo
+legendary import-game Anemone /mnt/games/Epic/WorldOfGoo
 ````
 **Note:** Importing will require a full verification so Legendary can correctly update the game later.
 
 Sync savegames with the Epic Cloud
 ````
-$ legendary sync-saves
+legendary sync-saves
 ````
 **Note:** When this command is run the first time after a supported game has been installed it will ask you to confirm or provide the path to where the savegame is located.
 
 Automatically sync all games with the Epic Games Launcher
 ````
-$ legendary -y egl-sync
+legendary -y egl-sync
 ````
 
 ## Usage
