@@ -38,6 +38,8 @@ setup(
         'setuptools',
         'wheel'
     ],
+    data_files=[
+        ('/etc/bash_completion.d/', ['legendary/bash/legendary'])],
     url='https://github.com/derrod/legendary',
     description='Free and open-source replacement for the Epic Games Launcher application',
     long_description=long_description,
