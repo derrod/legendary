@@ -720,8 +720,12 @@ class DLManager(Process):
             # base message
             message = f"{perc:.02f}%"
             stats = f"{hours:02d}:{minutes:02d}:{seconds:02d} {dl_speed / 1024 / 1024:.02f} Mib/s {total_dl / 1024 / 1024:.02f} MiB "
+            
+            # some old math i used to used, leaving it here for reference
             # rest = term_length - len(message) - ((round(shutil.get_terminal_size().columns / 2) + 2) - len(stats)) # Gets how many whitespaces we have to leave
-            rest = round((term_length - len(message) - len(stats)) / 3) - 1
+             
+            # I have no idea how this math works...
+            rest = round((term_length - len(message) - len(stats)) / 3) - 1 # gets how many whitespaces we have to leave
             # adds as many spaces to the message as we need...
             message += ' ' * rest 
             message += stats
