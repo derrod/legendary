@@ -5,6 +5,8 @@
 import logging
 import os
 import time
+import sys
+import shutil
 
 from collections import Counter, defaultdict, deque
 from logging.handlers import QueueHandler
@@ -705,17 +707,31 @@ class DLManager(Process):
                 hours = minutes = seconds = 0
                 rt_hours = rt_minutes = rt_seconds = 0
 
-            self.log.info(f'= Progress: {perc:.02f}% ({processed_chunks}/{num_chunk_tasks}), '
-                          f'Running for {rt_hours:02d}:{rt_minutes:02d}:{rt_seconds:02d}, '
-                          f'ETA: {hours:02d}:{minutes:02d}:{seconds:02d}')
-            self.log.info(f' - Downloaded: {total_dl / 1024 / 1024:.02f} MiB, '
-                          f'Written: {total_write / 1024 / 1024:.02f} MiB')
-            self.log.info(f' - Cache usage: {total_used} MiB, active tasks: {self.active_tasks}')
-            self.log.info(f' + Download\t- {dl_speed / 1024 / 1024:.02f} MiB/s (raw) '
-                          f'/ {dl_unc_speed / 1024 / 1024:.02f} MiB/s (decompressed)')
-            self.log.info(f' + Disk\t- {w_speed / 1024 / 1024:.02f} MiB/s (write) / '
-                          f'{r_speed / 1024 / 1024:.02f} MiB/s (read)')
+            # rounds the numbers to the base
+            def round_spec(x, base):
+                return round(x * (base / 100))
 
+            # returns the progress bar
+            def pounds(perc, rest):
+                num_pounds = round_spec(perc, rest)
+                return ('#' * num_pounds) + (' ' * (rest - num_pounds))
+
+            term_length = shutil.get_terminal_size().columns
+            # base message
+            message = f"{perc:.02f}%"
+            stats = f"{hours:02d}:{minutes:02d}:{seconds:02d} {dl_speed / 1024 / 1024:.02f} Mib/s {total_dl / 1024 / 1024:.02f} MiB "
+            # rest = term_length - len(message) - ((round(shutil.get_terminal_size().columns / 2) + 2) - len(stats)) # Gets how many whitespaces we have to leave
+            rest = round((term_length - len(message) - len(stats)) / 3) - 1
+            # adds as many spaces to the message as we need...
+            message += ' ' * rest 
+            message += stats
+            message += f"[{pounds(perc, (rest * 2))}]"
+             
+            # clears the line, and prints the message
+            sys.stdout.write("\r" + message)
+            # flushes stdout
+            sys.stdout.flush()
+            
             # send status update to back to instantiator (if queue exists)
             if self.status_queue:
                 try:
