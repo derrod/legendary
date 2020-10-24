@@ -336,7 +336,7 @@ class LegendaryCore:
         params.append(game_exe)
 
         if install.launch_parameters:
-            params.extend(shlex.split(install.launch_parameters))
+            params.extend(shlex.split(install.launch_parameters, posix=False))
 
         params.extend([
               '-AUTH_LOGIN=unused',
