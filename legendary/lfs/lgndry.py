@@ -27,7 +27,7 @@ class LGDLFS:
         # EGS metadata
         self._game_metadata = dict()
         # Config with game specific settings (e.g. start parameters, env variables)
-        self.config = configparser.ConfigParser()
+        self.config = configparser.ConfigParser(comment_prefixes='/', allow_no_value=True)
         self.config.optionxform = str
 
         # ensure folders exist.
