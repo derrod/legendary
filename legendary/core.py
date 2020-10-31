@@ -261,6 +261,10 @@ class LegendaryCore:
 
     def get_dlc_for_game(self, app_name):
         game = self.get_game(app_name)
+        if not game:
+            self.log.warning(f'Metadata for {app_name} is missing!')
+            return []
+
         if game.is_dlc:  # dlc shouldn't have DLC
             return []
 
