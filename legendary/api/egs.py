@@ -10,7 +10,7 @@ from legendary.models.exceptions import InvalidCredentialsError
 
 
 class EPCAPI:
-    _user_agent = 'UELauncher/10.18.6-14188424+++Portal+Release-Live Windows/10.0.18363.1.256.64bit'
+    _user_agent = 'UELauncher/10.19.2-14598295+++Portal+Release-Live Windows/10.0.19041.1.256.64bit'
     # required for the oauth request
     _user_basic = '34a02cf8f4414e29b15921876da36f9a'
     _pw_basic = 'daafbccc737745039dffe53d94fc76cf'
