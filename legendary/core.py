@@ -254,7 +254,7 @@ class LegendaryCore:
 
             if game.is_dlc:
                 _dlc[game.metadata['mainGameItem']['id']].append(game)
-            else:
+            elif not any(i['path'] == 'mods' for i in game.metadata.get('categories', [])):
                 _ret.append(game)
 
         return _ret, _dlc
