@@ -197,6 +197,9 @@ class LegendaryCore:
                     self.egs.get_game_assets(platform=platform_override)]
 
         if not self.lgd.assets or update_assets:
+            # if not logged in, return empty list
+            if not self.egs.user:
+                return []
             self.lgd.assets = [GameAsset.from_egs_json(a) for a in self.egs.get_game_assets()]
 
         return self.lgd.assets
