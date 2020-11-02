@@ -5,6 +5,8 @@ import os
 import configparser
 import logging
 
+from pathlib import Path
+
 from legendary.models.game import *
 from legendary.utils.lfs import clean_filename
 
@@ -195,6 +197,24 @@ class LGDLFS:
             except Exception as e:
                 self.log.warning(f'Failed to delete file "{f}": {e!r}')
 
+    def clean_metadata(self, app_names):
+        for f in os.listdir(os.path.join(self.path, 'metadata')):
+            app_name = f.rpartition('.')[0]
+            if app_name not in app_names:
+                try:
+                    os.remove(os.path.join(self.path, 'metadata', f))
+                except Exception as e:
+                    self.log.warning(f'Failed to delete file "{f}": {e!r}')
+
+    def clean_manifests(self, in_use):
+        in_use_files = set(f'{clean_filename(f"{app_name}_{version}")}.manifest' for app_name, version in in_use)
+        for f in os.listdir(os.path.join(self.path, 'manifests')):
+            if f not in in_use_files:
+                try:
+                    os.remove(os.path.join(self.path, 'manifests', f))
+                except Exception as e:
+                    self.log.warning(f'Failed to delete file "{f}": {e!r}')
+
     def get_installed_game(self, app_name):
         if self._installed is None:
             try:
@@ -244,3 +264,5 @@ class LGDLFS:
         with open(os.path.join(self.path, 'config.ini'), 'w') as cf:
             self.config.write(cf)
 
+    def get_dir_size(self):
+        return sum(f.stat().st_size for f in Path(self.path).glob('**/*') if f.is_file())

@@ -1020,6 +1020,25 @@ class LegendaryCLI:
         print(f'EGL Sync enabled: {self.core.egl_sync_enabled}')
         print(f'Config directory: {self.core.lgd.path}')
 
+    def cleanup(self, args):
+        before = self.core.lgd.get_dir_size()
+        # delete metadata
+        logger.debug('Removing app metadata...')
+        app_names = set(g.app_name for g in self.core.get_assets(update_assets=False))
+        self.core.lgd.clean_metadata(app_names)
+
+        if not args.keep_manifests:
+            logger.debug('Removing manifests...')
+            installed = [(ig.app_name, ig.version) for ig in self.core.get_installed_list()]
+            installed.extend((ig.app_name, ig.version) for ig in self.core.get_installed_dlc_list())
+            self.core.lgd.clean_manifests(installed)
+
+        logger.debug('Removing tmp data')
+        self.core.lgd.clean_tmp_data()
+
+        after = self.core.lgd.get_dir_size()
+        logger.info(f'Cleanup complete! Removed {(before - after)/1024/1024:.02f} MiB.')
+
 
 def main():
     parser = argparse.ArgumentParser(description=f'Legendary v{__version__} - "{__codename__}"')
@@ -1050,6 +1069,7 @@ def main():
     import_parser = subparsers.add_parser('import-game', help='Import an already installed game')
     egl_sync_parser = subparsers.add_parser('egl-sync', help='Setup or run Epic Games Launcher sync')
     status_parser = subparsers.add_parser('status', help='Show legendary status information')
+    clean_parser = subparsers.add_parser('cleanup', help='Remove old temporary, metadata, and manifest files')
 
     install_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
     uninstall_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
@@ -1234,6 +1254,9 @@ def main():
     status_parser.add_argument('--json', dest='json', action='store_true',
                                help='Show status in JSON format')
 
+    clean_parser.add_argument('--keep-manifests', dest='keep_manifests', action='store_true',
+                              help='Do not delete old manifests')
+
     args, extra = parser.parse_known_args()
 
     if args.version:
@@ -1243,7 +1266,7 @@ def main():
     if args.subparser_name not in ('auth', 'list-games', 'list-installed', 'list-files',
                                    'launch', 'download', 'uninstall', 'install', 'update',
                                    'repair', 'list-saves', 'download-saves', 'sync-saves',
-                                   'verify-game', 'import-game', 'egl-sync', 'status'):
+                                   'verify-game', 'import-game', 'egl-sync', 'status', 'cleanup'):
         print(parser.format_help())
 
         # Print the main help *and* the help for all of the subcommands. Thanks stackoverflow!
@@ -1302,6 +1325,8 @@ def main():
             cli.egs_sync(args)
         elif args.subparser_name == 'status':
             cli.status(args)
+        elif args.subparser_name == 'cleanup':
+            cli.cleanup(args)
     except KeyboardInterrupt:
         logger.info('Command was aborted via KeyboardInterrupt, cleaning up...')
 
