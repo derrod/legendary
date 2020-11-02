@@ -31,7 +31,7 @@ class LGDLFS:
         self.config.optionxform = str
 
         # ensure folders exist.
-        for f in ['', 'manifests', 'metadata', 'tmp', 'manifests/old']:
+        for f in ['', 'manifests', 'metadata', 'tmp']:
             if not os.path.exists(os.path.join(self.path, f)):
                 os.makedirs(os.path.join(self.path, f))
 
@@ -123,21 +123,17 @@ class LGDLFS:
                   open(os.path.join(self.path, 'assets.json'), 'w'),
                   indent=2, sort_keys=True)
 
-    def _get_manifest_filename(self, app_name, version=''):
-        if not version:
-            return os.path.join(self.path, 'manifests', f'{app_name}.manifest')
-        else:
-            # if a version is specified load it from the versioned directory
-            fname = clean_filename(f'{app_name}_{version}')
-            return os.path.join(self.path, 'manifests', 'old', f'{fname}.manifest')
+    def _get_manifest_filename(self, app_name, version):
+        fname = clean_filename(f'{app_name}_{version}')
+        return os.path.join(self.path, 'manifests', f'{fname}.manifest')
 
-    def load_manifest(self, app_name, version=''):
+    def load_manifest(self, app_name, version):
         try:
             return open(self._get_manifest_filename(app_name, version), 'rb').read()
         except FileNotFoundError:  # all other errors should propagate
             return None
 
-    def save_manifest(self, app_name, manifest_data, version=''):
+    def save_manifest(self, app_name, manifest_data, version):
         with open(self._get_manifest_filename(app_name, version), 'wb') as f:
             f.write(manifest_data)
 

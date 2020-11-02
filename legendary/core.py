@@ -713,7 +713,6 @@ class LegendaryCore:
         self.log.info('Parsing game manifest...')
         new_manifest = self.load_manifest(new_manifest_data)
         self.log.debug(f'Base urls: {base_urls}')
-        self.lgd.save_manifest(game.app_name, new_manifest_data)
         # save manifest with version name as well for testing/downgrading/etc.
         self.lgd.save_manifest(game.app_name, new_manifest_data,
                                version=new_manifest.meta.build_version)
@@ -960,7 +959,6 @@ class LegendaryCore:
 
         # parse and save manifest to disk for verification step of import
         new_manifest = self.load_manifest(manifest_data)
-        self.lgd.save_manifest(game.app_name, manifest_data)
         self.lgd.save_manifest(game.app_name, manifest_data,
                                version=new_manifest.meta.build_version)
         install_size = sum(fm.file_size for fm in new_manifest.file_manifest_list.elements)
@@ -1031,7 +1029,6 @@ class LegendaryCore:
         with open(manifest_filename, 'rb') as f:
             manifest_data = f.read()
         new_manifest = self.load_manifest(manifest_data)
-        self.lgd.save_manifest(lgd_igame.app_name, manifest_data)
         self.lgd.save_manifest(lgd_igame.app_name, manifest_data,
                                version=new_manifest.meta.build_version)
         # mark game as installed
