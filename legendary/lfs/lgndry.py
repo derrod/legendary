@@ -35,6 +35,33 @@ class LGDLFS:
             if not os.path.exists(os.path.join(self.path, f)):
                 os.makedirs(os.path.join(self.path, f))
 
+        # if "old" folder exists migrate files and remove it
+        if os.path.exists(os.path.join(self.path, 'manifests', 'old')):
+            self.log.info('Migrating manifest files from old folders to new, please wait...')
+            # remove unversioned manifest files
+            for _f in os.listdir(os.path.join(self.path, 'manifests')):
+                if '.manifest' not in _f:
+                    continue
+                if '_' not in _f or (_f.startswith('UE_') and _f.count('_') < 2):
+                    self.log.debug(f'Deleting "{_f}" ...')
+                    os.remove(os.path.join(self.path, 'manifests', _f))
+
+            # move files from "old" to the base folder
+            for _f in os.listdir(os.path.join(self.path, 'manifests', 'old')):
+                try:
+                    self.log.debug(f'Renaming "{_f}"')
+                    os.rename(os.path.join(self.path, 'manifests', 'old', _f),
+                              os.path.join(self.path, 'manifests', _f))
+                except Exception as e:
+                    self.log.warning(f'Renaming manifest file "{_f}" failed: {e!r}')
+
+            # remove "old" folder
+            try:
+                os.removedirs(os.path.join(self.path, 'manifests', 'old'))
+            except Exception as e:
+                self.log.warning(f'Removing "{os.path.join(self.path, "manifests", "old")}" folder failed: '
+                                 f'{e!r}, please remove manually')
+
         # try loading config
         self.config.read(os.path.join(self.path, 'config.ini'))
         # make sure "Legendary" section exists
