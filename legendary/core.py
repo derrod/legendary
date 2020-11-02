@@ -722,7 +722,8 @@ class LegendaryCore:
 
         # check if we should use a delta manifest or not
         disable_delta = disable_delta or ((override_old_manifest or override_manifest) and not override_delta_manifest)
-        disable_delta = disable_delta or (old_manifest.meta.build_id == new_manifest.meta.build_id)
+        if old_manifest and new_manifest:
+            disable_delta = disable_delta or (old_manifest.meta.build_id == new_manifest.meta.build_id)
         if old_manifest and new_manifest and not disable_delta:
             if override_delta_manifest:
                 self.log.info(f'Overriding delta manifest with "{override_delta_manifest}"')
