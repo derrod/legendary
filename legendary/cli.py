@@ -618,20 +618,22 @@ class LegendaryCLI:
         logger.info(f'Reusable size: {analysis.reuse_size / 1024 / 1024:.02f} MiB (chunks) / '
                     f'{analysis.unchanged / 1024 / 1024:.02f} MiB (unchanged)')
 
-        res = self.core.check_installation_conditions(analysis=analysis, install=igame,
+        res = self.core.check_installation_conditions(analysis=analysis, install=igame, game=game,
                                                       updating=self.core.is_installed(args.app_name),
                                                       ignore_space_req=args.ignore_space)
 
-        if res.failures:
-            logger.fatal('Download cannot proceed, the following errors occured:')
-            for msg in sorted(res.failures):
-                logger.fatal(msg)
-            exit(1)
+        if res.warnings or res.failures:
+            logger.info('Installation requirements check returned the following results:')
 
         if res.warnings:
-            logger.warning('Installation requirements check returned the following warnings:')
             for warn in sorted(res.warnings):
                 logger.warning(warn)
+
+        if res.failures:
+            for msg in sorted(res.failures):
+                logger.fatal(msg)
+            logger.error('Installation cannot proceed, exiting.')
+            exit(1)
 
         logger.info('Downloads are resumable, you can interrupt the download with '
                     'CTRL-C and resume it using the same command later on.')

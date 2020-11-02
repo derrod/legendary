@@ -833,6 +833,7 @@ class LegendaryCore:
     @staticmethod
     def check_installation_conditions(analysis: AnalysisResult,
                                       install: InstalledGame,
+                                      game: Game,
                                       updating: bool = False,
                                       ignore_space_req: bool = False) -> ConditionCheckResult:
         results = ConditionCheckResult(failures=set(), warnings=set())
@@ -870,6 +871,26 @@ class LegendaryCore:
             else:
                 results.failures.add(f'Not enough available disk space!'
                                      f'{free_mib:.02f} MiB < {required_mib:.02f} MiB')
+
+        # check if the game actually ships the files or just a uplay installer + packed game files
+        executables = [f for f in analysis.manifest_comparison.added if
+                       f.endswith('.exe') and not f.startswith('Installer/')]
+        if not any('uplay' not in e.lower() for e in executables):
+            results.failures.add('This game requires installation via Uplay and does not ship executable game files.')
+
+        # check if the game launches via uplay
+        if install.executable == 'UplayLaunch.exe':
+            results.warnings.add('This game requires launching via Uplay, it is recommended to install the game '
+                                 'via Uplay instead.')
+
+        # check if the game requires linking to an external account first
+        partner_link = game.metadata.get('customAttributes', {}).get('partnerLinkType', {}).get('value', None)
+        if partner_link == 'ubisoft':
+            results.warnings.add('This game requires linking to and activating on a Ubisoft account first, '
+                                 'this is not currently supported.')
+        elif partner_link:
+            results.warnings.add(f'This game requires linking to "{partner_link}", '
+                                 f'this is currently unsupported and the game may not work.')
 
         return results
 
