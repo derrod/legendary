@@ -748,10 +748,10 @@ class LegendaryCLI:
             for dlc in dlcs:
                 if (idlc := self.core.get_installed_game(dlc.app_name)) is not None:
                     logger.info(f'Uninstalling DLC "{dlc.app_name}"...')
-                    self.core.uninstall_game(idlc)
+                    self.core.uninstall_game(idlc, delete_files=not args.keep_files)
 
             logger.info(f'Removing "{igame.title}" from "{igame.install_path}"...')
-            self.core.uninstall_game(igame, delete_root_directory=True)
+            self.core.uninstall_game(igame, delete_files=not args.keep_files, delete_root_directory=True)
             logger.info('Game has been uninstalled.')
         except Exception as e:
             logger.warning(f'Removing game failed: {e!r}, please remove {igame.install_path} manually.')
@@ -1145,6 +1145,9 @@ def main():
                                 help='Do not abort if not enough free space is available')
     install_parser.add_argument('--disable-delta-manifests', dest='disable_delta', action='store_true',
                                 help='Do not use delta manfiests when updating (may increase download size)')
+
+    uninstall_parser.add_argument('--keep-files', dest='keep_files', action='store_true',
+                                  help='Keep files but remove game from Legendary database')
 
     launch_parser.add_argument('--offline', dest='offline', action='store_true',
                                default=False, help='Skip login and launch game without online authentication')
