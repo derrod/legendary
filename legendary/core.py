@@ -874,8 +874,9 @@ class LegendaryCore:
 
         # check if the game actually ships the files or just a uplay installer + packed game files
         executables = [f for f in analysis.manifest_comparison.added if
-                       f.endswith('.exe') and not f.startswith('Installer/')]
-        if not any('uplay' not in e.lower() for e in executables):
+                       f.lower().endswith('.exe') and not f.startswith('Installer/')]
+        if not updating and not any('uplay' not in e.lower() for e in executables) and \
+                any('uplay' in e.lower() for e in executables):
             results.failures.add('This game requires installation via Uplay and does not ship executable game files.')
 
         # check if the game launches via uplay
