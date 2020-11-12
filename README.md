@@ -135,18 +135,20 @@ legendary -y egl-sync
 ## Usage
 
 ````
-usage: legendary [-h] [-v] [-y] [-V] {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game,egl-sync,status} ...
+usage: legendary [-h] [-v] [-y] [-V]
+              {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game,egl-sync,status,cleanup}
+              ...
 
 Legendary v0.X.X - "Codename"
 
 optional arguments:
   -h, --help            show this help message and exit
-  -v                    Set loglevel to debug
+  -v, --debug           Set loglevel to debug
   -y, --yes             Default to yes for all prompts
-  -V                    Print version and exit
+  -V, --version         Print version and exit
 
 Commands:
-  {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game,egl-sync,status}
+  {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game,egl-sync,status,cleanup}
     auth                Authenticate with EPIC
     install (download,update,repair)
                         Download a game
@@ -162,18 +164,23 @@ Commands:
     import-game         Import an already installed game
     egl-sync            Setup or run Epic Games Launcher sync
     status              Show legendary status information
+    cleanup             Remove old temporary, metadata, and manifest files
 
 Individual command help:
 
 Command: auth
-usage: legendary auth [-h] [--import] [--code <exchange code>] [--sid <session id>] [--delete]
+usage: legendary auth [-h] [--import] [--code <exchange code>]
+                   [--sid <session id>] [--delete]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --import              Import Epic Games Launcher authentication data (logs out of EGL)
+  --import              Import Epic Games Launcher authentication data (logs
+                        out of EGL)
   --code <exchange code>
-                        Use specified exchange code instead of interactive authentication
-  --sid <session id>    Use specified session id instead of interactive authentication
+                        Use specified exchange code instead of interactive
+                        authentication
+  --sid <session id>    Use specified session id instead of interactive
+                        authentication
   --delete              Remove existing authentication (log out)
 
 
@@ -188,42 +195,64 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   --base-path <path>    Path for game installations (defaults to ~/legendary)
-  --game-folder <path>  Folder for game installation (defaults to folder specified in metadata)
+  --game-folder <path>  Folder for game installation (defaults to folder
+                        specified in metadata)
   --max-shared-memory <size>
-                        Maximum amount of shared memory to use (in MiB), default: 1 GiB
-  --max-workers <num>   Maximum amount of download workers, default: min(2 * CPUs, 16)
-  --manifest <uri>      Manifest URL or path to use instead of the CDN one (e.g. for downgrading)
-  --old-manifest <uri>  Manifest URL or path to use as the old one (e.g. for testing patching)
-  --base-url <url>      Base URL to download from (e.g. to test or switch to a different CDNs)
+                        Maximum amount of shared memory to use (in MiB),
+                        default: 1 GiB
+  --max-workers <num>   Maximum amount of download workers, default: min(2 *
+                        CPUs, 16)
+  --manifest <uri>      Manifest URL or path to use instead of the CDN one
+                        (e.g. for downgrading)
+  --old-manifest <uri>  Manifest URL or path to use as the old one (e.g. for
+                        testing patching)
+  --delta-manifest <uri>
+                        Manifest URL or path to use as the delta one (e.g. for
+                        testing)
+  --base-url <url>      Base URL to download from (e.g. to test or switch to a
+                        different CDNs)
   --force               Download all files / ignore existing (overwrite)
-  --disable-patching    Do not attempt to patch existing installation (download entire changed files)
+  --disable-patching    Do not attempt to patch existing installation
+                        (download entire changed files)
   --download-only, --no-install
-                        Do not intall app and do not run prerequisite installers after download
-  --update-only         Only update, do not do anything if specified app is not installed
-  --dlm-debug           Set download manager and worker processes' loglevel to debug
+                        Do not intall app and do not run prerequisite
+                        installers after download
+  --update-only         Only update, do not do anything if specified app is
+                        not installed
+  --dlm-debug           Set download manager and worker processes' loglevel to
+                        debug
   --platform <Platform>
-                        Platform override for download (also sets --no-install)
-  --prefix <prefix>     Only fetch files whose path starts with <prefix> (case insensitive)
-  --exclude <prefix>    Exclude files starting with <prefix> (case insensitive)
+                        Platform override for download (also sets --no-
+                        install)
+  --prefix <prefix>     Only fetch files whose path starts with <prefix> (case
+                        insensitive)
+  --exclude <prefix>    Exclude files starting with <prefix> (case
+                        insensitive)
   --install-tag <tag>   Only download files with the specified install tag
-  --enable-reordering   Enable reordering optimization to reduce RAM requirements during download (may have adverse results for some titles)
-  --dl-timeout <sec>    Connection timeout for downloader (default: 10 seconds)
+  --enable-reordering   Enable reordering optimization to reduce RAM
+                        requirements during download (may have adverse results
+                        for some titles)
+  --dl-timeout <sec>    Connection timeout for downloader (default: 10
+                        seconds)
   --save-path <path>    Set save game path to be used for sync-saves
-  --repair              Repair installed game by checking and redownloading corrupted/missing files
+  --repair              Repair installed game by checking and redownloading
+                        corrupted/missing files
   --repair-and-update   Update game to the latest version when repairing
   --ignore-free-space   Do not abort if not enough free space is available
   --disable-delta-manifests
-                        Do not use delta manfiests when updating (may increase download size)
+                        Do not use delta manfiests when updating (may increase
+                        download size)
 
 
 Command: uninstall
-usage: legendary uninstall [-h] <App Name>
+usage: legendary uninstall [-h] [--keep-files] <App Name>
 
 positional arguments:
-  <App Name>  Name of the app
+  <App Name>    Name of the app
 
 optional arguments:
-  -h, --help  show this help message and exit
+  -h, --help    show this help message and exit
+  --keep-files  Keep files but remove game from Legendary database
 
 
 Command: launch
@@ -236,16 +265,21 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  --offline             Skip login and launch game without online authentication
+  --offline             Skip login and launch game without online
+                        authentication
   --skip-version-check  Skip version check when launching game in online mode
   --override-username <username>
-                        Override username used when launching the game (only works with some titles)
-  --dry-run             Print the command line that would have been used to launch the game and exit
+                        Override username used when launching the game (only
+                        works with some titles)
+  --dry-run             Print the command line that would have been used to
+                        launch the game and exit
   --language <two letter language code>
-                        Override language for game launch (defaults to system locale)
+                        Override language for game launch (defaults to system
+                        locale)
   --wrapper <wrapper command>
                         Wrapper command to launch game with
-  --set-defaults        Save parameters used to launch to config (does not include env vars)
+  --set-defaults        Save parameters used to launch to config (does not
+                        include env vars)
   --reset-defaults      Reset config settings for app and exit
   --wine <wine binary>  Set WINE binary to use to launch the app
   --wine-prefix <wine pfx path>
@@ -254,20 +288,24 @@ optional arguments:
 
 
 Command: list-games
-usage: legendary list-games [-h] [--platform <Platform>] [--include-ue] [--csv] [--tsv] [--json]
+usage: legendary list-games [-h] [--platform <Platform>] [--include-ue] [--csv]
+                         [--tsv] [--json]
 
 optional arguments:
   -h, --help            show this help message and exit
   --platform <Platform>
-                        Override platform that games are shown for (e.g. Win32/Mac)
-  --include-ue          Also include Unreal Engine content (Engine/Marketplace) in list
+                        Override platform that games are shown for (e.g.
+                        Win32/Mac)
+  --include-ue          Also include Unreal Engine content
+                        (Engine/Marketplace) in list
   --csv                 List games in CSV format
   --tsv                 List games in TSV format
   --json                List games in JSON format
 
 
 Command: list-installed
-usage: legendary list-installed [-h] [--check-updates] [--csv] [--tsv] [--json] [--show-dirs]
+usage: legendary list-installed [-h] [--check-updates] [--csv] [--tsv] [--json]
+                             [--show-dirs]
 
 optional arguments:
   -h, --help       show this help message and exit
@@ -279,7 +317,10 @@ optional arguments:
 
 
 Command: list-files
-usage: legendary list-files [-h] [--force-download] [--platform <Platform>] [--manifest <uri>] [--csv] [--tsv] [--json] [--hashlist] [--install-tag <tag>] [<App Name>]
+usage: legendary list-files [-h] [--force-download] [--platform <Platform>]
+                         [--manifest <uri>] [--csv] [--tsv] [--json]
+                         [--hashlist] [--install-tag <tag>]
+                         [<App Name>]
 
 positional arguments:
   <App Name>            Name of the app (optional)
@@ -293,7 +334,8 @@ optional arguments:
   --csv                 Output in CSV format
   --tsv                 Output in TSV format
   --json                Output in JSON format
-  --hashlist            Output file hash list in hashcheck/sha1sum -c compatible format
+  --hashlist            Output file hash list in hashcheck/sha1sum -c
+                        compatible format
   --install-tag <tag>   Show only files with specified install tag
 
 
@@ -318,7 +360,10 @@ optional arguments:
 
 
 Command: sync-saves
-usage: legendary sync-saves [-h] [--skip-upload] [--skip-download] [--force-upload] [--force-download] [--save-path <path>] [--disable-filters] [<App Name>]
+usage: legendary sync-saves [-h] [--skip-upload] [--skip-download]
+                         [--force-upload] [--force-download]
+                         [--save-path <path>] [--disable-filters]
+                         [<App Name>]
 
 positional arguments:
   <App Name>          Name of the app (optional)
@@ -329,7 +374,8 @@ optional arguments:
   --skip-download     Only upload new saves from cloud, don't download
   --force-upload      Force upload even if local saves are older
   --force-download    Force download even if local saves are newer
-  --save-path <path>  Override savegame path (requires single app name to be specified)
+  --save-path <path>  Override savegame path (requires single app name to be
+                      specified)
   --disable-filters   Disable save game file filtering
 
 
@@ -344,7 +390,8 @@ optional arguments:
 
 
 Command: import-game
-usage: legendary import-game [-h] [--disable-check] <App Name> <Installation directory>
+usage: legendary import-game [-h] [--disable-check]
+                          <App Name> <Installation directory>
 
 positional arguments:
   <App Name>            Name of the app
@@ -353,24 +400,33 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  --disable-check       Disables completeness check of the to-be-imported game installation (useful if the imported game is a much older version or missing files)
+  --disable-check       Disables completeness check of the to-be-imported game
+                        installation (useful if the imported game is a much
+                        older version or missing files)
 
 
 Command: egl-sync
-usage: legendary egl-sync [-h] [--egl-manifest-path EGL_MANIFEST_PATH] [--egl-wine-prefix EGL_WINE_PREFIX] [--enable-sync] [--disable-sync] [--one-shot] [--import-only] [--export-only] [--unlink]
+usage: legendary egl-sync [-h] [--egl-manifest-path EGL_MANIFEST_PATH]
+                       [--egl-wine-prefix EGL_WINE_PREFIX] [--enable-sync]
+                       [--disable-sync] [--one-shot] [--import-only]
+                       [--export-only] [--unlink]
 
 optional arguments:
   -h, --help            show this help message and exit
   --egl-manifest-path EGL_MANIFEST_PATH
-                        Path to the Epic Games Launcher's Manifests folder, should point to /ProgramData/Epic/EpicGamesLauncher/Data/Manifests
+                        Path to the Epic Games Launcher's Manifests folder,
+                        should point to
+                        /ProgramData/Epic/EpicGamesLauncher/Data/Manifests
   --egl-wine-prefix EGL_WINE_PREFIX
-                        Path to the WINE prefix the Epic Games Launcher is installed in
+                        Path to the WINE prefix the Epic Games Launcher is
+                        installed in
   --enable-sync         Enable automatic EGL <-> Legendary sync
   --disable-sync        Disable automatic sync and exit
   --one-shot            Sync once, do not ask to setup automatic sync
   --import-only         Only import games from EGL (no export)
   --export-only         Only export games to EGL (no import)
-  --unlink              Disable sync and remove EGL metadata from installed games
+  --unlink              Disable sync and remove EGL metadata from installed
+                        games
 
 
 Command: status
@@ -380,6 +436,14 @@ optional arguments:
   -h, --help  show this help message and exit
   --offline   Only print offline status information, do not login
   --json      Show status in JSON format
+
+
+Command: cleanup
+usage: legendary cleanup [-h] [--keep-manifests]
+
+optional arguments:
+  -h, --help        show this help message and exit
+  --keep-manifests  Do not delete old manifests
 ````
 
 
