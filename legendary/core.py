@@ -382,10 +382,10 @@ class LegendaryCore:
 
         # get environment overrides from config
         env = os.environ.copy()
+        if 'default.env' in self.lgd.config:
+            env.update(dict(self.lgd.config['default.env']))
         if f'{app_name}.env' in self.lgd.config:
             env.update(dict(self.lgd.config[f'{app_name}.env']))
-        elif 'default.env' in self.lgd.config:
-            env.update(dict(self.lgd.config['default.env']))
 
         if wine_pfx:
             env['WINEPREFIX'] = wine_pfx
@@ -861,6 +861,7 @@ class LegendaryCore:
         if updating:
             min_disk_space += analysis.biggest_file_size
 
+        # todo when resuming, only check remaining files
         _, _, free = shutil.disk_usage(os.path.split(install.install_path)[0])
         if free < min_disk_space:
             free_mib = free / 1024 / 1024
@@ -869,7 +870,7 @@ class LegendaryCore:
                 results.warnings.add(f'Potentially not enough available disk space! '
                                      f'{free_mib:.02f} MiB < {required_mib:.02f} MiB')
             else:
-                results.failures.add(f'Not enough available disk space!'
+                results.failures.add(f'Not enough available disk space! '
                                      f'{free_mib:.02f} MiB < {required_mib:.02f} MiB')
 
         # check if the game actually ships the files or just a uplay installer + packed game files
