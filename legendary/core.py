@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from locale import getdefaultlocale
 from multiprocessing import Queue
 from random import choice as randchoice
-from requests import Request, session
+from requests import session
 from requests.exceptions import HTTPError
 from typing import List, Dict
 from uuid import uuid4
@@ -629,12 +629,11 @@ class LegendaryCore:
             if base_url not in base_urls:
                 base_urls.append(base_url)
 
-            params = None
             if 'queryParams' in manifest:
-                params = {p['name']: p['value'] for p in manifest['queryParams']}
-
-            # build url with a prepared request
-            manifest_urls.append(Request('GET', manifest['uri'], params=params).prepare().url)
+                params = '&'.join(f'{p["name"]}={p["value"]}' for p in manifest['queryParams'])
+                manifest_urls.append(f'{manifest["uri"]}?{params}')
+            else:
+                manifest_urls.append(manifest['uri'])
 
         return manifest_urls, base_urls
 
