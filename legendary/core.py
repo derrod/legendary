@@ -64,17 +64,12 @@ class LegendaryCore:
         self.local_timezone = datetime.now().astimezone().tzinfo
         self.language_code, self.country_code = ('en', 'US')
 
-    def get_locale(self):
-        locale = self.lgd.config.get('Legendary', 'locale', fallback=getdefaultlocale()[0])
-
-        if locale:
+        if locale := self.lgd.config.get('Legendary', 'locale', fallback=getdefaultlocale()[0]):
             try:
                 self.language_code, self.country_code = locale.split('-' if '-' in locale else '_')
                 self.log.debug(f'Set locale to {self.language_code}-{self.country_code}')
-
-                # if egs is loaded make sure to override its language setting as well
-                if self.egs:
-                    self.egs.language_code, self.egs.country_code = self.language_code, self.country_code
+                # adjust egs api language as well
+                self.egs.language_code, self.egs.country_code = self.language_code, self.country_code
             except Exception as e:
                 self.log.warning(f'Getting locale failed: {e!r}, falling back to using en-US.')
         else:
@@ -227,8 +222,6 @@ class LegendaryCore:
     def get_game_and_dlc_list(self, update_assets=True,
                               platform_override=None,
                               skip_ue=True) -> (List[Game], Dict[str, Game]):
-        # resolve locale
-        self.get_locale()
         _ret = []
         _dlc = defaultdict(list)
 
@@ -364,7 +357,6 @@ class LegendaryCore:
 
         language_code = self.lgd.config.get(app_name, 'language', fallback=language)
         if not language_code:  # fall back to system or config language
-            self.get_locale()
             language_code = self.language_code
 
         params.extend([
