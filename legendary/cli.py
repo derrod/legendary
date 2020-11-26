@@ -27,7 +27,8 @@ from legendary.utils.lfs import validate_files
 # todo custom formatter for cli logger (clean info, highlighted error/warning)
 logging.basicConfig(
     format='[%(name)s] %(levelname)s: %(message)s',
-    level=logging.INFO
+    level=logging.INFO,
+    stream=stdout
 )
 logger = logging.getLogger('cli')
 
