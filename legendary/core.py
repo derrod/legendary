@@ -792,6 +792,9 @@ class LegendaryCore:
         else:
             process_opt = False
 
+        if not max_workers:
+            max_workers = self.lgd.config.getint('Legendary', 'max_workers', fallback=0)
+
         dlm = DLManager(install_path, base_url, resume_file=resume_file, status_q=status_q,
                         max_shared_memory=max_shm * 1024 * 1024, max_workers=max_workers,
                         dl_timeout=dl_timeout)

@@ -469,6 +469,8 @@ Legendary supports some options as well as game specific configuration in `~/.co
 log_level = debug
 ; maximum shared memory (in MiB) to use for installation
 max_memory = 1024
+; maximum number of worker processes when downloading (fewer wokers will be slower, but also use fewer system resources)
+max_workers = 8
 ; default install directory
 install_dir = /mnt/tank/games
 ; locale override, must be in RFC 1766 format (e.g. "en-US")
