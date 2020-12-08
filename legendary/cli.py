@@ -24,6 +24,7 @@ from legendary.models.game import SaveGameStatus, VerifyResult
 from legendary.utils.cli import get_boolean_choice
 from legendary.utils.custom_parser import AliasedSubParsersAction
 from legendary.utils.lfs import validate_files
+from legendary.utils.game_workarounds import cyber_prompt_2077
 
 # todo custom formatter for cli logger (clean info, highlighted error/warning)
 logging.basicConfig(
@@ -576,6 +577,16 @@ class LegendaryCLI:
                 self.verify_game(args, print_command=False)
             else:
                 logger.info(f'Using existing repair file: {repair_file}')
+
+        # Workaround for Cyberpunk 2077 preload
+        if game.app_name.startswith('Ginger'):
+            if not self.core.is_installed(game.app_name):
+                args.install_tag = cyber_prompt_2077()
+                if game.app_name not in self.core.lgd.config:
+                    self.core.lgd.config[game.app_name] = dict()
+                self.core.lgd.config.set(game.app_name, 'install_tags', ','.join(args.install_tag))
+            else:
+                args.install_tag = self.core.lgd.config.get(game.app_name, 'install_tags', fallback='').split(',')
 
         logger.info('Preparing download...')
         # todo use status queue to print progress from CLI
