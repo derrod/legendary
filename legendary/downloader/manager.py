@@ -139,12 +139,13 @@ class DLManager(Process):
 
         # Not entirely sure what install tags are used for, only some titles have them.
         # Let's add it for testing anyway.
-        if file_install_tag:
+        if file_install_tag is not None:
             if isinstance(file_install_tag, str):
                 file_install_tag = [file_install_tag]
 
             files_to_skip = set(i.filename for i in manifest.file_manifest_list.elements
-                                if not any(fit in i.install_tags for fit in file_install_tag))
+                                if not any((fit in i.install_tags) or (not fit and not i.install_tags)
+                                           for fit in file_install_tag))
             self.log.info(f'Found {len(files_to_skip)} files to skip based on install tag.')
             mc.added -= files_to_skip
             mc.changed -= files_to_skip
