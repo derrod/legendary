@@ -1,4 +1,4 @@
 """Legendary!"""
 
-__version__ = '0.20.3'
-__codename__ = 'Point Insertion'
+__version__ = '0.20.4'
+__codename__ = 'Cyberpunk Edition'
