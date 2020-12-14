@@ -195,7 +195,7 @@ class DLManager(Process):
             analysis_res.unchanged = len(mc.unchanged)
             self.log.debug(f'{analysis_res.unchanged} unchanged files')
 
-        if processing_optimization and len(manifest.file_manifest_list.elements) > 20_000:
+        if processing_optimization and len(manifest.file_manifest_list.elements) > 100_000:
             self.log.warning('Manifest contains too many files, processing optimizations will be disabled.')
             processing_optimization = False
         elif processing_optimization:
@@ -203,7 +203,6 @@ class DLManager(Process):
 
         # count references to chunks for determining runtime cache size later
         references = Counter()
-        file_to_chunks = defaultdict(set)
         fmlist = sorted(manifest.file_manifest_list.elements,
                         key=lambda a: a.filename.lower())
 
@@ -217,53 +216,40 @@ class DLManager(Process):
 
             for cp in fm.chunk_parts:
                 references[cp.guid_num] += 1
-                if processing_optimization:
-                    file_to_chunks[fm.filename].add(cp.guid_num)
 
         if processing_optimization:
             s_time = time.time()
             # reorder the file manifest list to group files that share many chunks
-            # 5 is mostly arbitrary but has shown in testing to be a good choice
+            # 4 is mostly arbitrary but has shown in testing to be a good choice
             min_overlap = 4
-            # enumerate the file list to try and find a "partner" for
-            # each file that shares the most chunks with it.
-            partners = dict()
-            filenames = [fm.filename for fm in fmlist]
+            # ignore files with less than N chunk parts, this speeds things up dramatically
+            cp_threshold = 5
 
-            for num, filename in enumerate(filenames[:int((len(filenames) + 1) / 2)]):
-                chunks = file_to_chunks[filename]
-                partnerlist = list()
-
-                for other_file in filenames[num + 1:]:
-                    overlap = len(chunks & file_to_chunks[other_file])
-                    if overlap > min_overlap:
-                        partnerlist.append(other_file)
-
-                if not partnerlist:
-                    continue
-
-                partners[filename] = partnerlist
-
-            # iterate over all the files again and this time around
+            remaining_files = {fm.filename: {cp.guid_num for cp in fm.chunk_parts}
+                               for fm in fmlist if fm.filename not in mc.unchanged}
             _fmlist = []
-            processed = set()
-            for fm in fmlist:
-                if fm.filename in processed:
-                    continue
-                _fmlist.append(fm)
-                processed.add(fm.filename)
-                # try to find the file's "partner"
-                f_partners = partners.get(fm.filename, None)
-                if not f_partners:
-                    continue
-                # add each partner to list at this point
-                for partner in f_partners:
-                    if partner in processed:
-                        continue
 
-                    partner_fm = manifest.file_manifest_list.get_file_by_path(partner)
-                    _fmlist.append(partner_fm)
-                    processed.add(partner)
+            # iterate over all files that will be downloaded and pair up those that share the most chunks
+            for fm in fmlist:
+                if fm.filename not in remaining_files:
+                    continue
+
+                _fmlist.append(fm)
+                f_chunks = remaining_files.pop(fm.filename)
+                if len(f_chunks) < cp_threshold:
+                    continue
+
+                best_overlap, match = 0, None
+                for fname, chunks in remaining_files.items():
+                    if len(chunks) < cp_threshold:
+                        continue
+                    overlap = len(f_chunks & chunks)
+                    if overlap > min_overlap and overlap > best_overlap:
+                        best_overlap, match = overlap, fname
+
+                if match:
+                    _fmlist.append(manifest.file_manifest_list.get_file_by_path(match))
+                    remaining_files.pop(match)
 
             fmlist = _fmlist
             opt_delta = time.time() - s_time
@@ -305,10 +291,7 @@ class DLManager(Process):
         # runtime cache requirement by simulating adding/removing from cache during download.
         self.log.debug('Creating filetasks and chunktasks...')
         for current_file in fmlist:
-            # skip unchanged and empty files
-            if current_file.filename in mc.unchanged:
-                continue
-            elif not current_file.chunk_parts:
+            if not current_file.chunk_parts:
                 self.tasks.append(FileTask(current_file.filename, empty=True))
                 continue
 
