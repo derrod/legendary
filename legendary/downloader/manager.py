@@ -195,7 +195,7 @@ class DLManager(Process):
             analysis_res.unchanged = len(mc.unchanged)
             self.log.debug(f'{analysis_res.unchanged} unchanged files')
 
-        if processing_optimization and len(manifest.file_manifest_list.elements) > 8_000:
+        if processing_optimization and len(manifest.file_manifest_list.elements) > 20_000:
             self.log.warning('Manifest contains too many files, processing optimizations will be disabled.')
             processing_optimization = False
         elif processing_optimization:
@@ -221,6 +221,7 @@ class DLManager(Process):
                     file_to_chunks[fm.filename].add(cp.guid_num)
 
         if processing_optimization:
+            s_time = time.time()
             # reorder the file manifest list to group files that share many chunks
             # 5 is mostly arbitrary but has shown in testing to be a good choice
             min_overlap = 4
@@ -265,6 +266,8 @@ class DLManager(Process):
                     processed.add(partner)
 
             fmlist = _fmlist
+            opt_delta = time.time() - s_time
+            self.log.debug(f'Processing optimizations took {opt_delta:.01f} seconds.')
 
         # determine reusable chunks and prepare lookup table for reusable ones
         re_usable = defaultdict(dict)
