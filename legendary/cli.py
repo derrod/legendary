@@ -513,7 +513,6 @@ class LegendaryCLI:
                 if latest.build_version != igame.version:
                     logger.error('Game is out of date, please update or launch with update check skipping!')
                     exit(1)
-        print(args)
         params, cwd, env = self.core.get_launch_parameters(app_name=app_name, offline=args.offline,
                                                            extra_args=extra, user=args.user_name_override,
                                                            wine_bin=args.wine_bin, wine_pfx=args.wine_pfx,
