@@ -364,6 +364,7 @@ class LegendaryCLI:
 
                     logger.warning('Path contains unprocessed variables')
                     if get_boolean_choice("Path contains variables, Do you want to import it automatically"):
+
                         # Import automatically
 
                         # find Wineprefix
@@ -372,40 +373,39 @@ class LegendaryCLI:
                             wine_prefix = self.core.lgd.config.get(igame.app_name, "wine_prefix")
                         elif "wine_prefix" in self.core.lgd.config["Legendary"]:
                             wine_prefix = self.core.lgd.config.get("Legendary", "wine_prefix")
+                        # Use default wineprefix
                         else:
                             wine_prefix = os.path.expanduser("~/.wine")
 
                         if len(save_path.split("%")) > 3:
                             logger.warning("Path has more than two Variables. It is not supported yet")
                             return
+
                         # Environment variable
                         var = save_path.split("%")[1]
+                        with open(os.path.join(wine_prefix, "user.reg")) as reg_file:
+                            import re
+                            for i in reg_file:
+                                if bool(re.match(f"\"{var}\"=", i, re.I)):
+                                    appdata_path = i.split("=")[1]
+                                    appdata_path = appdata_path.replace("\\\\", "/").replace("C:", "").replace("\"",
+                                                                                                               "").replace(
+                                        "\n", "")
+                                    reg_file.close()
+                                    break
 
-                        if var == "APPDATA":
-                            with open(os.path.join(wine_prefix, "user.reg")) as reg_file:
-                                for i in reg_file:
-                                    if i.startswith("\"AppData\"="):
-                                        appdata_path = i.split("=")[1]
-                                        appdata_path = appdata_path.replace("\\\\", "/").replace("C:", "").replace("\"",
-                                                                                                                   "").replace(
-                                            "\n", "")
-                                        break
-
-                                else:
-                                    logger.error("No Appdata found in user.reg")
-                                    return
-                        else:
-                            logger.warning(f"Variable {var} not supported")
-                            return
-
+                        # Found variable :D
                         save_path = save_path.split("%")[2]
                         save_path = wine_prefix + "/drive_c" + appdata_path + save_path
-
                         # this doesn't work. Idk
                         # save_path = os.path.join(wine_prefix, "drive_c", appdata_path, save_path)
 
-                        logger.info("Savepath: " + save_path)
-                        yn = True
+                        if appdata_path and get_boolean_choice(f"Is this path right? '{save_path}'"):
+                            yn = True
+
+                        else:
+                            yn = False
+
                     else:
                         logger.warning("Please insert path manually")
                         yn = False
