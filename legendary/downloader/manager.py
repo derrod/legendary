@@ -359,8 +359,17 @@ class DLManager(Process):
         if analysis_res.min_memory > self.max_shared_memory:
             shared_mib = f'{self.max_shared_memory / 1024 / 1024:.01f} MiB'
             required_mib = f'{analysis_res.min_memory / 1024 / 1024:.01f} MiB'
-            raise MemoryError(f'Current shared memory cache is smaller than required! {shared_mib} < {required_mib}. '
-                              f'Try running legendary with the --enable-reordering flag to reduce memory usage.')
+            suggested_mib = round(self.max_shared_memory / 1024 / 1024 +
+                                  (analysis_res.min_memory - self.max_shared_memory) / 1024 / 1024 + 32)
+
+            if processing_optimization:
+                message = f'Try running legendary with "--enable-reordering --max-shared-memory {suggested_mib:.0f}"'
+            else:
+                message = 'Try running legendary with "--enable-reordering" to reduce memory usage, ' \
+                          f'or use "--max-shared-memory {suggested_mib:.0f}" to increase the limit.'
+
+            raise MemoryError(f'Current shared memory cache is smaller than required: {shared_mib} < {required_mib}. '
+                              + message)
 
         # calculate actual dl and patch write size.
         analysis_res.dl_size = \
