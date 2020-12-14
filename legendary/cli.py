@@ -10,7 +10,6 @@ import shlex
 import subprocess
 import time
 import webbrowser
-
 from distutils.util import strtobool
 from getpass import getuser
 from logging.handlers import QueueListener
@@ -96,7 +95,6 @@ class LegendaryCLI:
                 else:
                     logger.info(f'Using EGL appdata path at "{appdata_dir}"')
                     self.core.egl.appdata_path = appdata_dir
-
             logger.info('Importing login session from the Epic Launcher...')
             try:
                 if self.core.auth_import():
@@ -219,7 +217,7 @@ class LegendaryCLI:
                 self.core.install_game(game)
 
             print(f' * {game.title} (App name: {game.app_name} | Version: {game.version} | '
-                  f'{game.install_size / (1024*1024*1024):.02f} GiB)')
+                  f'{game.install_size / (1024 * 1024 * 1024):.02f} GiB)')
             if args.include_dir:
                 print(f'  + Location: {game.install_path}')
             if not os.path.exists(game.install_path):
@@ -268,7 +266,7 @@ class LegendaryCLI:
         elif args.csv or args.tsv:
             writer = csv.writer(stdout, dialect='excel-tab' if args.tsv else 'excel')
             writer.writerow(['path', 'hash', 'size', 'install_tags'])
-            writer.writerows((fm.filename, fm.hash.hex(), fm.file_size, '|'.join(fm.install_tags))for fm in files)
+            writer.writerows((fm.filename, fm.hash.hex(), fm.file_size, '|'.join(fm.install_tags)) for fm in files)
         elif args.json:
             _files = []
             for fm in files:
@@ -317,6 +315,7 @@ class LegendaryCLI:
         self.core.download_saves(args.app_name)
 
     def sync_saves(self, args):
+
         if not self.core.login():
             logger.error('Login failed! Cannot continue with download process.')
             exit(1)
@@ -362,8 +361,46 @@ class LegendaryCLI:
                 logger.info(f'Computed save path: "{save_path}"')
 
                 if '%' in save_path or '{' in save_path:
-                    logger.warning('Path contains unprocessed variables, please enter the correct path manually.')
-                    yn = False
+
+                    logger.warning('Path contains unprocessed variables, Do you want to import them automatically')
+                    if get_boolean_choice("Path contains variables, Do you want to import it automatically"):
+                        if igame.app_name in self.core.lgd.config.sections() and "wine_prefix" in self.core.lgd.config[
+                            igame.app_name]:
+                            wine_prefix = self.core.lgd.config.get(igame.app_name, "wine_prefix")
+                        elif "wine_prefix" in self.core.lgd.config["Legendary"]:
+                            wine_prefix = self.core.lgd.config.get("Legendary", "wine_prefix")
+                        else:
+                            wine_prefix = os.path.expanduser("~/.wine")
+
+                        if len(save_path.split("%")) > 3:
+                            logger.warning("Path has more than two Variables. It is not supported yet")
+                            return
+                        var = save_path.split("%")[1]
+
+                        if var == "APPDATA":
+                            for i in open(os.path.join(wine_prefix, "user.reg")):
+                                if i.startswith("\"AppData\"="):
+                                    appdata_path = i.split("=")[1]
+                                    appdata_path = appdata_path.replace("\\\\", "/").replace("C:", "").replace("\"","").replace("\n", "")
+                                    break
+
+                            else:
+                                logger.error("No Appdata found in user.reg")
+                        else:
+                            logger.warning(f"Variable {var} not supported")
+
+                        save_path = save_path.split("%")[2]
+
+                        save_path = wine_prefix + "/drive_c" + appdata_path + save_path
+
+                        # idk. this doesn't work
+                        # save_path = os.path.join(wine_prefix, "drive_c", appdata_path, save_path)
+
+                        logger.info("Savepath: " + save_path)
+                        yn = True
+                    else:
+                        logger.warning("Please insert path manually")
+                        yn = False
                 else:
                     yn = get_boolean_choice('Is this correct?')
 
@@ -468,7 +505,7 @@ class LegendaryCLI:
                 if latest.build_version != igame.version:
                     logger.error('Game is out of date, please update or launch with update check skipping!')
                     exit(1)
-
+        print(args)
         params, cwd, env = self.core.get_launch_parameters(app_name=app_name, offline=args.offline,
                                                            extra_args=extra, user=args.user_name_override,
                                                            wine_bin=args.wine_bin, wine_pfx=args.wine_pfx,
