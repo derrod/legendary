@@ -386,8 +386,10 @@ class LegendaryCLI:
 
                             else:
                                 logger.error("No Appdata found in user.reg")
+                                return
                         else:
                             logger.warning(f"Variable {var} not supported")
+                            return
 
                         save_path = save_path.split("%")[2]
 
