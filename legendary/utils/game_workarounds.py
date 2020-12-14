@@ -1,13 +1,22 @@
 # coding: utf-8
 
 # games where the download order optimizations are enabled by default
+# a set() of versions can be specified, empty set means all versions.
 _optimize_default = {
-    'wombat', 'snapdragon'
+    'wombat': {},  # world war z
+    'snapdragon': {},  # metro exodus
+    'honeycreeper': {},  # diabotical
+    'bcc75c246fe04e45b0c1f1c3fd52503a': {  # pillars of eternity
+        '1.0.2'  # problematic version
+    }
 }
 
 
-def is_opt_enabled(app_name):
-    return app_name.lower() in _optimize_default
+def is_opt_enabled(app_name, version):
+    if (versions := _optimize_default.get(app_name.lower())) is not None:
+        if version in versions or not versions:
+            return True
+    return False
 
 
 _cyberpunk_sdl = {

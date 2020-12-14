@@ -786,7 +786,7 @@ class LegendaryCore:
         if not max_shm:
             max_shm = self.lgd.config.getint('Legendary', 'max_memory', fallback=1024)
 
-        if dl_optimizations or is_opt_enabled(game.app_name):
+        if dl_optimizations or is_opt_enabled(game.app_name, new_manifest.meta.build_version):
             self.log.info('Download order optimizations are enabled.')
             process_opt = True
         else:
