@@ -240,7 +240,7 @@ optional arguments:
   --repair-and-update   Update game to the latest version when repairing
   --ignore-free-space   Do not abort if not enough free space is available
   --disable-delta-manifests
-                        Do not use delta manfiests when updating (may increase
+                        Do not use delta manifests when updating (may increase
                         download size)
 
 
