@@ -217,7 +217,8 @@ class FileWorker(Process):
                     try:
                         os.remove(full_path)
                     except OSError as e:
-                        logger.error(f'Removing file failed: {e!r}')
+                        if not j.silent:
+                            logger.error(f'Removing file failed: {e!r}')
 
                     self.o_q.put(WriterTaskResult(success=True, filename=j.filename))
                     continue

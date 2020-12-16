@@ -445,7 +445,7 @@ class DLManager(Process):
                                                          old_filename=task.temporary_filename),
                                               timeout=1.0)
                     elif task.delete:
-                        self.writer_queue.put(WriterTask(task.filename, delete=True), timeout=1.0)
+                        self.writer_queue.put(WriterTask(task.filename, delete=True, silent=task.silent), timeout=1.0)
                     elif task.open:
                         self.writer_queue.put(WriterTask(task.filename, fopen=True), timeout=1.0)
                         current_file = task.filename
