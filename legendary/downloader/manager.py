@@ -137,8 +137,7 @@ class DLManager(Process):
             except Exception as e:
                 self.log.warning(f'Reading resume file failed: {e!r}, continuing as normal...')
 
-        # Not entirely sure what install tags are used for, only some titles have them.
-        # Let's add it for testing anyway.
+        # Install tags are used for selective downloading, e.g. for language packs
         if file_install_tag is not None:
             if isinstance(file_install_tag, str):
                 file_install_tag = [file_install_tag]
@@ -150,6 +149,8 @@ class DLManager(Process):
             mc.added -= files_to_skip
             mc.changed -= files_to_skip
             mc.unchanged |= files_to_skip
+            for fname in sorted(files_to_skip):
+                self.tasks.append(FileTask(fname, delete=True, silent=True))
 
         # if include/exclude prefix has been set: mark all files that are not to be downloaded as unchanged
         if file_exclude_filter:
