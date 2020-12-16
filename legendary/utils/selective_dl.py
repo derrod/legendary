@@ -1,3 +1,6 @@
+# This file contains definitions for selective downloading for supported games
+# coding: utf-8
+
 _cyberpunk_sdl = {
     'de': {'tags': ['voice_de_de'], 'name': 'Deutsch'},
     'es': {'tags': ['voice_es_es'], 'name': 'español (España)'},

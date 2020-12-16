@@ -269,7 +269,7 @@ class LegendaryCLI:
         elif args.csv or args.tsv:
             writer = csv.writer(stdout, dialect='excel-tab' if args.tsv else 'excel')
             writer.writerow(['path', 'hash', 'size', 'install_tags'])
-            writer.writerows((fm.filename, fm.hash.hex(), fm.file_size, '|'.join(fm.install_tags))for fm in files)
+            writer.writerows((fm.filename, fm.hash.hex(), fm.file_size, '|'.join(fm.install_tags)) for fm in files)
         elif args.json:
             _files = []
             for fm in files:
@@ -628,7 +628,7 @@ class LegendaryCLI:
         logger.info(f'Download size: {analysis.dl_size / 1024 / 1024:.02f} MiB '
                     f'(Compression savings: {compression:.01f}%)')
         logger.info(f'Reusable size: {analysis.reuse_size / 1024 / 1024:.02f} MiB (chunks) / '
-                    f'{analysis.unchanged / 1024 / 1024:.02f} MiB (unchanged)')
+                    f'{analysis.unchanged / 1024 / 1024:.02f} MiB (unchanged / skipped)')
 
         res = self.core.check_installation_conditions(analysis=analysis, install=igame, game=game,
                                                       updating=self.core.is_installed(args.app_name),
