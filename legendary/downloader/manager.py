@@ -138,6 +138,7 @@ class DLManager(Process):
                 self.log.warning(f'Reading resume file failed: {e!r}, continuing as normal...')
 
         # Install tags are used for selective downloading, e.g. for language packs
+        additional_deletion_tasks = []
         if file_install_tag is not None:
             if isinstance(file_install_tag, str):
                 file_install_tag = [file_install_tag]
@@ -150,7 +151,7 @@ class DLManager(Process):
             mc.changed -= files_to_skip
             mc.unchanged |= files_to_skip
             for fname in sorted(files_to_skip):
-                self.tasks.append(FileTask(fname, delete=True, silent=True))
+                additional_deletion_tasks.append(FileTask(fname, delete=True, silent=True))
 
         # if include/exclude prefix has been set: mark all files that are not to be downloaded as unchanged
         if file_exclude_filter:
@@ -384,6 +385,7 @@ class DLManager(Process):
         # add jobs to remove files
         for fname in mc.removed:
             self.tasks.append(FileTask(fname, delete=True))
+        self.tasks.extend(additional_deletion_tasks)
 
         analysis_res.num_chunks_cache = len(dl_cache_guids)
         self.chunk_data_list = manifest.chunk_data_list
