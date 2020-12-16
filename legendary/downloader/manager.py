@@ -291,7 +291,10 @@ class DLManager(Process):
         # runtime cache requirement by simulating adding/removing from cache during download.
         self.log.debug('Creating filetasks and chunktasks...')
         for current_file in fmlist:
-            if not current_file.chunk_parts:
+            # skip unchanged and empty files
+            if current_file.filename in mc.unchanged:
+                continue
+            elif not current_file.chunk_parts:
                 self.tasks.append(FileTask(current_file.filename, empty=True))
                 continue
 
