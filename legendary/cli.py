@@ -1158,7 +1158,7 @@ def main():
     install_parser.add_argument('--ignore-free-space', dest='ignore_space', action='store_true',
                                 help='Do not abort if not enough free space is available')
     install_parser.add_argument('--disable-delta-manifests', dest='disable_delta', action='store_true',
-                                help='Do not use delta manfiests when updating (may increase download size)')
+                                help='Do not use delta manifests when updating (may increase download size)')
 
     uninstall_parser.add_argument('--keep-files', dest='keep_files', action='store_true',
                                   help='Keep files but remove game from Legendary database')
