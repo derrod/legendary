@@ -878,9 +878,9 @@ class LegendaryCore:
             results.warnings.add('This game is not marked for offline use (may still work).')
 
         # check if enough disk space is free (dl size is the approximate amount the installation will grow)
-        min_disk_space = analysis.uncompressed_dl_size
+        min_disk_space = analysis.install_size
         if updating:
-            min_disk_space += analysis.biggest_file_size
+            min_disk_space += analysis.biggest_file_size + analysis.install_size
 
         # todo when resuming, only check remaining files
         _, _, free = shutil.disk_usage(os.path.split(install.install_path)[0])
