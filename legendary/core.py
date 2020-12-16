@@ -32,6 +32,7 @@ from legendary.models.chunk import Chunk
 from legendary.utils.game_workarounds import is_opt_enabled
 from legendary.utils.savegame_helper import SaveGameHelper
 from legendary.utils.manifests import combine_manifests
+from legendary.utils.wine_helpers import read_registry, get_shell_folders
 
 
 # ToDo: instead of true/false return values for success/failure actually raise an exception that the CLI/GUI
@@ -412,19 +413,43 @@ class LegendaryCore:
 
         # the following variables are known:
         path_vars = {
-            '{appdata}': os.path.expandvars('%APPDATA%'),
             '{installdir}': igame.install_path,
-            '{userdir}': os.path.expandvars('%userprofile%/documents'),
             '{epicid}': self.lgd.userdata['account_id']
         }
-        # the following variables are in the EGL binary but are not used by any of
-        # my games and I'm not sure where they actually point at:
-        # {UserProfile} (Probably %USERPROFILE%)
-        # {UserSavedGames}
+
+        if os.name == 'nt':
+            path_vars.update({
+                '{appdata}': os.path.expandvars('%APPDATA%'),
+                '{userdir}': os.path.expandvars('%userprofile%/documents'),
+                # '{userprofile}': os.path.expandvars('%userprofile%'),  # possibly wrong
+                '{usersavedgames}':  os.path.expandvars('%userprofile%/Saved Games')
+            })
+        else:
+            # attempt to get WINE prefix from config
+            wine_pfx = self.lgd.config.get(app_name, 'wine_prefix', fallback=None)
+            if not wine_pfx:
+                wine_pfx = self.lgd.config.get(f'{app_name}.env', 'WINEPREFIX', fallback=None)
+            if not wine_pfx:
+                proton_pfx = self.lgd.config.get(f'{app_name}.env', 'STEAM_COMPAT_DATA_PATH', fallback=None)
+                if proton_pfx:
+                    wine_pfx = f'{proton_pfx}/pfx'
+
+            # if we have a prefix, read the `user.reg` file and get the proper paths.
+            if wine_pfx:
+                wine_reg = read_registry(wine_pfx)
+                wine_folders = get_shell_folders(wine_reg, wine_pfx)
+                # path_vars['{userprofile}'] = user_path
+                path_vars['{appdata}'] = wine_folders['AppData']
+                # this maps to ~/Documents, but the name is locale-dependent so just resolve the symlink from WINE
+                path_vars['{userdir}'] = os.path.realpath(wine_folders['Personal'])
+                path_vars['{usersavedgames}'] = wine_folders['4C5C32FF-BB9D-43B0-B5B4-2D72E54EAAA4']
+
+        # replace backslashes
+        save_path = save_path.replace('\\', '/')
 
         # these paths should always use a forward slash
         new_save_path = [path_vars.get(p.lower(), p) for p in save_path.split('/')]
-        return os.path.join(*new_save_path)
+        return os.path.realpath(os.path.join(*new_save_path))
 
     def check_savegame_state(self, path: str, save: SaveGameFile) -> (SaveGameStatus, (datetime, datetime)):
         latest = 0
