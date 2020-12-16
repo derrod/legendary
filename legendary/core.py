@@ -375,9 +375,9 @@ class LegendaryCore:
         # get environment overrides from config
         env = os.environ.copy()
         if 'default.env' in self.lgd.config:
-            env.update(dict(self.lgd.config['default.env']))
+            env.update({k: v for k, v in self.lgd.config[f'default.env'].items() if v and not k.startswith(';')})
         if f'{app_name}.env' in self.lgd.config:
-            env.update(dict(self.lgd.config[f'{app_name}.env']))
+            env.update({k: v for k, v in self.lgd.config[f'{app_name}.env'].items() if v and not k.startswith(';')})
 
         if wine_pfx:
             env['WINEPREFIX'] = wine_pfx
