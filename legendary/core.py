@@ -433,9 +433,11 @@ class LegendaryCore:
                 proton_pfx = self.lgd.config.get(f'{app_name}.env', 'STEAM_COMPAT_DATA_PATH', fallback=None)
                 if proton_pfx:
                     wine_pfx = f'{proton_pfx}/pfx'
+            if not wine_pfx:
+                wine_pfx = os.path.expanduser('~/.wine')
 
             # if we have a prefix, read the `user.reg` file and get the proper paths.
-            if wine_pfx:
+            if os.path.isdir(wine_pfx):
                 wine_reg = read_registry(wine_pfx)
                 wine_folders = get_shell_folders(wine_reg, wine_pfx)
                 # path_vars['{userprofile}'] = user_path
