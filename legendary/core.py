@@ -847,7 +847,7 @@ class LegendaryCore:
                               launch_parameters=new_manifest.meta.launch_command,
                               can_run_offline=offline == 'true', requires_ot=ot == 'true',
                               is_dlc=base_game is not None, install_size=anlres.install_size,
-                              egl_guid=egl_guid)
+                              egl_guid=egl_guid, install_tags=file_install_tag)
 
         return dlm, anlres, igame
 
