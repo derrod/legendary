@@ -579,7 +579,7 @@ class LegendaryCLI:
                 logger.info(f'Using existing repair file: {repair_file}')
 
         # Workaround for Cyberpunk 2077 preload
-        if not args.install_tag and ((sdl_name := get_sdl_appname(game.app_name)) is not None):
+        if not args.install_tag and not game.is_dlc and ((sdl_name := get_sdl_appname(game.app_name)) is not None):
             config_tags = self.core.lgd.config.get(game.app_name, 'install_tags', fallback=None)
             if not self.core.is_installed(game.app_name) or config_tags is None:
                 args.install_tag = sdl_prompt(sdl_name, game.app_title)
