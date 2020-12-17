@@ -614,7 +614,7 @@ class LegendaryCLI:
         if not analysis.dl_size:
             old_igame = self.core.get_installed_game(game.app_name)
             logger.info('Download size is 0, the game is either already up to date or has not changed. Exiting...')
-            if args.repair_mode and os.path.exists(repair_file):
+            if old_igame and args.repair_mode and os.path.exists(repair_file):
                 if old_igame.needs_verification:
                     old_igame.needs_verification = False
                     self.core.install_game(old_igame)
@@ -623,7 +623,7 @@ class LegendaryCLI:
                 os.remove(repair_file)
 
             # check if install tags have changed, if they did; try deleting files that are no longer required.
-            if old_igame.install_tags != igame.install_tags:
+            if old_igame and old_igame.install_tags != igame.install_tags:
                 old_igame.install_tags = igame.install_tags
                 self.logger.info('Deleting now untagged files.')
                 self.core.uninstall_tag(old_igame)
@@ -717,7 +717,7 @@ class LegendaryCLI:
                     logger.info(f'To download saves for this game run "legendary sync-saves {args.app_name}"')
 
             old_igame = self.core.get_installed_game(game.app_name)
-            if args.repair_mode and os.path.exists(repair_file):
+            if old_igame and args.repair_mode and os.path.exists(repair_file):
                 if old_igame.needs_verification:
                     old_igame.needs_verification = False
                     self.core.install_game(old_igame)
@@ -726,7 +726,7 @@ class LegendaryCLI:
                 os.remove(repair_file)
 
             # check if install tags have changed, if they did; try deleting files that are no longer required.
-            if old_igame.install_tags != igame.install_tags:
+            if old_igame and old_igame.install_tags != igame.install_tags:
                 old_igame.install_tags = igame.install_tags
                 self.logger.info('Deleting now untagged files.')
                 self.core.uninstall_tag(old_igame)
