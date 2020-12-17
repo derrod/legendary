@@ -79,7 +79,7 @@ class InstalledGame:
     def __init__(self, app_name='', title='', version='', manifest_path='', base_urls=None,
                  install_path='', executable='', launch_parameters='', prereq_info=None,
                  can_run_offline=False, requires_ot=False, is_dlc=False, save_path=None,
-                 needs_verification=False, install_size=0, egl_guid=''):
+                 needs_verification=False, install_size=0, egl_guid='', install_tags=None):
         self.app_name = app_name
         self.title = title
         self.version = version
@@ -97,6 +97,7 @@ class InstalledGame:
         self.needs_verification = needs_verification
         self.install_size = install_size
         self.egl_guid = egl_guid
+        self.install_tags = install_tags if install_tags else []
 
     @classmethod
     def from_json(cls, json):
@@ -119,6 +120,7 @@ class InstalledGame:
         tmp.needs_verification = json.get('needs_verification', False) is True
         tmp.install_size = json.get('install_size', 0)
         tmp.egl_guid = json.get('egl_guid', '')
+        tmp.install_tags = json.get('install_tags', [])
         return tmp
 
 
