@@ -581,7 +581,7 @@ class LegendaryCLI:
         # Workaround for Cyberpunk 2077 preload
         if not args.install_tag and not game.is_dlc and ((sdl_name := get_sdl_appname(game.app_name)) is not None):
             config_tags = self.core.lgd.config.get(game.app_name, 'install_tags', fallback=None)
-            if not self.core.is_installed(game.app_name) or config_tags is None:
+            if not self.core.is_installed(game.app_name) or config_tags is None or args.reset_sdl:
                 args.install_tag = sdl_prompt(sdl_name, game.app_title)
                 if game.app_name not in self.core.lgd.config:
                     self.core.lgd.config[game.app_name] = dict()
@@ -1159,6 +1159,8 @@ def main():
                                 help='Do not abort if not enough free space is available')
     install_parser.add_argument('--disable-delta-manifests', dest='disable_delta', action='store_true',
                                 help='Do not use delta manifests when updating (may increase download size)')
+    install_parser.add_argument('--reset-sdl', dest='reset_sdl', action='store_true',
+                                help='Reset selective downloading choices (requires repair to download new components)')
 
     uninstall_parser.add_argument('--keep-files', dest='keep_files', action='store_true',
                                   help='Keep files but remove game from Legendary database')
