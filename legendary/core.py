@@ -1079,6 +1079,13 @@ class LegendaryCore:
         new_manifest = self.load_manifest(manifest_data)
         self.lgd.save_manifest(lgd_igame.app_name, manifest_data,
                                version=new_manifest.meta.build_version)
+
+        # transfer install tag choices to config
+        if lgd_igame.install_tags:
+            if app_name not in self.lgd.config:
+                self.lgd.config[app_name] = dict()
+            self.lgd.config.set(app_name, 'install_tags', ','.join(lgd_igame.install_tags))
+
         # mark game as installed
         _ = self._install_game(lgd_igame)
         return
@@ -1153,7 +1160,8 @@ class LegendaryCore:
                 return self.egl_restore_or_uninstall(lgd_igame)
             else:
                 egl_igame = self.egl.get_manifest(app_name)
-                if egl_igame.app_version_string != lgd_igame.version:
+                if (egl_igame.app_version_string != lgd_igame.version) or \
+                        (egl_igame.install_tags != lgd_igame.install_tags):
                     self.log.info(f'App "{egl_igame.app_name}" has been updated from EGL, syncing...')
                     return self.egl_import(egl_igame.app_name)
         else:
@@ -1168,7 +1176,8 @@ class LegendaryCore:
                     self.egl_import(egl_igame.app_name)
                 else:
                     lgd_igame = self._get_installed_game(egl_igame.app_name)
-                    if lgd_igame.version != egl_igame.app_version_string:
+                    if (egl_igame.app_version_string != lgd_igame.version) or \
+                            (egl_igame.install_tags != lgd_igame.install_tags):
                         self.log.info(f'App "{egl_igame.app_name}" has been updated from EGL, syncing...')
                         self.egl_import(egl_igame.app_name)
 
