@@ -612,15 +612,23 @@ class LegendaryCLI:
 
         # game is either up to date or hasn't changed, so we have nothing to do
         if not analysis.dl_size:
+            old_igame = self.core.get_installed_game(game.app_name)
             logger.info('Download size is 0, the game is either already up to date or has not changed. Exiting...')
             if args.repair_mode and os.path.exists(repair_file):
-                igame = self.core.get_installed_game(game.app_name)
-                if igame.needs_verification:
-                    igame.needs_verification = False
-                    self.core.install_game(igame)
+                if old_igame.needs_verification:
+                    old_igame.needs_verification = False
+                    self.core.install_game(old_igame)
 
                 logger.debug('Removing repair file.')
                 os.remove(repair_file)
+
+            # check if install tags have changed, if they did; try deleting files that are no longer required.
+            if old_igame.install_tags != igame.install_tags:
+                old_igame.install_tags = igame.install_tags
+                self.logger.info('Deleting now untagged files.')
+                self.core.uninstall_tag(old_igame)
+                self.core.install_game(old_igame)
+
             exit(0)
 
         logger.info(f'Install size: {analysis.install_size / 1024 / 1024:.02f} MiB')
@@ -708,14 +716,21 @@ class LegendaryCLI:
                     logger.info('This game supports cloud saves, syncing is handled by the "sync-saves" command.')
                     logger.info(f'To download saves for this game run "legendary sync-saves {args.app_name}"')
 
+            old_igame = self.core.get_installed_game(game.app_name)
             if args.repair_mode and os.path.exists(repair_file):
-                igame = self.core.get_installed_game(game.app_name)
-                if igame.needs_verification:
-                    igame.needs_verification = False
-                    self.core.install_game(igame)
+                if old_igame.needs_verification:
+                    old_igame.needs_verification = False
+                    self.core.install_game(old_igame)
 
                 logger.debug('Removing repair file.')
                 os.remove(repair_file)
+
+            # check if install tags have changed, if they did; try deleting files that are no longer required.
+            if old_igame.install_tags != igame.install_tags:
+                old_igame.install_tags = igame.install_tags
+                self.logger.info('Deleting now untagged files.')
+                self.core.uninstall_tag(old_igame)
+                self.core.install_game(old_igame)
 
             logger.info(f'Finished installation process in {end_t - start_t:.02f} seconds.')
 
