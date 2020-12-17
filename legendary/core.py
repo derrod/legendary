@@ -954,6 +954,18 @@ class LegendaryCore:
 
         self.lgd.remove_installed_game(installed_game.app_name)
 
+    def uninstall_tag(self, installed_game: InstalledGame):
+        manifest = self.load_manifest(self.get_installed_manifest(installed_game.app_name)[0])
+        tags = installed_game.install_tags
+        if '' not in tags:
+            tags.append('')
+
+        filelist = [i.filename for i in manifest.file_manifest_list.elements if not any(
+            (fit in i.install_tags) or (not fit and not i.install_tags) for fit in tags
+        )]
+        if not delete_filelist(installed_game.install_path, filelist, silent=True):
+            self.log.debug(f'Deleting some deselected files failed, but that\'s okay.')
+
     def prereq_installed(self, app_name):
         igame = self.lgd.get_installed_game(app_name)
         igame.prereq_info['installed'] = True
