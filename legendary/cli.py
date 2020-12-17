@@ -524,7 +524,7 @@ class LegendaryCLI:
             args.no_install = True
         elif args.subparser_name == 'repair' or args.repair_mode:
             args.repair_mode = True
-            args.no_install = True
+            args.no_install = args.repair_and_update is False
             repair_file = os.path.join(self.core.lgd.get_tmp_path(), f'{args.app_name}.repair')
 
         if not self.core.login():
