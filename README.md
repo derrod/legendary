@@ -136,8 +136,8 @@ legendary -y egl-sync
 
 ````
 usage: legendary [-h] [-v] [-y] [-V]
-              {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game,egl-sync,status,cleanup}
-              ...
+                 {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game,egl-sync,status,cleanup}
+                 ...
 
 Legendary v0.X.X - "Codename"
 
@@ -170,7 +170,7 @@ Individual command help:
 
 Command: auth
 usage: legendary auth [-h] [--import] [--code <exchange code>]
-                   [--sid <session id>] [--delete]
+                      [--sid <session id>] [--delete]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -242,6 +242,8 @@ optional arguments:
   --disable-delta-manifests
                         Do not use delta manifests when updating (may increase
                         download size)
+  --reset-sdl           Reset selective downloading choices (requires repair
+                        to download new components)
 
 
 Command: uninstall
@@ -289,7 +291,7 @@ optional arguments:
 
 Command: list-games
 usage: legendary list-games [-h] [--platform <Platform>] [--include-ue] [--csv]
-                         [--tsv] [--json]
+                            [--tsv] [--json]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -305,7 +307,7 @@ optional arguments:
 
 Command: list-installed
 usage: legendary list-installed [-h] [--check-updates] [--csv] [--tsv] [--json]
-                             [--show-dirs]
+                                [--show-dirs]
 
 optional arguments:
   -h, --help       show this help message and exit
@@ -318,9 +320,9 @@ optional arguments:
 
 Command: list-files
 usage: legendary list-files [-h] [--force-download] [--platform <Platform>]
-                         [--manifest <uri>] [--csv] [--tsv] [--json]
-                         [--hashlist] [--install-tag <tag>]
-                         [<App Name>]
+                            [--manifest <uri>] [--csv] [--tsv] [--json]
+                            [--hashlist] [--install-tag <tag>]
+                            [<App Name>]
 
 positional arguments:
   <App Name>            Name of the app (optional)
@@ -361,9 +363,9 @@ optional arguments:
 
 Command: sync-saves
 usage: legendary sync-saves [-h] [--skip-upload] [--skip-download]
-                         [--force-upload] [--force-download]
-                         [--save-path <path>] [--disable-filters]
-                         [<App Name>]
+                            [--force-upload] [--force-download]
+                            [--save-path <path>] [--disable-filters]
+                            [<App Name>]
 
 positional arguments:
   <App Name>          Name of the app (optional)
@@ -391,7 +393,7 @@ optional arguments:
 
 Command: import-game
 usage: legendary import-game [-h] [--disable-check]
-                          <App Name> <Installation directory>
+                             <App Name> <Installation directory>
 
 positional arguments:
   <App Name>            Name of the app
@@ -407,9 +409,9 @@ optional arguments:
 
 Command: egl-sync
 usage: legendary egl-sync [-h] [--egl-manifest-path EGL_MANIFEST_PATH]
-                       [--egl-wine-prefix EGL_WINE_PREFIX] [--enable-sync]
-                       [--disable-sync] [--one-shot] [--import-only]
-                       [--export-only] [--unlink]
+                          [--egl-wine-prefix EGL_WINE_PREFIX] [--enable-sync]
+                          [--disable-sync] [--one-shot] [--import-only]
+                          [--export-only] [--unlink]
 
 optional arguments:
   -h, --help            show this help message and exit

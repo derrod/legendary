@@ -1,4 +1,4 @@
 """Legendary!"""
 
-__version__ = '0.20.4'
-__codename__ = 'Cyberpunk Edition'
+__version__ = '0.20.5.rc1'
+__codename__ = 'A Red Letter Day (RC1)'
