@@ -960,11 +960,15 @@ class LegendaryCore:
         if '' not in tags:
             tags.append('')
 
-        filelist = [i.filename for i in manifest.file_manifest_list.elements if not any(
-            (fit in i.install_tags) or (not fit and not i.install_tags) for fit in tags
-        )]
-        if not delete_filelist(installed_game.install_path, filelist, silent=True):
-            self.log.debug(f'Deleting some deselected files failed, but that\'s okay.')
+        # Create list of files that are now no longer needed *and* actually exist on disk
+        filelist = [
+            fm.filename for fm in manifest.file_manifest_list.elements if
+            not any(((fit in fm.install_tags) or (not fit and not fm.install_tags)) for fit in tags)
+            and os.path.exists(os.path.join(installed_game.install_path, fm.filename))
+        ]
+
+        if not delete_filelist(installed_game.install_path, filelist):
+            self.log.warning(f'Deleting some deselected files failed, please check/remove manually.')
 
     def prereq_installed(self, app_name):
         igame = self.lgd.get_installed_game(app_name)
