@@ -627,7 +627,7 @@ class ChunkPart:
             guid_readable, self.offset, self.size)
 
 
-class CustomFields:  # this could probably be replaced with just a dict
+class CustomFields:
     def __init__(self):
         self.size = 0
         self.version = 0
@@ -643,6 +643,9 @@ class CustomFields:  # this could probably be replaced with just a dict
 
     def __str__(self):
         return str(self._dict)
+
+    def items(self):
+        return self._dict.items()
 
     def keys(self):
         return self._dict.keys()
