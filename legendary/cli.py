@@ -147,9 +147,9 @@ class LegendaryCLI:
             platform_override=args.platform_override, skip_ue=not args.include_ue
         )
         # sort games and dlc by name
-        games = sorted(games, key=lambda x: x.app_title)
+        games = sorted(games, key=lambda x: x.app_title.lower())
         for citem_id in dlc_list.keys():
-            dlc_list[citem_id] = sorted(dlc_list[citem_id], key=lambda d: d.app_title)
+            dlc_list[citem_id] = sorted(dlc_list[citem_id], key=lambda d: d.app_title.lower())
 
         if args.csv or args.tsv:
             writer = csv.writer(stdout, dialect='excel-tab' if args.tsv else 'excel')
@@ -187,7 +187,7 @@ class LegendaryCLI:
                 self.core.get_assets(True)
 
         games = sorted(self.core.get_installed_list(),
-                       key=lambda x: x.title)
+                       key=lambda x: x.title.lower())
 
         versions = dict()
         for game in games:
