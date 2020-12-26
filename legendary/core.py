@@ -444,7 +444,7 @@ class LegendaryCore:
                 path_vars['{appdata}'] = wine_folders['AppData']
                 # this maps to ~/Documents, but the name is locale-dependent so just resolve the symlink from WINE
                 path_vars['{userdir}'] = os.path.realpath(wine_folders['Personal'])
-                path_vars['{usersavedgames}'] = wine_folders['4C5C32FF-BB9D-43B0-B5B4-2D72E54EAAA4']
+                path_vars['{usersavedgames}'] = wine_folders['{4C5C32FF-BB9D-43B0-B5B4-2D72E54EAAA4}']
 
         # replace backslashes
         save_path = save_path.replace('\\', '/')
