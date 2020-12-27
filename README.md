@@ -10,6 +10,9 @@ Its name as a tongue-in-cheek play on tiers of [item rarity in many MMORPGs](htt
 Right now Legendary is in beta and not feature-complete. You might run into some bugs or issues.
 If you do please [create an issue on GitHub](https://github.com/derrod/legendary/issues/new) so we can fix it.
 
+**Note:** Legendary is currently a CLI (command-line interface) application without a graphical user interface,
+it has to be run from a terminal (e.g. PowerShell)
+
 **What works:**
  - Authenticating with Epic's service
  - Downloading and installing your games and their DLC
@@ -84,6 +87,8 @@ Note that in this example we used `sudo` to install the package on the system, t
 - run `PYTHONPATH=.. python3.8 cli.py`
 
 ## Quickstart
+
+**Tip:** When using PowerShell with a standalone executable all commands have to be prefixed with `.\`
 
 To log in:
 ````
