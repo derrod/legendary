@@ -890,7 +890,7 @@ class LegendaryCLI:
                         f'with legendary. Run "legendary repair {args.app_name}" to do so.')
         else:
             logger.info(f'Installation had Epic Games Launcher metadata for version "{igame.version}", '
-                        f'verification will not be requried.')
+                        f'verification will not be required.')
         logger.info('Game has been imported.')
 
     def egs_sync(self, args):
