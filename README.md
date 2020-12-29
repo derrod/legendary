@@ -50,6 +50,7 @@ Note that since packages are maintained by third parties it may take a bit for t
 If you always want to have the latest features and fixes available then using the PyPI distribution is recommended.
 
 ### Standalone
+
 Download the `legendary` or `legendary.exe` binary from [the latest release](https://github.com/derrod/legendary/releases/latest)
 and move it to somewhere in your `$PATH`/`%PATH%`. Don't forget to `chmod +x` it on Linux.
 
@@ -58,15 +59,25 @@ Note that on Linux glibc >= 2.25 is required, so older distributions such as Ubu
 
 ### Python package
 
+#### Prerequisites
+
+To prevent problems with permissions during installation, please upgrade your `pip` by running `python -m pip install -U pip --user`. 
+
+> **Tip:** You may need to replace `python` in the above command with `python3.8` on Linux, or `py -3.8` on Windows.
+
+#### Installation from PyPI (recommended)
+
 Legendary is available on [PyPI](https://pypi.org/project/legendary-gl/), to install simply run:
+
 ```bash
 pip install legendary-gl
 ```
 
 #### Manually from the repo
+
 - Install python3.8, setuptools, wheel, and requests
 - Clone the git repository and cd into it
-- Run `python3.8 setup.py install`
+- Run `pip install .`
 
 #### Ubuntu 20.04 example
 
@@ -75,20 +86,26 @@ Ubuntu 20.04's standard repositories include everything needed to install legend
 sudo apt install python3 python3-requests python3-setuptools-git
 git clone https://github.com/derrod/legendary.git
 cd legendary
-sudo python3 setup.py install
+pip install .
 ````
 
-Note that in this example we used `sudo` to install the package on the system, this may not be advisable depending on your setup.
+If the `legendary` executable is not available after installation, you may need to configure your `PATH` correctly. You can do this by running the command: 
+
+```bash
+echo 'export PATH=$PATH:~/.local/bin' >> ~/.profile && source ~/.profile
+```
 
 ### Directly from the repo (for dev/testing)
 
 - Install python3.8 and requests (optionally in a venv)
-- cd into `legendary/` (the folder with `cli.py`)
-- run `PYTHONPATH=.. python3.8 cli.py`
+- cd into the repository
+- Run `pip install -e .`
+
+This installs `legendary` in "editable" mode - any changes to the source code will take effect next time the `legendary` executable runs.
 
 ## Quickstart
 
-**Tip:** When using PowerShell with a standalone executable all commands have to be prefixed with `.\`
+**Tip:** When using PowerShell with the standalone executable, you may need to replace `legendary` with `.\legendary` in the commands below.
 
 To log in:
 ````
