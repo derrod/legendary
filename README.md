@@ -493,7 +493,7 @@ Legendary supports some options as well as game specific configuration in `~/.co
 log_level = debug
 ; maximum shared memory (in MiB) to use for installation
 max_memory = 1024
-; maximum number of worker processes when downloading (fewer wokers will be slower, but also use fewer system resources)
+; maximum number of worker processes when downloading (fewer workers will be slower, but also use fewer system resources)
 max_workers = 8
 ; default install directory
 install_dir = /mnt/tank/games
@@ -511,7 +511,7 @@ wine_executable = wine
 ; wine prefix (alternative to using environment variable)
 wine_prefix = /home/user/.wine
 
-; default environment variables to set (overriden by game specific ones)
+; default environment variables to set (overridden by game specific ones)
 [default.env]
 WINEPREFIX = /home/user/legendary/.wine
 

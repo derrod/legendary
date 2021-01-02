@@ -675,7 +675,7 @@ class LegendaryCLI:
         except Exception as e:
             end_t = time.time()
             logger.info(f'Installation failed after {end_t - start_t:.02f} seconds.')
-            logger.warning(f'The following exception occured while waiting for the donlowader to finish: {e!r}. '
+            logger.warning(f'The following exception occurred while waiting for the downloader to finish: {e!r}. '
                            f'Try restarting the process, the resume file will be used to start where it failed. '
                            f'If it continues to fail please open an issue on GitHub.')
         else:
@@ -890,7 +890,7 @@ class LegendaryCLI:
                         f'with legendary. Run "legendary repair {args.app_name}" to do so.')
         else:
             logger.info(f'Installation had Epic Games Launcher metadata for version "{igame.version}", '
-                        f'verification will not be requried.')
+                        f'verification will not be required.')
         logger.info('Game has been imported.')
 
     def egs_sync(self, args):
@@ -1151,7 +1151,7 @@ def main():
     install_parser.add_argument('--disable-patching', dest='disable_patching', action='store_true',
                                 help='Do not attempt to patch existing installation (download entire changed files)')
     install_parser.add_argument('--download-only', '--no-install', dest='no_install', action='store_true',
-                                help='Do not intall app and do not run prerequisite installers after download')
+                                help='Do not install app and do not run prerequisite installers after download')
     install_parser.add_argument('--update-only', dest='update_only', action='store_true',
                                 help='Only update, do not do anything if specified app is not installed')
     install_parser.add_argument('--dlm-debug', dest='dlm_debug', action='store_true',

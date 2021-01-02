@@ -97,7 +97,7 @@ class SharedMemorySegment:
 class ChunkTask:
     def __init__(self, chunk_guid, chunk_offset=0, chunk_size=0, cleanup=False, chunk_file=None):
         """
-        Download amanger chunk task
+        Download manager chunk task
 
         :param chunk_guid: GUID of chunk
         :param cleanup: whether or not this chunk can be removed from disk/memory after it has been written

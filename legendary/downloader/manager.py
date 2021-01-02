@@ -344,7 +344,7 @@ class DLManager(Process):
                 self.tasks.append(FileTask(current_file.filename + u'.tmp', fopen=True))
                 self.tasks.extend(chunk_tasks)
                 self.tasks.append(FileTask(current_file.filename + u'.tmp', close=True))
-                # delete old file and rename temproary
+                # delete old file and rename temporary
                 self.tasks.append(FileTask(current_file.filename, delete=True, rename=True,
                                            temporary_filename=current_file.filename + u'.tmp'))
             else:

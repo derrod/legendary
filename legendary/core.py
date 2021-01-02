@@ -187,7 +187,7 @@ class LegendaryCore:
         return True
 
     def get_assets(self, update_assets=False, platform_override=None) -> List[GameAsset]:
-        # do not save and always fetch list when platform is overriden
+        # do not save and always fetch list when platform is overridden
         if platform_override:
             return [GameAsset.from_egs_json(a) for a in
                     self.egs.get_game_assets(platform=platform_override)]
@@ -999,7 +999,7 @@ class LegendaryCore:
             if mf and os.path.exists(os.path.join(app_path, '.egstore', mf)):
                 manifest_data = open(os.path.join(app_path, '.egstore', mf), 'rb').read()
             else:
-                self.log.warning('.egstore folder exists but manifest file is missing, contiuing as regular import...')
+                self.log.warning('.egstore folder exists but manifest file is missing, continuing as regular import...')
 
             # If there's no in-progress installation assume the game doesn't need to be verified
             if mf and not os.path.exists(os.path.join(app_path, '.egstore', 'bps')):
@@ -1216,4 +1216,3 @@ class LegendaryCore:
         Do cleanup, config saving, and exit.
         """
         self.lgd.save_config()
-
