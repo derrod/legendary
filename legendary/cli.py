@@ -911,6 +911,11 @@ class LegendaryCLI:
             self.core.lgd.config.remove_option('Legendary', 'egl_sync')
             return
 
+        if not self.core.lgd.assets:
+            logger.error('Legendary is missing game metadata, please login (if not already) and use the '
+                         '"status" command to fetch necessary information to set-up syncing.')
+            return
+
         if not self.core.egl.programdata_path:
             if not args.egl_manifest_path and not args.egl_wine_prefix:
                 # search default Lutris install path
