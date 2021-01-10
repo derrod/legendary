@@ -474,7 +474,8 @@ class LegendaryCLI:
                                                            extra_args=extra, user=args.user_name_override,
                                                            wine_bin=args.wine_bin, wine_pfx=args.wine_pfx,
                                                            language=args.language, wrapper=args.wrapper,
-                                                           disable_wine=args.no_wine)
+                                                           disable_wine=args.no_wine,
+                                                           executable_override=args.executable_override)
 
         if args.set_defaults:
             self.core.lgd.config[app_name] = dict()
@@ -1202,6 +1203,8 @@ def main():
                                help='Save parameters used to launch to config (does not include env vars)')
     launch_parser.add_argument('--reset-defaults', dest='reset_defaults', action='store_true',
                                help='Reset config settings for app and exit')
+    launch_parser.add_argument('--override-exe', dest='executable_override', action='store', metavar='<exe path>',
+                               help='Override executable to launch (relative path)')
 
     if os.name != 'nt':
         launch_parser.add_argument('--wine', dest='wine_bin', action='store', metavar='<wine binary>',

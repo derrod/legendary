@@ -296,7 +296,8 @@ class LegendaryCore:
                               user: str = None, extra_args: list = None,
                               wine_bin: str = None, wine_pfx: str = None,
                               language: str = None, wrapper: str = None,
-                              disable_wine: bool = False) -> (list, str, dict):
+                              disable_wine: bool = False,
+                              executable_override: str = None) -> (list, str, dict):
         install = self.lgd.get_installed_game(app_name)
         game = self.lgd.get_game_meta(app_name)
 
@@ -312,8 +313,15 @@ class LegendaryCore:
         if user:
             user_name = user
 
-        game_exe = os.path.join(install.install_path,
-                                install.executable.replace('\\', '/').lstrip('/'))
+        if executable_override or (executable_override := self.lgd.config.get(app_name, 'override_exe', fallback=None)):
+            game_exe = os.path.join(install.install_path,
+                                    executable_override.replace('\\', '/'))
+            if not os.path.exists(game_exe):
+                raise ValueError(f'Executable path is invalid: {game_exe}')
+        else:
+            game_exe = os.path.join(install.install_path,
+                                    install.executable.replace('\\', '/').lstrip('/'))
+
         working_dir = os.path.split(game_exe)[0]
 
         params = []
