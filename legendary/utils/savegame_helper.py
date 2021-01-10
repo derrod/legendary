@@ -123,7 +123,8 @@ class SaveGameHelper:
 
                     # create chunk part and write it to chunk buffer
                     cp = ChunkPart(guid=cur_chunk.guid, offset=cur_buffer.tell(),
-                                   size=min(remaining, 1024 * 1024 - cur_buffer.tell()))
+                                   size=min(remaining, 1024 * 1024 - cur_buffer.tell()),
+                                   file_offset=cf.tell())
                     _tmp = cf.read(cp.size)
                     if not _tmp:
                         self.log.warning(f'Got EOF for "{f.filename}" with {remaining} bytes remaining! '
