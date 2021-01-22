@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: GitHub Discussions
+    url: https://github.com/derrod/legendary/discussions
+    about: GitHub Forum for anything that is not a legendary issue (e.g. game or WINE problems)
+  - name: Discord chat
+    url: https://discord.gg/RQHbMVrwRr
+    about: Discord chat for help with game or WINE issues
