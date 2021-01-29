@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import gi
 import webbrowser
 gi.require_version('Gtk', '3.0')
@@ -11,15 +12,14 @@ class MyWindow(Gtk.Window):
         Gtk.Window.__init__(self,title="Legendary")
         self.button = Gtk.Button(label="Login")
         self.button.connect("clicked", self.onclick)
+        self.log = Gtk.Label()
+        self.add(self.log)
         self.add(self.button)
     def onclick(self, widget):
         webbrowser.open('https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect')
         sid = AskSid(self)
         print(f'LegendaryCLI.auth(f"--sid {sid}")')
-        cli = LegendaryCLI()
-        cli.main()
-        a = {"session_id":sid}
-        cli.auth(a)
+        os.system(f"legendary auth --sid {sid}")
 
 def AskSid(parent):
     dialog = Gtk.MessageDialog(parent, Gtk.DialogFlags.DESTROY_WITH_PARENT, Gtk.MessageType.QUESTION, Gtk.ButtonsType.OK_CANCEL)
@@ -43,6 +43,8 @@ def AskSid(parent):
         return 1
 
 win = MyWindow()
+cli = LegendaryCLI()
+cli.logger.Handler = win.log
 win.connect("destroy", Gtk.main_quit)
 win.show_all()
 Gtk.main()
