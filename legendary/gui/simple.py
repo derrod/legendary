@@ -13,9 +13,13 @@ class MyWindow(Gtk.Window):
         self.button.connect("clicked", self.onclick)
         self.add(self.button)
     def onclick(self, widget):
-#        webbrowser.open('https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect')
+        webbrowser.open('https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect')
         sid = AskSid(self)
         print(f'LegendaryCLI.auth(f"--sid {sid}")')
+        cli = LegendaryCLI()
+        cli.main()
+        a = {"session_id":sid}
+        cli.auth(a)
 
 def AskSid(parent):
     dialog = Gtk.MessageDialog(parent, Gtk.DialogFlags.DESTROY_WITH_PARENT, Gtk.MessageType.QUESTION, Gtk.ButtonsType.OK_CANCEL)
