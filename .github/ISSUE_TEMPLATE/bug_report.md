@@ -1,3 +1,9 @@
+---
+name: Legendary bug report
+about: Legendary crashes or bugs (not WINE/Game crashes!)
+labels: ''
+assignees: ''
+---
 
 <!-- READ THIS FIRST -->
 <!-- The Legendary GitHub issue tracker is **ONLY** to be used for issues with Legendary itself. -->
