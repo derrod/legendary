@@ -44,9 +44,22 @@ def log_gtk(msg):
 class main_window(Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self,title="Legendary")
-        self.button = Gtk.Button(label="Login")
-        self.button.connect("clicked", self.onclick)
-        self.add(self.button)
+        self.grid = Gtk.Grid(
+                        column_spacing=30,
+                        row_spacing=30
+        )
+        self.add(self.grid)
+
+        # 'Legendary' label
+        self.legendary_label = Gtk.Label(label="Legendary")
+        self.grid.attach(self.legendary_label, 1, 1, 1, 1)
+
+        # Login button
+        self.button_login = Gtk.Button(label="Login")
+        self.button_login.connect("clicked", self.onclick)
+        self.grid.attach(self.button_login, 1, 2, 1, 1)
+
+        
     def onclick(self, widget):
         webbrowser.open('https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect')
         exchange_token = ''
