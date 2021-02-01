@@ -3,6 +3,7 @@
 
 import argparse
 import csv
+import json
 import logging
 import os
 import shlex
@@ -20,9 +21,10 @@ from legendary import __version__, __codename__
 from legendary.core import LegendaryCore
 from legendary.models.exceptions import InvalidCredentialsError
 from legendary.models.game import SaveGameStatus, VerifyResult
-from legendary.utils.cli import get_boolean_choice
+from legendary.utils.cli import get_boolean_choice, sdl_prompt
 from legendary.utils.custom_parser import AliasedSubParsersAction
 from legendary.utils.lfs import validate_files
+from legendary.utils.selective_dl import get_sdl_appname
 
 # todo custom formatter for cli logger (clean info, highlighted error/warning)
 logging.basicConfig(
@@ -146,9 +148,9 @@ class LegendaryCLI:
             platform_override=args.platform_override, skip_ue=not args.include_ue
         )
         # sort games and dlc by name
-        games = sorted(games, key=lambda x: x.app_title)
+        games = sorted(games, key=lambda x: x.app_title.lower())
         for citem_id in dlc_list.keys():
-            dlc_list[citem_id] = sorted(dlc_list[citem_id], key=lambda d: d.app_title)
+            dlc_list[citem_id] = sorted(dlc_list[citem_id], key=lambda d: d.app_title.lower())
 
         if args.csv or args.tsv:
             writer = csv.writer(stdout, dialect='excel-tab' if args.tsv else 'excel')
@@ -157,6 +159,16 @@ class LegendaryCLI:
                 writer.writerow((game.app_name, game.app_title, game.app_version, False))
                 for dlc in dlc_list[game.asset_info.catalog_item_id]:
                     writer.writerow((dlc.app_name, dlc.app_title, dlc.app_version, True))
+            return
+
+        if args.json:
+            _out = []
+            for game in games:
+                _j = vars(game)
+                _j['dlcs'] = [vars(dlc) for dlc in dlc_list[game.asset_info.catalog_item_id]]
+                _out.append(_j)
+
+            print(json.dumps(_out, sort_keys=True, indent=2))
             return
 
         print('\nAvailable games:')
@@ -176,17 +188,28 @@ class LegendaryCLI:
                 self.core.get_assets(True)
 
         games = sorted(self.core.get_installed_list(),
-                       key=lambda x: x.title)
+                       key=lambda x: x.title.lower())
 
         versions = dict()
         for game in games:
-            versions[game.app_name] = self.core.get_asset(game.app_name).build_version
+            try:
+                versions[game.app_name] = self.core.get_asset(game.app_name).build_version
+            except ValueError:
+                logger.warning(f'Metadata for "{game.app_name}" is missing, the game may have been removed from '
+                               f'your account or not be in legendary\'s database yet, try rerunning the command '
+                               f'with "--check-updates".')
 
         if args.csv or args.tsv:
             writer = csv.writer(stdout, dialect='excel-tab' if args.tsv else 'excel')
-            writer.writerow(['App name', 'App title', 'Installed version', 'Available version', 'Update available'])
+            writer.writerow(['App name', 'App title', 'Installed version', 'Available version',
+                             'Update available', 'Install size', 'Install path'])
             writer.writerows((game.app_name, game.title, game.version, versions[game.app_name],
-                              versions[game.app_name] != game.version) for game in games)
+                              versions[game.app_name] != game.version, game.install_size, game.install_path)
+                             for game in games if game.app_name in versions)
+            return
+
+        if args.json:
+            print(json.dumps([vars(g) for g in games], indent=2, sort_keys=True))
             return
 
         print('\nInstalled games:')
@@ -203,7 +226,7 @@ class LegendaryCLI:
                 print(f'  + Location: {game.install_path}')
             if not os.path.exists(game.install_path):
                 print(f'  ! Game does no longer appear to be installed (directory "{game.install_path}" missing)!')
-            elif versions[game.app_name] != game.version:
+            elif game.app_name in versions and versions[game.app_name] != game.version:
                 print(f'  -> Update available! Installed: {game.version}, Latest: {versions[game.app_name]}')
 
         print(f'\nTotal: {len(games)}')
@@ -229,6 +252,9 @@ class LegendaryCLI:
                 logger.error('Login failed! Cannot continue with download process.')
                 exit(1)
             game = self.core.get_game(args.app_name, update_meta=True)
+            if not game:
+                logger.fatal(f'Could not fetch metadata for "{args.app_name}" (check spelling/account ownership)')
+                exit(1)
             manifest_data, _ = self.core.get_cdn_manifest(game, platform_override=args.platform_override)
 
         manifest = self.core.load_manifest(manifest_data)
@@ -244,7 +270,18 @@ class LegendaryCLI:
         elif args.csv or args.tsv:
             writer = csv.writer(stdout, dialect='excel-tab' if args.tsv else 'excel')
             writer.writerow(['path', 'hash', 'size', 'install_tags'])
-            writer.writerows((fm.filename, fm.hash.hex(), fm.file_size, '|'.join(fm.install_tags))for fm in files)
+            writer.writerows((fm.filename, fm.hash.hex(), fm.file_size, '|'.join(fm.install_tags)) for fm in files)
+        elif args.json:
+            _files = []
+            for fm in files:
+                _files.append(dict(
+                    filename=fm.filename,
+                    sha_hash=fm.hash.hex(),
+                    install_tags=fm.install_tags,
+                    file_size=fm.file_size,
+                    flags=fm.flags,
+                ))
+            print(json.dumps(_files, sort_keys=True, indent=2))
         else:
             install_tags = set()
             for fm in files:
@@ -424,7 +461,12 @@ class LegendaryCLI:
 
             if not args.skip_version_check and not self.core.is_noupdate_game(app_name):
                 logger.info('Checking for updates...')
-                latest = self.core.get_asset(app_name, update=True)
+                try:
+                    latest = self.core.get_asset(app_name, update=True)
+                except ValueError:
+                    logger.fatal(f'Metadata for "{app_name}" does not exist, cannot launch!')
+                    exit(1)
+
                 if latest.build_version != igame.version:
                     logger.error('Game is out of date, please update or launch with update check skipping!')
                     exit(1)
@@ -433,7 +475,8 @@ class LegendaryCLI:
                                                            extra_args=extra, user=args.user_name_override,
                                                            wine_bin=args.wine_bin, wine_pfx=args.wine_pfx,
                                                            language=args.language, wrapper=args.wrapper,
-                                                           disable_wine=args.no_wine)
+                                                           disable_wine=args.no_wine,
+                                                           executable_override=args.executable_override)
 
         if args.set_defaults:
             self.core.lgd.config[app_name] = dict()
@@ -483,7 +526,7 @@ class LegendaryCLI:
             args.no_install = True
         elif args.subparser_name == 'repair' or args.repair_mode:
             args.repair_mode = True
-            args.no_install = True
+            args.no_install = args.repair_and_update is False
             repair_file = os.path.join(self.core.lgd.get_tmp_path(), f'{args.app_name}.repair')
 
         if not self.core.login():
@@ -537,6 +580,17 @@ class LegendaryCLI:
             else:
                 logger.info(f'Using existing repair file: {repair_file}')
 
+        # Workaround for Cyberpunk 2077 preload
+        if not args.install_tag and not game.is_dlc and ((sdl_name := get_sdl_appname(game.app_name)) is not None):
+            config_tags = self.core.lgd.config.get(game.app_name, 'install_tags', fallback=None)
+            if not self.core.is_installed(game.app_name) or config_tags is None or args.reset_sdl:
+                args.install_tag = sdl_prompt(sdl_name, game.app_title)
+                if game.app_name not in self.core.lgd.config:
+                    self.core.lgd.config[game.app_name] = dict()
+                self.core.lgd.config.set(game.app_name, 'install_tags', ','.join(args.install_tag))
+            else:
+                args.install_tag = config_tags.split(',')
+
         logger.info('Preparing download...')
         # todo use status queue to print progress from CLI
         # This has become a little ridiculous hasn't it?
@@ -553,19 +607,30 @@ class LegendaryCLI:
                                                           file_install_tag=args.install_tag,
                                                           dl_optimizations=args.order_opt,
                                                           dl_timeout=args.dl_timeout,
-                                                          repair=args.repair_mode)
+                                                          repair=args.repair_mode,
+                                                          repair_use_latest=args.repair_and_update,
+                                                          disable_delta=args.disable_delta,
+                                                          override_delta_manifest=args.override_delta_manifest)
 
         # game is either up to date or hasn't changed, so we have nothing to do
         if not analysis.dl_size:
+            old_igame = self.core.get_installed_game(game.app_name)
             logger.info('Download size is 0, the game is either already up to date or has not changed. Exiting...')
-            if args.repair_mode and os.path.exists(repair_file):
-                igame = self.core.get_installed_game(game.app_name)
-                if igame.needs_verification:
-                    igame.needs_verification = False
-                    self.core.install_game(igame)
+            if old_igame and args.repair_mode and os.path.exists(repair_file):
+                if old_igame.needs_verification:
+                    old_igame.needs_verification = False
+                    self.core.install_game(old_igame)
 
                 logger.debug('Removing repair file.')
                 os.remove(repair_file)
+
+            # check if install tags have changed, if they did; try deleting files that are no longer required.
+            if old_igame and old_igame.install_tags != igame.install_tags:
+                old_igame.install_tags = igame.install_tags
+                self.logger.info('Deleting now untagged files.')
+                self.core.uninstall_tag(old_igame)
+                self.core.install_game(old_igame)
+
             exit(0)
 
         logger.info(f'Install size: {analysis.install_size / 1024 / 1024:.02f} MiB')
@@ -573,20 +638,24 @@ class LegendaryCLI:
         logger.info(f'Download size: {analysis.dl_size / 1024 / 1024:.02f} MiB '
                     f'(Compression savings: {compression:.01f}%)')
         logger.info(f'Reusable size: {analysis.reuse_size / 1024 / 1024:.02f} MiB (chunks) / '
-                    f'{analysis.unchanged / 1024 / 1024:.02f} MiB (unchanged)')
+                    f'{analysis.unchanged / 1024 / 1024:.02f} MiB (unchanged / skipped)')
 
-        res = self.core.check_installation_conditions(analysis=analysis, install=igame)
+        res = self.core.check_installation_conditions(analysis=analysis, install=igame, game=game,
+                                                      updating=self.core.is_installed(args.app_name),
+                                                      ignore_space_req=args.ignore_space)
 
-        if res.failures:
-            logger.fatal('Download cannot proceed, the following errors occured:')
-            for msg in sorted(res.failures):
-                logger.fatal(msg)
-            exit(1)
+        if res.warnings or res.failures:
+            logger.info('Installation requirements check returned the following results:')
 
         if res.warnings:
-            logger.warning('Installation requirements check returned the following warnings:')
             for warn in sorted(res.warnings):
                 logger.warning(warn)
+
+        if res.failures:
+            for msg in sorted(res.failures):
+                logger.fatal(msg)
+            logger.error('Installation cannot proceed, exiting.')
+            exit(1)
 
         logger.info('Downloads are resumable, you can interrupt the download with '
                     'CTRL-C and resume it using the same command later on.')
@@ -608,7 +677,7 @@ class LegendaryCLI:
         except Exception as e:
             end_t = time.time()
             logger.info(f'Installation failed after {end_t - start_t:.02f} seconds.')
-            logger.warning(f'The following exception occured while waiting for the donlowader to finish: {e!r}. '
+            logger.warning(f'The following exception occurred while waiting for the downloader to finish: {e!r}. '
                            f'Try restarting the process, the resume file will be used to start where it failed. '
                            f'If it continues to fail please open an issue on GitHub.')
         else:
@@ -649,14 +718,21 @@ class LegendaryCLI:
                     logger.info('This game supports cloud saves, syncing is handled by the "sync-saves" command.')
                     logger.info(f'To download saves for this game run "legendary sync-saves {args.app_name}"')
 
-            if args.repair_mode and os.path.exists(repair_file):
-                igame = self.core.get_installed_game(game.app_name)
-                if igame.needs_verification:
-                    igame.needs_verification = False
-                    self.core.install_game(igame)
+            old_igame = self.core.get_installed_game(game.app_name)
+            if old_igame and args.repair_mode and os.path.exists(repair_file):
+                if old_igame.needs_verification:
+                    old_igame.needs_verification = False
+                    self.core.install_game(old_igame)
 
                 logger.debug('Removing repair file.')
                 os.remove(repair_file)
+
+            # check if install tags have changed, if they did; try deleting files that are no longer required.
+            if old_igame and old_igame.install_tags != igame.install_tags:
+                old_igame.install_tags = igame.install_tags
+                self.logger.info('Deleting now untagged files.')
+                self.core.uninstall_tag(old_igame)
+                self.core.install_game(old_igame)
 
             logger.info(f'Finished installation process in {end_t - start_t:.02f} seconds.')
 
@@ -703,10 +779,10 @@ class LegendaryCLI:
             for dlc in dlcs:
                 if (idlc := self.core.get_installed_game(dlc.app_name)) is not None:
                     logger.info(f'Uninstalling DLC "{dlc.app_name}"...')
-                    self.core.uninstall_game(idlc)
+                    self.core.uninstall_game(idlc, delete_files=not args.keep_files)
 
             logger.info(f'Removing "{igame.title}" from "{igame.install_path}"...')
-            self.core.uninstall_game(igame, delete_root_directory=True)
+            self.core.uninstall_game(igame, delete_files=not args.keep_files, delete_root_directory=True)
             logger.info('Game has been uninstalled.')
         except Exception as e:
             logger.warning(f'Removing game failed: {e!r}, please remove {igame.install_path} manually.')
@@ -769,6 +845,9 @@ class LegendaryCLI:
                 logger.info(f'Run "legendary repair {args.app_name}" to repair your game installation.')
 
     def import_game(self, args):
+        # make sure path is absolute
+        args.app_path = os.path.abspath(args.app_path)
+
         if not os.path.exists(args.app_path):
             logger.error(f'Specified path "{args.app_path}" does not exist!')
             exit(1)
@@ -813,7 +892,7 @@ class LegendaryCLI:
                         f'with legendary. Run "legendary repair {args.app_name}" to do so.')
         else:
             logger.info(f'Installation had Epic Games Launcher metadata for version "{igame.version}", '
-                        f'verification will not be requried.')
+                        f'verification will not be required.')
         logger.info('Game has been imported.')
 
     def egs_sync(self, args):
@@ -832,6 +911,11 @@ class LegendaryCLI:
         elif args.disable_sync:
             logger.info('Disabling EGS/LGD sync...')
             self.core.lgd.config.remove_option('Legendary', 'egl_sync')
+            return
+
+        if not self.core.lgd.assets:
+            logger.error('Legendary is missing game metadata, please login (if not already) and use the '
+                         '"status" command to fetch necessary information to set-up syncing.')
             return
 
         if not self.core.egl.programdata_path:
@@ -904,6 +988,9 @@ class LegendaryCLI:
                 for egl_game in importable:
                     print(' *', egl_game.app_name, '-', egl_game.display_name)
 
+                print('\nNote: Only games that are also in Legendary\'s database are listed, '
+                      'if anything is missing run "list-games" first to update it.')
+
                 if args.yes or get_boolean_choice('Do you want to import the games from EGL?'):
                     for egl_game in importable:
                         logger.info(f'Importing "{egl_game.display_name}"...')
@@ -936,15 +1023,67 @@ class LegendaryCLI:
         else:
             self.core.egl_sync()
 
+    def status(self, args):
+        if not args.offline:
+            try:
+                if not self.core.login():
+                    logger.error('Log in failed!')
+                    exit(1)
+            except ValueError:
+                pass
+
+        if not self.core.lgd.userdata:
+            user_name = '<not logged in>'
+            args.offline = True
+        else:
+            user_name = self.core.lgd.userdata['displayName']
+
+        games_available = len(self.core.get_game_list(update_assets=not args.offline))
+        games_installed = len(self.core.get_installed_list())
+        if args.json:
+            print(json.dumps(dict(
+                account=user_name,
+                games_available=games_available,
+                games_installed=games_installed,
+                egl_sync_enabled=self.core.egl_sync_enabled,
+                config_directory=self.core.lgd.path
+            ), indent=2, sort_keys=True))
+            return
+
+        print(f'Epic account: {user_name}')
+        print(f'Games available: {games_available}')
+        print(f'Games installed: {games_installed}')
+        print(f'EGL Sync enabled: {self.core.egl_sync_enabled}')
+        print(f'Config directory: {self.core.lgd.path}')
+
+    def cleanup(self, args):
+        before = self.core.lgd.get_dir_size()
+        # delete metadata
+        logger.debug('Removing app metadata...')
+        app_names = set(g.app_name for g in self.core.get_assets(update_assets=False))
+        self.core.lgd.clean_metadata(app_names)
+
+        if not args.keep_manifests:
+            logger.debug('Removing manifests...')
+            installed = [(ig.app_name, ig.version) for ig in self.core.get_installed_list()]
+            installed.extend((ig.app_name, ig.version) for ig in self.core.get_installed_dlc_list())
+            self.core.lgd.clean_manifests(installed)
+
+        logger.debug('Removing tmp data')
+        self.core.lgd.clean_tmp_data()
+
+        after = self.core.lgd.get_dir_size()
+        logger.info(f'Cleanup complete! Removed {(before - after)/1024/1024:.02f} MiB.')
+
 
 def main():
     parser = argparse.ArgumentParser(description=f'Legendary v{__version__} - "{__codename__}"')
     parser.register('action', 'parsers', AliasedSubParsersAction)
 
     # general arguments
-    parser.add_argument('-v', dest='debug', action='store_true', help='Set loglevel to debug')
+    parser.add_argument('-v', '--debug', dest='debug', action='store_true', help='Set loglevel to debug')
     parser.add_argument('-y', '--yes', dest='yes', action='store_true', help='Default to yes for all prompts')
-    parser.add_argument('-V', dest='version', action='store_true', help='Print version and exit')
+    parser.add_argument('-V', '--version', dest='version', action='store_true', help='Print version and exit')
 
     # all the commands
     subparsers = parser.add_subparsers(title='Commands', dest='subparser_name')
@@ -965,6 +1104,8 @@ def main():
     verify_parser = subparsers.add_parser('verify-game', help='Verify a game\'s local files')
     import_parser = subparsers.add_parser('import-game', help='Import an already installed game')
     egl_sync_parser = subparsers.add_parser('egl-sync', help='Setup or run Epic Games Launcher sync')
+    status_parser = subparsers.add_parser('status', help='Show legendary status information')
+    clean_parser = subparsers.add_parser('cleanup', help='Remove old temporary, metadata, and manifest files')
 
     install_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
     uninstall_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
@@ -1003,6 +1144,8 @@ def main():
                                 help='Manifest URL or path to use instead of the CDN one (e.g. for downgrading)')
     install_parser.add_argument('--old-manifest', dest='override_old_manifest', action='store', metavar='<uri>',
                                 help='Manifest URL or path to use as the old one (e.g. for testing patching)')
+    install_parser.add_argument('--delta-manifest', dest='override_delta_manifest', action='store', metavar='<uri>',
+                                help='Manifest URL or path to use as the delta one (e.g. for testing)')
     install_parser.add_argument('--base-url', dest='override_base_url', action='store', metavar='<url>',
                                 help='Base URL to download from (e.g. to test or switch to a different CDNs)')
     install_parser.add_argument('--force', dest='force', action='store_true',
@@ -1010,7 +1153,7 @@ def main():
     install_parser.add_argument('--disable-patching', dest='disable_patching', action='store_true',
                                 help='Do not attempt to patch existing installation (download entire changed files)')
     install_parser.add_argument('--download-only', '--no-install', dest='no_install', action='store_true',
-                                help='Do not intall app and do not run prerequisite installers after download')
+                                help='Do not install app and do not run prerequisite installers after download')
     install_parser.add_argument('--update-only', dest='update_only', action='store_true',
                                 help='Only update, do not do anything if specified app is not installed')
     install_parser.add_argument('--dlm-debug', dest='dlm_debug', action='store_true',
@@ -1032,6 +1175,17 @@ def main():
                                 help='Set save game path to be used for sync-saves')
     install_parser.add_argument('--repair', dest='repair_mode', action='store_true',
                                 help='Repair installed game by checking and redownloading corrupted/missing files')
+    install_parser.add_argument('--repair-and-update', dest='repair_and_update', action='store_true',
+                                help='Update game to the latest version when repairing')
+    install_parser.add_argument('--ignore-free-space', dest='ignore_space', action='store_true',
+                                help='Do not abort if not enough free space is available')
+    install_parser.add_argument('--disable-delta-manifests', dest='disable_delta', action='store_true',
+                                help='Do not use delta manifests when updating (may increase download size)')
+    install_parser.add_argument('--reset-sdl', dest='reset_sdl', action='store_true',
+                                help='Reset selective downloading choices (requires repair to download new components)')
+
+    uninstall_parser.add_argument('--keep-files', dest='keep_files', action='store_true',
+                                  help='Keep files but remove game from Legendary database')
 
     launch_parser.add_argument('--offline', dest='offline', action='store_true',
                                default=False, help='Skip login and launch game without online authentication')
@@ -1050,6 +1204,8 @@ def main():
                                help='Save parameters used to launch to config (does not include env vars)')
     launch_parser.add_argument('--reset-defaults', dest='reset_defaults', action='store_true',
                                help='Reset config settings for app and exit')
+    launch_parser.add_argument('--override-exe', dest='executable_override', action='store', metavar='<exe path>',
+                               help='Override executable to launch (relative path)')
 
     if os.name != 'nt':
         launch_parser.add_argument('--wine', dest='wine_bin', action='store', metavar='<wine binary>',
@@ -1074,6 +1230,7 @@ def main():
                              help='Also include Unreal Engine content (Engine/Marketplace) in list')
     list_parser.add_argument('--csv', dest='csv', action='store_true', help='List games in CSV format')
     list_parser.add_argument('--tsv', dest='tsv', action='store_true', help='List games in TSV format')
+    list_parser.add_argument('--json', dest='json', action='store_true', help='List games in JSON format')
 
     list_installed_parser.add_argument('--check-updates', dest='check_updates', action='store_true',
                                        help='Check for updates for installed games')
@@ -1081,6 +1238,8 @@ def main():
                                        help='List games in CSV format')
     list_installed_parser.add_argument('--tsv', dest='tsv', action='store_true',
                                        help='List games in TSV format')
+    list_installed_parser.add_argument('--json', dest='json', action='store_true',
+                                       help='List games in JSON format')
     list_installed_parser.add_argument('--show-dirs', dest='include_dir', action='store_true',
                                        help='Print installation directory in output')
 
@@ -1092,6 +1251,7 @@ def main():
                                    help='Manifest URL or path to use instead of the CDN one')
     list_files_parser.add_argument('--csv', dest='csv', action='store_true', help='Output in CSV format')
     list_files_parser.add_argument('--tsv', dest='tsv', action='store_true', help='Output in TSV format')
+    list_files_parser.add_argument('--json', dest='json', action='store_true', help='Output in JSON format')
     list_files_parser.add_argument('--hashlist', dest='hashlist', action='store_true',
                                    help='Output file hash list in hashcheck/sha1sum -c compatible format')
     list_files_parser.add_argument('--install-tag', dest='install_tag', action='store', metavar='<tag>',
@@ -1132,6 +1292,14 @@ def main():
     egl_sync_parser.add_argument('--unlink', dest='unlink', action='store_true',
                                  help='Disable sync and remove EGL metadata from installed games')
 
+    status_parser.add_argument('--offline', dest='offline', action='store_true',
+                               help='Only print offline status information, do not login')
+    status_parser.add_argument('--json', dest='json', action='store_true',
+                               help='Show status in JSON format')
+
+    clean_parser.add_argument('--keep-manifests', dest='keep_manifests', action='store_true',
+                              help='Do not delete old manifests')
+
     args, extra = parser.parse_known_args()
 
     if args.version:
@@ -1141,7 +1309,7 @@ def main():
     if args.subparser_name not in ('auth', 'list-games', 'list-installed', 'list-files',
                                    'launch', 'download', 'uninstall', 'install', 'update',
                                    'repair', 'list-saves', 'download-saves', 'sync-saves',
-                                   'verify-game', 'import-game', 'egl-sync'):
+                                   'verify-game', 'import-game', 'egl-sync', 'status', 'cleanup'):
         print(parser.format_help())
 
         # Print the main help *and* the help for all of the subcommands. Thanks stackoverflow!
@@ -1164,10 +1332,10 @@ def main():
         logging.getLogger('requests').setLevel(logging.WARNING)
         logging.getLogger('urllib3').setLevel(logging.WARNING)
 
-    # -y having to be specified before the subcommand is a little counter-intuitive
-    # For now show a warning if a user is misusing that flag
+    # if --yes is used as part of the subparsers arguments manually set the flag in the main parser.
     if '-y' in extra or '--yes' in extra:
-        logger.warning('-y/--yes flag needs to be specified *before* the command name')
+        args.yes = True
+        extra = [i for i in extra if i not in ('--yes', '-y')]
 
     # technically args.func() with setdefaults could work (see docs on subparsers)
     # but that would require all funcs to accept args and extra...
@@ -1198,6 +1366,10 @@ def main():
             cli.import_game(args)
         elif args.subparser_name == 'egl-sync':
             cli.egs_sync(args)
+        elif args.subparser_name == 'status':
+            cli.status(args)
+        elif args.subparser_name == 'cleanup':
+            cli.cleanup(args)
     except KeyboardInterrupt:
         logger.info('Command was aborted via KeyboardInterrupt, cleaning up...')
 

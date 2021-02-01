@@ -137,18 +137,21 @@ class DLManager(Process):
             except Exception as e:
                 self.log.warning(f'Reading resume file failed: {e!r}, continuing as normal...')
 
-        # Not entirely sure what install tags are used for, only some titles have them.
-        # Let's add it for testing anyway.
-        if file_install_tag:
+        # Install tags are used for selective downloading, e.g. for language packs
+        additional_deletion_tasks = []
+        if file_install_tag is not None:
             if isinstance(file_install_tag, str):
                 file_install_tag = [file_install_tag]
 
             files_to_skip = set(i.filename for i in manifest.file_manifest_list.elements
-                                if not any(fit in i.install_tags for fit in file_install_tag))
+                                if not any((fit in i.install_tags) or (not fit and not i.install_tags)
+                                           for fit in file_install_tag))
             self.log.info(f'Found {len(files_to_skip)} files to skip based on install tag.')
             mc.added -= files_to_skip
             mc.changed -= files_to_skip
             mc.unchanged |= files_to_skip
+            for fname in sorted(files_to_skip):
+                additional_deletion_tasks.append(FileTask(fname, delete=True, silent=True))
 
         # if include/exclude prefix has been set: mark all files that are not to be downloaded as unchanged
         if file_exclude_filter:
@@ -194,7 +197,7 @@ class DLManager(Process):
             analysis_res.unchanged = len(mc.unchanged)
             self.log.debug(f'{analysis_res.unchanged} unchanged files')
 
-        if processing_optimization and len(manifest.file_manifest_list.elements) > 8_000:
+        if processing_optimization and len(manifest.file_manifest_list.elements) > 100_000:
             self.log.warning('Manifest contains too many files, processing optimizations will be disabled.')
             processing_optimization = False
         elif processing_optimization:
@@ -202,7 +205,6 @@ class DLManager(Process):
 
         # count references to chunks for determining runtime cache size later
         references = Counter()
-        file_to_chunks = defaultdict(set)
         fmlist = sorted(manifest.file_manifest_list.elements,
                         key=lambda a: a.filename.lower())
 
@@ -216,54 +218,44 @@ class DLManager(Process):
 
             for cp in fm.chunk_parts:
                 references[cp.guid_num] += 1
-                if processing_optimization:
-                    file_to_chunks[fm.filename].add(cp.guid_num)
 
         if processing_optimization:
+            s_time = time.time()
             # reorder the file manifest list to group files that share many chunks
-            # 5 is mostly arbitrary but has shown in testing to be a good choice
+            # 4 is mostly arbitrary but has shown in testing to be a good choice
             min_overlap = 4
-            # enumerate the file list to try and find a "partner" for
-            # each file that shares the most chunks with it.
-            partners = dict()
-            filenames = [fm.filename for fm in fmlist]
+            # ignore files with less than N chunk parts, this speeds things up dramatically
+            cp_threshold = 5
 
-            for num, filename in enumerate(filenames[:int((len(filenames) + 1) / 2)]):
-                chunks = file_to_chunks[filename]
-                partnerlist = list()
-
-                for other_file in filenames[num + 1:]:
-                    overlap = len(chunks & file_to_chunks[other_file])
-                    if overlap > min_overlap:
-                        partnerlist.append(other_file)
-
-                if not partnerlist:
-                    continue
-
-                partners[filename] = partnerlist
-
-            # iterate over all the files again and this time around
+            remaining_files = {fm.filename: {cp.guid_num for cp in fm.chunk_parts}
+                               for fm in fmlist if fm.filename not in mc.unchanged}
             _fmlist = []
-            processed = set()
-            for fm in fmlist:
-                if fm.filename in processed:
-                    continue
-                _fmlist.append(fm)
-                processed.add(fm.filename)
-                # try to find the file's "partner"
-                f_partners = partners.get(fm.filename, None)
-                if not f_partners:
-                    continue
-                # add each partner to list at this point
-                for partner in f_partners:
-                    if partner in processed:
-                        continue
 
-                    partner_fm = manifest.file_manifest_list.get_file_by_path(partner)
-                    _fmlist.append(partner_fm)
-                    processed.add(partner)
+            # iterate over all files that will be downloaded and pair up those that share the most chunks
+            for fm in fmlist:
+                if fm.filename not in remaining_files:
+                    continue
+
+                _fmlist.append(fm)
+                f_chunks = remaining_files.pop(fm.filename)
+                if len(f_chunks) < cp_threshold:
+                    continue
+
+                best_overlap, match = 0, None
+                for fname, chunks in remaining_files.items():
+                    if len(chunks) < cp_threshold:
+                        continue
+                    overlap = len(f_chunks & chunks)
+                    if overlap > min_overlap and overlap > best_overlap:
+                        best_overlap, match = overlap, fname
+
+                if match:
+                    _fmlist.append(manifest.file_manifest_list.get_file_by_path(match))
+                    remaining_files.pop(match)
 
             fmlist = _fmlist
+            opt_delta = time.time() - s_time
+            self.log.debug(f'Processing optimizations took {opt_delta:.01f} seconds.')
 
         # determine reusable chunks and prepare lookup table for reusable ones
         re_usable = defaultdict(dict)
@@ -273,18 +265,21 @@ class DLManager(Process):
                 old_file = old_manifest.file_manifest_list.get_file_by_path(changed)
                 new_file = manifest.file_manifest_list.get_file_by_path(changed)
 
-                existing_chunks = dict()
+                existing_chunks = defaultdict(list)
                 off = 0
                 for cp in old_file.chunk_parts:
-                    existing_chunks[(cp.guid_num, cp.offset, cp.size)] = off
+                    existing_chunks[cp.guid_num].append((off, cp.offset, cp.offset + cp.size))
                     off += cp.size
 
                 for cp in new_file.chunk_parts:
                     key = (cp.guid_num, cp.offset, cp.size)
-                    if key in existing_chunks:
-                        references[cp.guid_num] -= 1
-                        re_usable[changed][key] = existing_chunks[key]
-                        analysis_res.reuse_size += cp.size
+                    for file_o, cp_o, cp_end_o in existing_chunks[cp.guid_num]:
+                        # check if new chunk part is wholly contained in the old chunk part
+                        if cp_o <= cp.offset and (cp.offset + cp.size) <= cp_end_o:
+                            references[cp.guid_num] -= 1
+                            re_usable[changed][key] = file_o + (cp.offset - cp_o)
+                            analysis_res.reuse_size += cp.size
+                            break
 
         last_cache_size = current_cache_size = 0
         # set to determine whether a file is currently cached or not
@@ -349,7 +344,7 @@ class DLManager(Process):
                 self.tasks.append(FileTask(current_file.filename + u'.tmp', fopen=True))
                 self.tasks.extend(chunk_tasks)
                 self.tasks.append(FileTask(current_file.filename + u'.tmp', close=True))
-                # delete old file and rename temproary
+                # delete old file and rename temporary
                 self.tasks.append(FileTask(current_file.filename, delete=True, rename=True,
                                            temporary_filename=current_file.filename + u'.tmp'))
             else:
@@ -369,8 +364,17 @@ class DLManager(Process):
         if analysis_res.min_memory > self.max_shared_memory:
             shared_mib = f'{self.max_shared_memory / 1024 / 1024:.01f} MiB'
             required_mib = f'{analysis_res.min_memory / 1024 / 1024:.01f} MiB'
-            raise MemoryError(f'Current shared memory cache is smaller than required! {shared_mib} < {required_mib}. '
-                              f'Try running legendary with the --enable-reordering flag to reduce memory usage.')
+            suggested_mib = round(self.max_shared_memory / 1024 / 1024 +
+                                  (analysis_res.min_memory - self.max_shared_memory) / 1024 / 1024 + 32)
+
+            if processing_optimization:
+                message = f'Try running legendary with "--enable-reordering --max-shared-memory {suggested_mib:.0f}"'
+            else:
+                message = 'Try running legendary with "--enable-reordering" to reduce memory usage, ' \
+                          f'or use "--max-shared-memory {suggested_mib:.0f}" to increase the limit.'
+
+            raise MemoryError(f'Current shared memory cache is smaller than required: {shared_mib} < {required_mib}. '
+                              + message)
 
         # calculate actual dl and patch write size.
         analysis_res.dl_size = \
@@ -381,6 +385,7 @@ class DLManager(Process):
         # add jobs to remove files
         for fname in mc.removed:
             self.tasks.append(FileTask(fname, delete=True))
+        self.tasks.extend(additional_deletion_tasks)
 
         analysis_res.num_chunks_cache = len(dl_cache_guids)
         self.chunk_data_list = manifest.chunk_data_list
@@ -443,7 +448,7 @@ class DLManager(Process):
                                                          old_filename=task.temporary_filename),
                                               timeout=1.0)
                     elif task.delete:
-                        self.writer_queue.put(WriterTask(task.filename, delete=True), timeout=1.0)
+                        self.writer_queue.put(WriterTask(task.filename, delete=True, silent=task.silent), timeout=1.0)
                     elif task.open:
                         self.writer_queue.put(WriterTask(task.filename, fopen=True), timeout=1.0)
                         current_file = task.filename
@@ -524,6 +529,9 @@ class DLManager(Process):
                 self.num_tasks_processed_since_last += 1
 
                 if res.closed and self.resume_file and res.success:
+                    if res.filename.endswith('.tmp'):
+                        res.filename = res.filename[:-4]
+
                     file_hash = self.hash_map[res.filename]
                     # write last completed file to super simple resume file
                     with open(self.resume_file, 'ab') as rf:

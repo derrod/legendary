@@ -27,7 +27,8 @@ def delete_folder(path: str, recursive=True) -> bool:
 
 
 def delete_filelist(path: str, filenames: List[str],
-                    delete_root_directory: bool = False) -> bool:
+                    delete_root_directory: bool = False,
+                    silent: bool = False) -> bool:
     dirs = set()
     no_error = True
 
@@ -40,7 +41,8 @@ def delete_filelist(path: str, filenames: List[str],
         try:
             os.remove(os.path.join(path, _dir, _fn))
         except Exception as e:
-            logger.error(f'Failed deleting file {filename} with {e!r}')
+            if not silent:
+                logger.error(f'Failed deleting file {filename} with {e!r}')
             no_error = False
 
     # add intermediate directories that would have been missed otherwise
@@ -58,14 +60,16 @@ def delete_filelist(path: str, filenames: List[str],
             # directory has already been deleted, ignore that
             continue
         except Exception as e:
-            logger.error(f'Failed removing directory "{_dir}" with {e!r}')
+            if not silent:
+                logger.error(f'Failed removing directory "{_dir}" with {e!r}')
             no_error = False
     
     if delete_root_directory:
         try:
             os.rmdir(path)
         except Exception as e:
-            logger.error(f'Removing game directory failed with {e!r}')
+            if not silent:
+                logger.error(f'Removing game directory failed with {e!r}')
     
     return no_error
 

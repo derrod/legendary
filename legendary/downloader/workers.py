@@ -22,7 +22,7 @@ class DLWorker(Process):
         self.o_q = out_queue
         self.session = requests.session()
         self.session.headers.update({
-            'User-Agent': 'EpicGamesLauncher/10.16.1-13343695+++Portal+Release-Live Windows/10.0.18363.1.256.64bit'
+            'User-Agent': 'EpicGamesLauncher/11.0.1-14907503+++Portal+Release-Live Windows/10.0.19041.1.256.64bit'
         })
         self.max_retries = max_retries
         self.shm = SharedMemory(name=shm)
@@ -217,7 +217,8 @@ class FileWorker(Process):
                     try:
                         os.remove(full_path)
                     except OSError as e:
-                        logger.error(f'Removing file failed: {e!r}')
+                        if not j.silent:
+                            logger.error(f'Removing file failed: {e!r}')
 
                     self.o_q.put(WriterTaskResult(success=True, filename=j.filename))
                     continue

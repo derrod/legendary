@@ -5,6 +5,8 @@ import os
 import configparser
 import logging
 
+from pathlib import Path
+
 from legendary.models.game import *
 from legendary.utils.lfs import clean_filename
 
@@ -27,13 +29,40 @@ class LGDLFS:
         # EGS metadata
         self._game_metadata = dict()
         # Config with game specific settings (e.g. start parameters, env variables)
-        self.config = configparser.ConfigParser()
+        self.config = configparser.ConfigParser(comment_prefixes='/', allow_no_value=True)
         self.config.optionxform = str
 
         # ensure folders exist.
-        for f in ['', 'manifests', 'metadata', 'tmp', 'manifests/old']:
+        for f in ['', 'manifests', 'metadata', 'tmp']:
             if not os.path.exists(os.path.join(self.path, f)):
                 os.makedirs(os.path.join(self.path, f))
+
+        # if "old" folder exists migrate files and remove it
+        if os.path.exists(os.path.join(self.path, 'manifests', 'old')):
+            self.log.info('Migrating manifest files from old folders to new, please wait...')
+            # remove unversioned manifest files
+            for _f in os.listdir(os.path.join(self.path, 'manifests')):
+                if '.manifest' not in _f:
+                    continue
+                if '_' not in _f or (_f.startswith('UE_') and _f.count('_') < 2):
+                    self.log.debug(f'Deleting "{_f}" ...')
+                    os.remove(os.path.join(self.path, 'manifests', _f))
+
+            # move files from "old" to the base folder
+            for _f in os.listdir(os.path.join(self.path, 'manifests', 'old')):
+                try:
+                    self.log.debug(f'Renaming "{_f}"')
+                    os.rename(os.path.join(self.path, 'manifests', 'old', _f),
+                              os.path.join(self.path, 'manifests', _f))
+                except Exception as e:
+                    self.log.warning(f'Renaming manifest file "{_f}" failed: {e!r}')
+
+            # remove "old" folder
+            try:
+                os.removedirs(os.path.join(self.path, 'manifests', 'old'))
+            except Exception as e:
+                self.log.warning(f'Removing "{os.path.join(self.path, "manifests", "old")}" folder failed: '
+                                 f'{e!r}, please remove manually')
 
         # try loading config
         self.config.read(os.path.join(self.path, 'config.ini'))
@@ -123,21 +152,17 @@ class LGDLFS:
                   open(os.path.join(self.path, 'assets.json'), 'w'),
                   indent=2, sort_keys=True)
 
-    def _get_manifest_filename(self, app_name, version=''):
-        if not version:
-            return os.path.join(self.path, 'manifests', f'{app_name}.manifest')
-        else:
-            # if a version is specified load it from the versioned directory
-            fname = clean_filename(f'{app_name}_{version}')
-            return os.path.join(self.path, 'manifests', 'old', f'{fname}.manifest')
+    def _get_manifest_filename(self, app_name, version):
+        fname = clean_filename(f'{app_name}_{version}')
+        return os.path.join(self.path, 'manifests', f'{fname}.manifest')
 
-    def load_manifest(self, app_name, version=''):
+    def load_manifest(self, app_name, version):
         try:
             return open(self._get_manifest_filename(app_name, version), 'rb').read()
         except FileNotFoundError:  # all other errors should propagate
             return None
 
-    def save_manifest(self, app_name, manifest_data, version=''):
+    def save_manifest(self, app_name, manifest_data, version):
         with open(self._get_manifest_filename(app_name, version), 'wb') as f:
             f.write(manifest_data)
 
@@ -171,6 +196,24 @@ class LGDLFS:
                 os.remove(os.path.join(self.path, 'tmp', f))
             except Exception as e:
                 self.log.warning(f'Failed to delete file "{f}": {e!r}')
+
+    def clean_metadata(self, app_names):
+        for f in os.listdir(os.path.join(self.path, 'metadata')):
+            app_name = f.rpartition('.')[0]
+            if app_name not in app_names:
+                try:
+                    os.remove(os.path.join(self.path, 'metadata', f))
+                except Exception as e:
+                    self.log.warning(f'Failed to delete file "{f}": {e!r}')
+
+    def clean_manifests(self, in_use):
+        in_use_files = set(f'{clean_filename(f"{app_name}_{version}")}.manifest' for app_name, version in in_use)
+        for f in os.listdir(os.path.join(self.path, 'manifests')):
+            if f not in in_use_files:
+                try:
+                    os.remove(os.path.join(self.path, 'manifests', f))
+                except Exception as e:
+                    self.log.warning(f'Failed to delete file "{f}": {e!r}')
 
     def get_installed_game(self, app_name):
         if self._installed is None:
@@ -221,3 +264,5 @@ class LGDLFS:
         with open(os.path.join(self.path, 'config.ini'), 'w') as cf:
             self.config.write(cf)
 
+    def get_dir_size(self):
+        return sum(f.stat().st_size for f in Path(self.path).glob('**/*') if f.is_file())

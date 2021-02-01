@@ -28,7 +28,7 @@ class WriterTask:
 
     def __init__(self, filename, chunk_offset=0, chunk_size=0, chunk_guid=None, close=False,
                  shared_memory=None, cache_file='', old_file='', release_memory=False, rename=False,
-                 empty=False, kill=False, delete=False, old_filename='', fopen=False):
+                 empty=False, kill=False, delete=False, old_filename='', fopen=False, silent=False):
         self.filename = filename
         self.empty = empty
         self.shm = shared_memory
@@ -46,6 +46,7 @@ class WriterTask:
         self.rename = rename
         self.old_filename = old_filename
 
+        self.silent = silent  # disable logging
         self.kill = kill  # final task for worker (quit)
 
 
@@ -96,7 +97,7 @@ class SharedMemorySegment:
 class ChunkTask:
     def __init__(self, chunk_guid, chunk_offset=0, chunk_size=0, cleanup=False, chunk_file=None):
         """
-        Download amanger chunk task
+        Download manager chunk task
 
         :param chunk_guid: GUID of chunk
         :param cleanup: whether or not this chunk can be removed from disk/memory after it has been written
@@ -113,7 +114,7 @@ class ChunkTask:
 
 class FileTask:
     def __init__(self, filename, delete=False, empty=False, fopen=False, close=False,
-                 rename=False, temporary_filename=None):
+                 rename=False, temporary_filename=None, silent=False):
         """
         Download manager Task for a file
 
@@ -130,6 +131,7 @@ class FileTask:
         self.close = close
         self.rename = rename
         self.temporary_filename = temporary_filename
+        self.silent = silent
 
     @property
     def is_reusing(self):

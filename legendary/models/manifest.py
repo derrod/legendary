@@ -507,13 +507,20 @@ class FML:
         # Each file is made up of "Chunk Parts" that can be spread across the "chunk stream"
         for fm in _fml.elements:
             _elem = struct.unpack('<I', bio.read(4))[0]
+            _offset = 0
             for i in range(_elem):
                 chunkp = ChunkPart()
+                _start = bio.tell()
                 _size = struct.unpack('<I', bio.read(4))[0]
                 chunkp.guid = struct.unpack('<IIII', bio.read(16))
                 chunkp.offset = struct.unpack('<I', bio.read(4))[0]
                 chunkp.size = struct.unpack('<I', bio.read(4))[0]
+                chunkp.file_offset = _offset
                 fm.chunk_parts.append(chunkp)
+                _offset += chunkp.size
+                if (diff := (bio.tell() - _start - _size)) > 0:
+                    logger.warning(f'Did not read {diff} bytes from chunk part!')
+                    bio.seek(diff)
 
         # we have to calculate the actual file size ourselves
         for fm in _fml.elements:
@@ -595,16 +602,17 @@ class FileManifest:
 
         return '<FileManifest (filename="{}", symlink_target="{}", hash={}, flags={}, ' \
                'install_tags=[{}], chunk_parts=[{}], file_size={})>'.format(
-            self.filename, self.symlink_target, self.hash.hex(), self.flags,
-            ', '.join(self.install_tags), cp_repr, self.file_size
-        )
+                    self.filename, self.symlink_target, self.hash.hex(), self.flags,
+                    ', '.join(self.install_tags), cp_repr, self.file_size
+               )
 
 
 class ChunkPart:
-    def __init__(self, guid=None, offset=0, size=0):
+    def __init__(self, guid=None, offset=0, size=0, file_offset=0):
         self.guid = guid
         self.offset = offset
         self.size = size
+        self.file_offset = file_offset
         # caches for things that are "expensive" to compute
         self._guid_str = None
         self._guid_num = None
@@ -623,11 +631,11 @@ class ChunkPart:
 
     def __repr__(self):
         guid_readable = '-'.join('{:08x}'.format(g) for g in self.guid)
-        return '<ChunkPart (guid={}, offset={}, size={})>'.format(
-            guid_readable, self.offset, self.size)
+        return '<ChunkPart (guid={}, offset={}, size={}, file_offset={})>'.format(
+            guid_readable, self.offset, self.size, self.file_offset)
 
 
-class CustomFields:  # this could probably be replaced with just a dict
+class CustomFields:
     def __init__(self):
         self.size = 0
         self.version = 0
@@ -643,6 +651,9 @@ class CustomFields:  # this could probably be replaced with just a dict
 
     def __str__(self):
         return str(self._dict)
+
+    def items(self):
+        return self._dict.items()
 
     def keys(self):
         return self._dict.keys()
