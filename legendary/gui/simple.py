@@ -1,38 +1,10 @@
 #!/usr/bin/env python3
 
-import logging
-import os
 import gi
 import webbrowser
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 import legendary.core
-
-#logging.basicConfig(
-#    format='[%(name)s] %(levelname)s: %(message)s',
-#    level=logging.INFO,
-#)
-logger = logging.getLogger('gui')
-#logger.info("ciao")
-
-#class MyHandler(logging.Handler):
-#    def __init__(self, label):
-#        logging.Handler.__init__(self)
-#        self.label = label
-#
-#    def handle(self, rec):
-#        original = self.label.get_text()
-#        self.label.set_text(rec.msg + "\n" + original)
-#
-#class MyLogger():
-#    def __init__(self, label):
-#        self.logger = logging.getLogger("Example")
-#        self.handler = MyHandler(label)
-#        #self.handler.setLevel(logging.INFO)
-#        self.logger.addHandler(self.handler)
-#
-#    def info(self, msg):
-#        self.logger.info(msg)
 
 def log_gtk(msg):
     dialog = Gtk.Dialog(title="Legendary Log")
@@ -58,6 +30,25 @@ class main_window(Gtk.Window):
         self.button_login = Gtk.Button(label="Login")
         self.button_login.connect("clicked", self.onclick)
         self.grid.attach(self.button_login, 1, 2, 1, 1)
+
+        # Games
+        #self.game_box = Gtk.Box()
+        #self.grid.attach(self.game_box, 1, 3, 3, 3)
+
+        if not core.login():
+            log_gtk('Login failed, cannot continue!')
+        games, dlc_list = core.get_game_and_dlc_list()
+        games = sorted(games, key=lambda x: x.app_title.lower())
+        for citem_id in dlc_list.keys():
+            dlc_list[citem_id] = sorted(dlc_list[citem_id], key=lambda d: d.app_title.lower())
+        i=0
+        for game in games:
+            i+=1
+            self.game_label = Gtk.Label(label=game.app_title)
+            self.grid.attach(self.game_label, 1, i, 1, 3)
+            print(f' * {game.app_title} (App name: {game.app_name} | Version: {game.app_version})')
+            for dlc in dlc_list[game.asset_info.catalog_item_id]:
+                print(f'  + {dlc.app_title} (App name: {dlc.app_name} | Version: {dlc.app_version})')
 
         
     def onclick(self, widget):
@@ -94,14 +85,27 @@ def ask_sid(parent):
     else:
         return 1
 
-win = main_window()
 core = legendary.core.LegendaryCore()
+win = main_window()
 
 #log_gtk("This is another message wa wda dwah jkdwhajk dhwjkah djkahwjk hdjkwah jkawhjk dhawjkhd jkawh djkawhjk h")
 #log_gtk("This is another message")
 
 win.connect("destroy", Gtk.main_quit)
 win.show_all()
+if not core.login():
+    log_gtk('Login failed, cannot continue!')
+games, dlc_list = core.get_game_and_dlc_list()
+games = sorted(games, key=lambda x: x.app_title.lower())
+for citem_id in dlc_list.keys():
+    dlc_list[citem_id] = sorted(dlc_list[citem_id], key=lambda d: d.app_title.lower())
+
+for game in games:
+    print(f' * {game.app_title} (App name: {game.app_name} | Version: {game.app_version})')
+    for dlc in dlc_list[game.asset_info.catalog_item_id]:
+        print(f'  + {dlc.app_title} (App name: {dlc.app_name} | Version: {dlc.app_version})')
+
+print(f'\nTotal: {len(games)}')
 Gtk.main()
 
 #cli.logger.Handler = logw.log
