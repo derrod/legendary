@@ -17,24 +17,29 @@ class main_window(Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self,title="Legendary")
         #self.grid = Gtk.Grid(column_spacing=30, row_spacing=30)
-        self.vbox = Gtk.VBox()
-        self.add(self.vbox)
+        self.set_default_size(800, 600)
+        self.box = Gtk.Box()
+        self.add(self.box)
 
         # 'Legendary' label
         self.legendary_label = Gtk.Label(label="Legendary")
-        self.vbox.pack_start(self.legendary_label, False, False, 5)
+        self.login_vbox = Gtk.VBox()
+        self.login_vbox.pack_start(self.legendary_label, False, False, 5)
 
         # Login button
         if not core.login():
             self.button_login = Gtk.Button(label="Login")
             self.button_login.connect("clicked", self.onclick)
-            self.vbox.pack_start(self.button_login, False, False, 3)
+            self.login_vbox.pack_start(self.button_login, False, False, 5)
+
+        self.box.pack_start(self.login_vbox, False, False, 5)
 
         # Games
         self.scroll = Gtk.ScrolledWindow()
-        self.scroll.set_border_width(10)
+        self.scroll.set_border_width(0)
         self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.ALWAYS)
-        self.vbox.pack_end(self.scroll, True, True, 0)
+        #self.vbox.pack_end(self.scroll, True, True, 0)
+        self.box.pack_end(self.scroll, True, True, 0)
         self.scroll.games = Gtk.VBox()
         #self.grid.attach(self.game_box, 1, 3, 3, 3)
 
@@ -48,6 +53,7 @@ class main_window(Gtk.Window):
         for game in games:
             i+=1
             self.game_label = Gtk.Label(label=game.app_title)
+            self.game_label.set_justify(Gtk.Justification.LEFT)
             self.scroll.games.pack_start(self.game_label, True, True, 10)
         self.scroll.add(self.scroll.games)
             #print(f' * {game.app_title} (App name: {game.app_name} | Version: {game.app_version})')
