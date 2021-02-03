@@ -6,6 +6,12 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 import legendary.core
 
+def is_installed(app_name):
+    if core.get_installed_game(app_name) == None:
+        return "No"
+    else:
+        return "Yes"
+
 def log_gtk(msg):
     dialog = Gtk.Dialog(title="Legendary Log")
     dialog.log = Gtk.Label(label=msg)
@@ -41,7 +47,9 @@ class main_window(Gtk.Window):
         self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.ALWAYS)
         #self.vbox.pack_end(self.scroll, True, True, 0)
         self.box.pack_end(self.scroll, True, True, 0)
-        self.scroll.games = Gtk.VBox()
+        #self.scroll.games = Gtk.VBox()
+        self.scroll.games = Gtk.ListStore(str, str, str)
+        gcols = ["Title","Installed","Version"]
         #self.grid.attach(self.game_box, 1, 3, 3, 3)
 
         if not core.login():
@@ -50,13 +58,26 @@ class main_window(Gtk.Window):
         games = sorted(games, key=lambda x: x.app_title.lower())
         for citem_id in dlc_list.keys():
             dlc_list[citem_id] = sorted(dlc_list[citem_id], key=lambda d: d.app_title.lower())
-        i=0
+        #i=0
         for game in games:
-            i+=1
-            self.game_label = Gtk.Button(label=game.app_title)
-            self.game_label.set_halign(Gtk.Align.START)
-            self.scroll.games.pack_start(self.game_label, True, True, 10)
-        self.scroll.add(self.scroll.games)
+            #i+=1
+            #self.game_label = Gtk.Label(label=game.app_title)
+            #self.game_label.set_halign(Gtk.Align.START)
+            #self.scroll.games.pack_start(self.game_label, True, True, 10)
+            ls = (game.app_title, is_installed(game.app_name), game.app_version)
+            self.scroll.games.append(list(ls))
+        self.scroll.gview = Gtk.TreeView(model=self.scroll.games)
+        for i, c in enumerate(gcols):
+            cell = Gtk.CellRendererText()
+            col = Gtk.TreeViewColumn(c, cell, text=i)
+            self.scroll.gview.append_column(col)
+
+        l = Gtk.Label()
+        l.set_text("")
+        g = Gtk.Grid()
+        g.attach(self.scroll.gview, 0, 0, 1, 1)
+        g.attach(l, 0, 1, 1, 1)
+        self.scroll.add(g)
             #print(f' * {game.app_title} (App name: {game.app_name} | Version: {game.app_version})')
             #for dlc in dlc_list[game.asset_info.catalog_item_id]:
                 #print(f'  + {dlc.app_title} (App name: {dlc.app_name} | Version: {dlc.app_version})')
