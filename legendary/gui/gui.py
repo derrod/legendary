@@ -20,6 +20,7 @@ def installed_size(app_name):
         return f"{g.install_size / (1024*1024*1024):.02f} GiB"
 
 def update_avail(app_name):
+    print_version = False
     g = core.get_installed_game(app_name)
     if g != None:
         try:
@@ -29,7 +30,10 @@ def update_avail(app_name):
                            f'your account or not be in legendary\'s database yet, try rerunning the command '
                            f'with "--check-updates".')
         if version != g.version:
-            return f"Yes [{g.version} -> {version}]"
+            if print_version: # for future config
+                return f"Yes (Old: {g.version}; New: {version})"
+            else:
+                return f"Yes"
         else:
             return "No"
     else:
@@ -155,19 +159,6 @@ win = main_window()
 
 win.connect("destroy", Gtk.main_quit)
 win.show_all()
-if not core.login():
-    log_gtk('Login failed, cannot continue!')
-games, dlc_list = core.get_game_and_dlc_list()
-games = sorted(games, key=lambda x: x.app_title.lower())
-for citem_id in dlc_list.keys():
-    dlc_list[citem_id] = sorted(dlc_list[citem_id], key=lambda d: d.app_title.lower())
-
-for game in games:
-    print(f' * {game.app_title} (App name: {game.app_name} | Version: {game.app_version})')
-    for dlc in dlc_list[game.asset_info.catalog_item_id]:
-        print(f'  + {dlc.app_title} (App name: {dlc.app_name} | Version: {dlc.app_version})')
-
-print(f'\nTotal: {len(games)}')
 Gtk.main()
 
 #cli.logger.Handler = logw.log
