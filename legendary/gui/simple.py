@@ -16,23 +16,26 @@ def log_gtk(msg):
 class main_window(Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self,title="Legendary")
-        self.grid = Gtk.Grid(
-                        column_spacing=30,
-                        row_spacing=30
-        )
-        self.add(self.grid)
+        #self.grid = Gtk.Grid(column_spacing=30, row_spacing=30)
+        self.vbox = Gtk.VBox()
+        self.add(self.vbox)
 
         # 'Legendary' label
         self.legendary_label = Gtk.Label(label="Legendary")
-        self.grid.attach(self.legendary_label, 1, 1, 1, 1)
+        self.vbox.pack_start(self.legendary_label, False, False, 5)
 
         # Login button
-        self.button_login = Gtk.Button(label="Login")
-        self.button_login.connect("clicked", self.onclick)
-        self.grid.attach(self.button_login, 1, 2, 1, 1)
+        if not core.login():
+            self.button_login = Gtk.Button(label="Login")
+            self.button_login.connect("clicked", self.onclick)
+            self.vbox.pack_start(self.button_login, False, False, 3)
 
         # Games
-        #self.game_box = Gtk.Box()
+        self.scroll = Gtk.ScrolledWindow()
+        self.scroll.set_border_width(10)
+        self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.ALWAYS)
+        self.vbox.pack_end(self.scroll, True, True, 0)
+        self.scroll.games = Gtk.VBox()
         #self.grid.attach(self.game_box, 1, 3, 3, 3)
 
         if not core.login():
@@ -45,10 +48,11 @@ class main_window(Gtk.Window):
         for game in games:
             i+=1
             self.game_label = Gtk.Label(label=game.app_title)
-            self.grid.attach(self.game_label, 1, i, 1, 3)
-            print(f' * {game.app_title} (App name: {game.app_name} | Version: {game.app_version})')
-            for dlc in dlc_list[game.asset_info.catalog_item_id]:
-                print(f'  + {dlc.app_title} (App name: {dlc.app_name} | Version: {dlc.app_version})')
+            self.scroll.games.pack_start(self.game_label, True, True, 10)
+        self.scroll.add(self.scroll.games)
+            #print(f' * {game.app_title} (App name: {game.app_name} | Version: {game.app_version})')
+            #for dlc in dlc_list[game.asset_info.catalog_item_id]:
+                #print(f'  + {dlc.app_title} (App name: {dlc.app_name} | Version: {dlc.app_version})')
 
         
     def onclick(self, widget):
