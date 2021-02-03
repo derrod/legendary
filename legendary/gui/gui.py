@@ -154,7 +154,7 @@ class main_window(Gtk.Window):
         main()
 
 def ask_sid(parent):
-    dialog = Gtk.MessageDialog(parent, Gtk.DialogFlags.DESTROY_WITH_PARENT, Gtk.MessageType.QUESTION, Gtk.ButtonsType.OK_CANCEL)
+    dialog = Gtk.MessageDialog(parent=parent, destroy_with_parent=True, message_type=Gtk.MessageType.QUESTION, buttons=Gtk.ButtonsType.OK_CANCEL)
     dialog.set_title("Enter Sid")
     #dialog.set_default_size(200, 200)
 
