@@ -12,6 +12,13 @@ def is_installed(app_name):
     else:
         return "Yes"
 
+def installed_size(app_name):
+    g = core.get_installed_game(app_name)
+    if g == None:
+        return ""
+    else:
+        return f"{g.install_size / (1024*1024*1024):.02f} GiB"
+
 def log_gtk(msg):
     dialog = Gtk.Dialog(title="Legendary Log")
     dialog.log = Gtk.Label(label=msg)
@@ -46,8 +53,8 @@ class main_window(Gtk.Window):
         self.scroll.set_border_width(10)
         self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.ALWAYS)
         self.box.pack_end(self.scroll, True, True, 0)
-        self.scroll.games = Gtk.ListStore(str, str, str)
-        gcols = ["Title","Installed","Version"]
+        self.scroll.games = Gtk.ListStore(str, str, str, str)
+        gcols = ["Title","Installed","Size","Version"]
 
         if not core.login():
             log_gtk('Login failed, cannot continue!')
@@ -56,18 +63,30 @@ class main_window(Gtk.Window):
         for citem_id in dlc_list.keys():
             dlc_list[citem_id] = sorted(dlc_list[citem_id], key=lambda d: d.app_title.lower())
         for game in games:
-            ls = (game.app_title, is_installed(game.app_name), game.app_version)
+            ls = (  game.app_title,
+                    is_installed(game.app_name),
+                    installed_size(game.app_name),
+                    game.app_version
+                 )
             self.scroll.games.append(list(ls))
             #print(f' * {game.app_title} (App name: {game.app_name} | Version: {game.app_version})')
             for dlc in dlc_list[game.asset_info.catalog_item_id]:
-                ls = (dlc.app_title+f" (DLC of {game.app_title})", is_installed(dlc.app_name), dlc.app_version)
+                ls = (  dlc.app_title+f" (DLC of {game.app_title})",
+                        is_installed(dlc.app_name),
+                        installed_size(dlc.app_name),
+                        dlc.app_version
+                     )
                 self.scroll.games.append(list(ls))
                 #print(f'  + {dlc.app_title} (App name: {dlc.app_name} | Version: {dlc.app_version})')
 
-        self.scroll.gview = Gtk.TreeView(model=self.scroll.games)
+        self.scroll.gview = Gtk.TreeView(Gtk.TreeModelSort(model=self.scroll.games))
         for i, c in enumerate(gcols):
             cell = Gtk.CellRendererText()
             col = Gtk.TreeViewColumn(c, cell, text=i)
+            col.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
+            col.set_resizable(True)
+            col.set_reorderable(True)
+            col.set_sort_column_id(i)
             self.scroll.gview.append_column(col)
 
         l = Gtk.Label()
