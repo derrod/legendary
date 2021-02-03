@@ -327,21 +327,32 @@ def install_gtk(app_name, app_title, parent):
         print(name, "is now", show_advanced)
     show_advanced_check_button.connect("toggled", show_advanced_button_toggled, "show_advanced")
 
-    # vbox.pack_start(base_path_box, False, False, 0)
-    # vbox.pack_start(game_folder_box, False, False, 0)
-    #vbox.pack_start(path_entry, True, True, 10)
-
-    install_dialog.show()
     vbox.show()
+    install_dialog.show()
     #advanced_options.hide()
     #install_dialog.resize(400,5)
+
     response = install_dialog.run()
     base_path = base_path_entry.get_text()
+    game_folder = game_folder_entry.get_text()
+    max_shm = max_shm_entry.get_text()
+    max_workers = max_workers_entry.get_text()
+    override_manifest = override_manifest_entry.get_text()
+    override_old_manifest = override_old_manifest_entry.get_text()
+    override_delta_manifest = override_delta_manifest_entry.get_text()
+    override_base_url = override_base_url_entry.get_text()
+    platform_override = platform_override_entry.get_text()
+    file_prefix_filter = file_prefix_filter_entry.get_text()
+    file_exclude_filter = file_exclude_filter_entry.get_text()
+    file_install_tag = file_install_tag_entry.get_text()
+    dl_timeout = dl_timeout_entry.get_text()
+    save_path = save_path_entry.get_text()
     install_dialog.destroy()
     print(base_path)
     return 1
 
 
+    # TODO:
     if response != Gtk.ResponseType.OK:
         return 1
 
