@@ -20,7 +20,7 @@ def installed_size(app_name):
         return f"{g.install_size / (1024*1024*1024):.02f} GiB"
 
 def update_avail(app_name):
-    print_version = False
+    print_version = False # temporary, this will be in the config
     g = core.get_installed_game(app_name)
     if g != None:
         try:
@@ -42,7 +42,7 @@ def update_avail(app_name):
 def log_gtk(msg):
     dialog = Gtk.Dialog(title="Legendary Log")
     dialog.log = Gtk.Label(label=msg)
-    dialog.log.set_selectable()
+    dialog.log.set_selectable(True)
     box = dialog.get_content_area()
     box.add(dialog.log)
     dialog.show_all()
@@ -63,8 +63,14 @@ class main_window(Gtk.Window):
         # Login button
         if not core.login():
             self.button_login = Gtk.Button(label="Login")
-            self.button_login.connect("clicked", self.onclick)
+            self.button_login.connect("clicked", self.onclick_login)
             self.login_vbox.pack_start(self.button_login, False, False, 10)
+        else:
+            self.username_label = Gtk.Label(label=core.lgd.userdata["displayName"])
+            self.button_logout = Gtk.Button(label="Logout")
+            self.button_logout.connect("clicked", self.onclick_logout)
+            self.login_vbox.pack_end(self.button_logout, False, False, 10)
+            self.login_vbox.pack_end(self.username_label, False, False, 0)
 
         self.box.pack_start(self.login_vbox, False, False, 20)
 
@@ -76,48 +82,48 @@ class main_window(Gtk.Window):
         self.scroll.games = Gtk.ListStore(str, str, str, str)
         gcols = ["Title","Installed","Size","Update Avaiable"]
 
-        if not core.login():
-            log_gtk('Login failed, cannot continue!')
-        games, dlc_list = core.get_game_and_dlc_list()
-        games = sorted(games, key=lambda x: x.app_title.lower())
-        for citem_id in dlc_list.keys():
-            dlc_list[citem_id] = sorted(dlc_list[citem_id], key=lambda d: d.app_title.lower())
-        for game in games:
-            ls = (  game.app_title,
-                    is_installed(game.app_name),
-                    installed_size(game.app_name),
-                    update_avail(game.app_name)
-                 )
-            self.scroll.games.append(list(ls))
-            #print(f' * {game.app_title} (App name: {game.app_name} | Version: {game.app_version})')
-            for dlc in dlc_list[game.asset_info.catalog_item_id]:
-                ls = (  dlc.app_title+f" (DLC of {game.app_title})",
-                        is_installed(dlc.app_name),
-                        installed_size(dlc.app_name),
-                        update_avail(dlc.app_name)
+        if core.login():
+            games, dlc_list = core.get_game_and_dlc_list()
+            games = sorted(games, key=lambda x: x.app_title.lower())
+            for citem_id in dlc_list.keys():
+                dlc_list[citem_id] = sorted(dlc_list[citem_id], key=lambda d: d.app_title.lower())
+            for game in games:
+                ls = (  game.app_title,
+                        is_installed(game.app_name),
+                        installed_size(game.app_name),
+                        update_avail(game.app_name)
                      )
                 self.scroll.games.append(list(ls))
-                #print(f'  + {dlc.app_title} (App name: {dlc.app_name} | Version: {dlc.app_version})')
+                #print(f' * {game.app_title} (App name: {game.app_name} | Version: {game.app_version})')
+                for dlc in dlc_list[game.asset_info.catalog_item_id]:
+                    ls = (  dlc.app_title+f" (DLC of {game.app_title})",
+                            is_installed(dlc.app_name),
+                            installed_size(dlc.app_name),
+                            update_avail(dlc.app_name)
+                         )
+                    self.scroll.games.append(list(ls))
+                    #print(f'  + {dlc.app_title} (App name: {dlc.app_name} | Version: {dlc.app_version})')
 
-        self.scroll.gview = Gtk.TreeView(Gtk.TreeModelSort(model=self.scroll.games))
-        for i, c in enumerate(gcols):
-            cell = Gtk.CellRendererText()
-            col = Gtk.TreeViewColumn(c, cell, text=i)
-            col.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
-            col.set_resizable(True)
-            col.set_reorderable(True)
-            col.set_sort_column_id(i)
-            self.scroll.gview.append_column(col)
+            #self.scroll.gview = Gtk.TreeView(Gtk.TreeModelSort(model=self.scroll.games))
+            self.scroll.gview = Gtk.TreeView(model=self.scroll.games)
+            for i, c in enumerate(gcols):
+                cell = Gtk.CellRendererText()
+                col = Gtk.TreeViewColumn(c, cell, text=i)
+                col.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
+                col.set_resizable(True)
+                col.set_reorderable(True)
+                col.set_sort_column_id(i)
+                self.scroll.gview.append_column(col)
 
-        l = Gtk.Label()
-        l.set_text("")
-        g = Gtk.Grid()
-        g.attach(self.scroll.gview, 0, 0, 1, 1)
-        g.attach(l, 0, 1, 1, 1)
-        self.scroll.add(g)
+            l = Gtk.Label()
+            l.set_text("")
+            g = Gtk.Grid()
+            g.attach(self.scroll.gview, 0, 0, 1, 1)
+            g.attach(l, 0, 1, 1, 1)
+            self.scroll.add(g)
 
         
-    def onclick(self, widget):
+    def onclick_login(self, widget):
         webbrowser.open('https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect')
         exchange_token = ''
         sid = ask_sid(self)
@@ -129,6 +135,10 @@ class main_window(Gtk.Window):
             log_gtk(f'Successfully logged in as "{core.lgd.userdata["displayName"]}"')
         else:
             log_gtk('Login attempt failed, please see log for details.')
+
+    def onclick_logout(self, widget):
+        core.lgd.invalidate_userdata()
+        log_gtk("Successfully logged out")
 
 def ask_sid(parent):
     dialog = Gtk.MessageDialog(parent, Gtk.DialogFlags.DESTROY_WITH_PARENT, Gtk.MessageType.QUESTION, Gtk.ButtonsType.OK_CANCEL)
