@@ -45,12 +45,9 @@ class main_window(Gtk.Window):
         self.scroll = Gtk.ScrolledWindow()
         self.scroll.set_border_width(10)
         self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.ALWAYS)
-        #self.vbox.pack_end(self.scroll, True, True, 0)
         self.box.pack_end(self.scroll, True, True, 0)
-        #self.scroll.games = Gtk.VBox()
         self.scroll.games = Gtk.ListStore(str, str, str)
         gcols = ["Title","Installed","Version"]
-        #self.grid.attach(self.game_box, 1, 3, 3, 3)
 
         if not core.login():
             log_gtk('Login failed, cannot continue!')
@@ -58,14 +55,15 @@ class main_window(Gtk.Window):
         games = sorted(games, key=lambda x: x.app_title.lower())
         for citem_id in dlc_list.keys():
             dlc_list[citem_id] = sorted(dlc_list[citem_id], key=lambda d: d.app_title.lower())
-        #i=0
         for game in games:
-            #i+=1
-            #self.game_label = Gtk.Label(label=game.app_title)
-            #self.game_label.set_halign(Gtk.Align.START)
-            #self.scroll.games.pack_start(self.game_label, True, True, 10)
             ls = (game.app_title, is_installed(game.app_name), game.app_version)
             self.scroll.games.append(list(ls))
+            #print(f' * {game.app_title} (App name: {game.app_name} | Version: {game.app_version})')
+            for dlc in dlc_list[game.asset_info.catalog_item_id]:
+                ls = (dlc.app_title+f" (DLC of {game.app_title})", is_installed(dlc.app_name), dlc.app_version)
+                self.scroll.games.append(list(ls))
+                #print(f'  + {dlc.app_title} (App name: {dlc.app_name} | Version: {dlc.app_version})')
+
         self.scroll.gview = Gtk.TreeView(model=self.scroll.games)
         for i, c in enumerate(gcols):
             cell = Gtk.CellRendererText()
@@ -78,9 +76,6 @@ class main_window(Gtk.Window):
         g.attach(self.scroll.gview, 0, 0, 1, 1)
         g.attach(l, 0, 1, 1, 1)
         self.scroll.add(g)
-            #print(f' * {game.app_title} (App name: {game.app_name} | Version: {game.app_version})')
-            #for dlc in dlc_list[game.asset_info.catalog_item_id]:
-                #print(f'  + {dlc.app_title} (App name: {dlc.app_name} | Version: {dlc.app_version})')
 
         
     def onclick(self, widget):
