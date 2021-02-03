@@ -19,6 +19,22 @@ def installed_size(app_name):
     else:
         return f"{g.install_size / (1024*1024*1024):.02f} GiB"
 
+def update_avail(app_name):
+    g = core.get_installed_game(app_name)
+    if g != None:
+        try:
+            version = core.get_asset(app_name).build_version
+        except ValueError:
+            log_gtk(f'Metadata for "{game.app_name}" is missing, the game may have been removed from '
+                           f'your account or not be in legendary\'s database yet, try rerunning the command '
+                           f'with "--check-updates".')
+        if version != g.version:
+            return f"Yes [{g.version} -> {version}]"
+        else:
+            return "No"
+    else:
+        return ""
+
 def log_gtk(msg):
     dialog = Gtk.Dialog(title="Legendary Log")
     dialog.log = Gtk.Label(label=msg)
@@ -54,7 +70,7 @@ class main_window(Gtk.Window):
         self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.ALWAYS)
         self.box.pack_end(self.scroll, True, True, 0)
         self.scroll.games = Gtk.ListStore(str, str, str, str)
-        gcols = ["Title","Installed","Size","Version"]
+        gcols = ["Title","Installed","Size","Update Avaiable"]
 
         if not core.login():
             log_gtk('Login failed, cannot continue!')
@@ -66,7 +82,7 @@ class main_window(Gtk.Window):
             ls = (  game.app_title,
                     is_installed(game.app_name),
                     installed_size(game.app_name),
-                    game.app_version
+                    update_avail(game.app_name)
                  )
             self.scroll.games.append(list(ls))
             #print(f' * {game.app_title} (App name: {game.app_name} | Version: {game.app_version})')
@@ -74,7 +90,7 @@ class main_window(Gtk.Window):
                 ls = (  dlc.app_title+f" (DLC of {game.app_title})",
                         is_installed(dlc.app_name),
                         installed_size(dlc.app_name),
-                        dlc.app_version
+                        update_avail(dlc.app_name)
                      )
                 self.scroll.games.append(list(ls))
                 #print(f'  + {dlc.app_title} (App name: {dlc.app_name} | Version: {dlc.app_version})')
