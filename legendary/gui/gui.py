@@ -48,6 +48,7 @@ def update_avail(app_name):
     else:
         return ""
 
+# TODO: tooltips, actual install
 def install_gtk(app_name, app_title, parent):
     install_dialog = Gtk.MessageDialog( parent=parent,
                                         destroy_with_parent=True,
@@ -65,6 +66,7 @@ def install_gtk(app_name, app_title, parent):
     # advanced options declaration
     show_advanced = False
     show_advanced_check_button = Gtk.CheckButton(label="Show advanced options")
+    show_advanced_check_button.set_tooltip_text("Show more options")
     vbox.add(show_advanced_check_button)
     advanced_options = Gtk.VBox(spacing=5)
 
@@ -72,6 +74,27 @@ def install_gtk(app_name, app_title, parent):
     base_path_box = Gtk.HBox()
     base_path_label = Gtk.Label(label="Base Path")
     base_path_entry = Gtk.Entry()
+    base_path_file_chooser_button = Gtk.Button(label="Browse")
+    def base_path_choose_folder(self):
+        # fc = file chooser
+        fc = Gtk.FileChooserDialog(title="Please choose the base path",
+                                                parent=install_dialog,
+                                                action=Gtk.FileChooserAction.SELECT_FOLDER,
+                                                destroy_with_parent=True
+        )
+        fc.add_buttons(Gtk.STOCK_CANCEL,
+                                    Gtk.ResponseType.CANCEL,
+                                    Gtk.STOCK_OPEN,
+                                    Gtk.ResponseType.OK
+        )
+        fc.set_default_size(600, 300)
+        base_path_file_response = fc.run()
+        if base_path_file_response == Gtk.ResponseType.OK:
+            base_path_entry.set_text(fc.get_filename())
+            print("Folder selected for base path:"+fc.get_filename())
+        fc.destroy()
+    base_path_file_chooser_button.connect("clicked",base_path_choose_folder)
+    base_path_box.pack_end(base_path_file_chooser_button, False, False, 5)
     base_path_box.pack_start(base_path_label, False, False, 10)
     base_path_box.pack_start(base_path_entry, True, True, 0)
     vbox.add(base_path_box)
@@ -80,6 +103,27 @@ def install_gtk(app_name, app_title, parent):
     game_folder_box = Gtk.HBox()
     game_folder_label = Gtk.Label(label="Game Folder")
     game_folder_entry = Gtk.Entry()
+    game_folder_file_chooser_button = Gtk.Button(label="Browse")
+    def game_folder_choose_folder(self):
+        # fc = file chooser
+        fc = Gtk.FileChooserDialog(title="Please choose the game folder",
+                                                parent=install_dialog,
+                                                action=Gtk.FileChooserAction.SELECT_FOLDER,
+                                                destroy_with_parent=True
+        )
+        fc.add_buttons(Gtk.STOCK_CANCEL,
+                                    Gtk.ResponseType.CANCEL,
+                                    Gtk.STOCK_OPEN,
+                                    Gtk.ResponseType.OK
+        )
+        fc.set_default_size(600, 300)
+        game_folder_file_response = fc.run()
+        if game_folder_file_response == Gtk.ResponseType.OK:
+            game_folder_entry.set_text(fc.get_filename())
+            print("Folder selected for game folder:"+fc.get_filename())
+        fc.destroy()
+    game_folder_file_chooser_button.connect("clicked",game_folder_choose_folder)
+    game_folder_box.pack_end(game_folder_file_chooser_button, False, False, 5)
     game_folder_box.pack_start(game_folder_label, False, False, 10)
     game_folder_box.pack_start(game_folder_entry, True, True, 0)
     vbox.add(game_folder_box)
@@ -104,6 +148,27 @@ def install_gtk(app_name, app_title, parent):
     override_manifest_box = Gtk.HBox()
     override_manifest_label = Gtk.Label(label="Manifest")
     override_manifest_entry = Gtk.Entry()
+    override_manifest_file_chooser_button = Gtk.Button(label="Browse")
+    def override_manifest_choose_folder(self):
+        # fc = file chooser
+        fc = Gtk.FileChooserDialog(title="Please choose the manifest",
+                                                parent=install_dialog,
+                                                action=Gtk.FileChooserAction.OPEN,
+                                                destroy_with_parent=True
+        )
+        fc.add_buttons(Gtk.STOCK_CANCEL,
+                                    Gtk.ResponseType.CANCEL,
+                                    Gtk.STOCK_OPEN,
+                                    Gtk.ResponseType.OK
+        )
+        fc.set_default_size(600, 300)
+        override_manifest_file_response = fc.run()
+        if override_manifest_file_response == Gtk.ResponseType.OK:
+            override_manifest_entry.set_text(fc.get_filename())
+            print("Folder selected for manifest:"+fc.get_filename())
+        fc.destroy()
+    override_manifest_file_chooser_button.connect("clicked",override_manifest_choose_folder)
+    override_manifest_box.pack_end(override_manifest_file_chooser_button, False, False, 5)
     override_manifest_box.pack_start(override_manifest_label, False, False, 10)
     override_manifest_box.pack_start(override_manifest_entry, True, True, 0)
     advanced_options.add(override_manifest_box)
@@ -112,6 +177,27 @@ def install_gtk(app_name, app_title, parent):
     override_old_manifest_box = Gtk.HBox()
     override_old_manifest_label = Gtk.Label(label="Old Manifest")
     override_old_manifest_entry = Gtk.Entry()
+    override_old_manifest_file_chooser_button = Gtk.Button(label="Browse")
+    def override_old_manifest_choose_folder(self):
+        # fc = file chooser
+        fc = Gtk.FileChooserDialog(title="Please choose the old manifest",
+                                                parent=install_dialog,
+                                                action=Gtk.FileChooserAction.OPEN,
+                                                destroy_with_parent=True
+        )
+        fc.add_buttons(Gtk.STOCK_CANCEL,
+                                    Gtk.ResponseType.CANCEL,
+                                    Gtk.STOCK_OPEN,
+                                    Gtk.ResponseType.OK
+        )
+        fc.set_default_size(600, 300)
+        override_old_manifest_file_response = fc.run()
+        if override_old_manifest_file_response == Gtk.ResponseType.OK:
+            override_old_manifest_entry.set_text(fc.get_filename())
+            print("Folder selected for old manifest:"+fc.get_filename())
+        fc.destroy()
+    override_old_manifest_file_chooser_button.connect("clicked",override_old_manifest_choose_folder)
+    override_old_manifest_box.pack_end(override_old_manifest_file_chooser_button, False, False, 5)
     override_old_manifest_box.pack_start(override_old_manifest_label, False, False, 10)
     override_old_manifest_box.pack_start(override_old_manifest_entry, True, True, 0)
     advanced_options.add(override_old_manifest_box)
@@ -120,6 +206,27 @@ def install_gtk(app_name, app_title, parent):
     override_delta_manifest_box = Gtk.HBox()
     override_delta_manifest_label = Gtk.Label(label="Delta Manifest")
     override_delta_manifest_entry = Gtk.Entry()
+    override_delta_manifest_file_chooser_button = Gtk.Button(label="Browse")
+    def override_delta_manifest_choose_folder(self):
+        # fc = file chooser
+        fc = Gtk.FileChooserDialog(title="Please choose the delta manifest",
+                                                parent=install_dialog,
+                                                action=Gtk.FileChooserAction.OPEN,
+                                                destroy_with_parent=True
+        )
+        fc.add_buttons(Gtk.STOCK_CANCEL,
+                                    Gtk.ResponseType.CANCEL,
+                                    Gtk.STOCK_OPEN,
+                                    Gtk.ResponseType.OK
+        )
+        fc.set_default_size(600, 300)
+        override_delta_manifest_file_response = fc.run()
+        if override_delta_manifest_file_response == Gtk.ResponseType.OK:
+            override_delta_manifest_entry.set_text(fc.get_filename())
+            print("Folder selected for delta manifest:"+fc.get_filename())
+        fc.destroy()
+    override_delta_manifest_file_chooser_button.connect("clicked",override_delta_manifest_choose_folder)
+    override_delta_manifest_box.pack_end(override_delta_manifest_file_chooser_button, False, False, 5)
     override_delta_manifest_box.pack_start(override_delta_manifest_label, False, False, 10)
     override_delta_manifest_box.pack_start(override_delta_manifest_entry, True, True, 0)
     advanced_options.add(override_delta_manifest_box)
@@ -192,7 +299,7 @@ def install_gtk(app_name, app_title, parent):
     glm_debug_check_button.connect("toggled", glm_debug_button_toggled, "glm_debug")
     advanced_options.add(glm_debug_check_button)
     
-	# --platform <Platform>
+	# --platform <Platform> # use drop-down menu
     platform_override_box = Gtk.HBox()
     platform_override_label = Gtk.Label(label="Platform")
     platform_override_entry = Gtk.Entry()
@@ -236,7 +343,7 @@ def install_gtk(app_name, app_title, parent):
     enable_reordering_check_button.connect("toggled", enable_reordering_button_toggled, "enable_reordering")
     advanced_options.add(enable_reordering_check_button)
     
-	# --dl-timeout <sec>
+	# --dl-timeout <sec> # use number thingy with - 00 +
     dl_timeout_box = Gtk.HBox()
     dl_timeout_label = Gtk.Label(label="Downloader timeout")
     dl_timeout_entry = Gtk.Entry()
@@ -248,6 +355,27 @@ def install_gtk(app_name, app_title, parent):
     save_path_box = Gtk.HBox()
     save_path_label = Gtk.Label(label="Save path")
     save_path_entry = Gtk.Entry()
+    save_path_file_chooser_button = Gtk.Button(label="Browse")
+    def save_path_choose_folder(self):
+        # fc = file chooser
+        fc = Gtk.FileChooserDialog(title="Please choose the save path",
+                                                parent=install_dialog,
+                                                action=Gtk.FileChooserAction.SELECT_FOLDER,
+                                                destroy_with_parent=True
+        )
+        fc.add_buttons(Gtk.STOCK_CANCEL,
+                                    Gtk.ResponseType.CANCEL,
+                                    Gtk.STOCK_OPEN,
+                                    Gtk.ResponseType.OK
+        )
+        fc.set_default_size(600, 300)
+        save_path_file_response = fc.run()
+        if save_path_file_response == Gtk.ResponseType.OK:
+            save_path_entry.set_text(fc.get_filename())
+            print("Folder selected for save path:"+fc.get_filename())
+        fc.destroy()
+    save_path_file_chooser_button.connect("clicked",save_path_choose_folder)
+    save_path_box.pack_end(save_path_file_chooser_button, False, False, 5)
     save_path_box.pack_start(save_path_label, False, False, 10)
     save_path_box.pack_start(save_path_entry, True, True, 0)
     advanced_options.add(save_path_box)
@@ -318,7 +446,9 @@ def install_gtk(app_name, app_title, parent):
     def show_advanced_button_toggled(button, name):
         if button.get_active():
             show_advanced = True
-            advanced_options.show()
+            advanced_options.set_no_show_all(False)
+            install_dialog.show_all()
+#            advanced_options.show()
         else:
             show_advanced = False
             #vbox.remove(advanced_options)
@@ -327,8 +457,10 @@ def install_gtk(app_name, app_title, parent):
         print(name, "is now", show_advanced)
     show_advanced_check_button.connect("toggled", show_advanced_button_toggled, "show_advanced")
 
-    vbox.show()
-    install_dialog.show()
+    advanced_options.set_no_show_all(True)
+    #vbox.show()
+    install_dialog.show_all()
+    #install_dialog.get_content_area().show()
     #advanced_options.hide()
     #install_dialog.resize(400,5)
 
@@ -348,7 +480,7 @@ def install_gtk(app_name, app_title, parent):
     dl_timeout = dl_timeout_entry.get_text()
     save_path = save_path_entry.get_text()
     install_dialog.destroy()
-    print(base_path)
+    #print(base_path)
     return 1
 
 
