@@ -9,6 +9,7 @@ import legendary.core
 def log_gtk(msg):
     dialog = Gtk.Dialog(title="Legendary Log")
     dialog.log = Gtk.Label(label=msg)
+    dialog.log.set_selectable()
     box = dialog.get_content_area()
     box.add(dialog.log)
     dialog.show_all()
@@ -24,19 +25,19 @@ class main_window(Gtk.Window):
         # 'Legendary' label
         self.legendary_label = Gtk.Label(label="Legendary")
         self.login_vbox = Gtk.VBox()
-        self.login_vbox.pack_start(self.legendary_label, False, False, 5)
+        self.login_vbox.pack_start(self.legendary_label, False, False, 10)
 
         # Login button
         if not core.login():
             self.button_login = Gtk.Button(label="Login")
             self.button_login.connect("clicked", self.onclick)
-            self.login_vbox.pack_start(self.button_login, False, False, 5)
+            self.login_vbox.pack_start(self.button_login, False, False, 10)
 
-        self.box.pack_start(self.login_vbox, False, False, 5)
+        self.box.pack_start(self.login_vbox, False, False, 20)
 
         # Games
         self.scroll = Gtk.ScrolledWindow()
-        self.scroll.set_border_width(0)
+        self.scroll.set_border_width(10)
         self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.ALWAYS)
         #self.vbox.pack_end(self.scroll, True, True, 0)
         self.box.pack_end(self.scroll, True, True, 0)
@@ -52,8 +53,8 @@ class main_window(Gtk.Window):
         i=0
         for game in games:
             i+=1
-            self.game_label = Gtk.Label(label=game.app_title)
-            self.game_label.set_justify(Gtk.Justification.LEFT)
+            self.game_label = Gtk.Button(label=game.app_title)
+            self.game_label.set_halign(Gtk.Align.START)
             self.scroll.games.pack_start(self.game_label, True, True, 10)
         self.scroll.add(self.scroll.games)
             #print(f' * {game.app_title} (App name: {game.app_name} | Version: {game.app_version})')
