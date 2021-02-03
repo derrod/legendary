@@ -5,6 +5,7 @@ import webbrowser
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 import legendary.core
+core = legendary.core.LegendaryCore()
 
 def is_installed(app_name):
     if core.get_installed_game(app_name) == None:
@@ -55,13 +56,21 @@ class main_window(Gtk.Window):
         self.box = Gtk.Box()
         self.add(self.box)
 
+        logged = False
+        try:
+            if core.login():
+                logged = True
+        except ValueError: pass
+        except InvalidCredentialsError:
+            print("Found invalid stored credentials")
+
         # 'Legendary' label
         self.legendary_label = Gtk.Label(label="Legendary")
         self.login_vbox = Gtk.VBox()
         self.login_vbox.pack_start(self.legendary_label, False, False, 10)
 
         # Login button
-        if not core.login():
+        if not logged:
             self.button_login = Gtk.Button(label="Login")
             self.button_login.connect("clicked", self.onclick_login)
             self.login_vbox.pack_start(self.button_login, False, False, 10)
@@ -82,7 +91,7 @@ class main_window(Gtk.Window):
         self.scroll.games = Gtk.ListStore(str, str, str, str)
         gcols = ["Title","Installed","Size","Update Avaiable"]
 
-        if core.login():
+        if logged:
             games, dlc_list = core.get_game_and_dlc_list()
             games = sorted(games, key=lambda x: x.app_title.lower())
             for citem_id in dlc_list.keys():
@@ -135,10 +144,14 @@ class main_window(Gtk.Window):
             log_gtk(f'Successfully logged in as "{core.lgd.userdata["displayName"]}"')
         else:
             log_gtk('Login attempt failed, please see log for details.')
+        self.destroy()
+        main()
 
     def onclick_logout(self, widget):
         core.lgd.invalidate_userdata()
         log_gtk("Successfully logged out")
+        self.destroy()
+        main()
 
 def ask_sid(parent):
     dialog = Gtk.MessageDialog(parent, Gtk.DialogFlags.DESTROY_WITH_PARENT, Gtk.MessageType.QUESTION, Gtk.ButtonsType.OK_CANCEL)
@@ -161,19 +174,11 @@ def ask_sid(parent):
     else:
         return 1
 
-core = legendary.core.LegendaryCore()
-win = main_window()
+def main():
+    win = main_window()
+    win.connect("destroy", Gtk.main_quit)
+    win.show_all()
+    Gtk.main()
 
-#log_gtk("This is another message wa wda dwah jkdwhajk dhwjkah djkahwjk hdjkwah jkawhjk dhawjkhd jkawh djkawhjk h")
-#log_gtk("This is another message")
-
-win.connect("destroy", Gtk.main_quit)
-win.show_all()
-Gtk.main()
-
-#cli.logger.Handler = logw.log
-#        for game in games:
-#            print(f' * {game.app_title} (App name: {game.app_name} | Version: {game.app_version})')
-#            for dlc in dlc_list[game.asset_info.catalog_item_id]:
-#                print(f'  + {dlc.app_title} (App name: {dlc.app_name} | Version: {dlc.app_version})')
-#
+if __name__ == '__main__':
+    main()
