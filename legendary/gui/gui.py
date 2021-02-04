@@ -48,7 +48,7 @@ def update_avail(app_name):
     else:
         return ""
 
-# TODO: tooltips, actual install
+# TODO: actual install
 def install_gtk(app_name, app_title, parent):
     install_dialog = Gtk.MessageDialog( parent=parent,
                                         destroy_with_parent=True,
@@ -73,6 +73,7 @@ def install_gtk(app_name, app_title, parent):
     # --base-path <path>
     base_path_box = Gtk.HBox()
     base_path_label = Gtk.Label(label="Base Path")
+    base_path_label.set_tooltip_text("Path for game installations (defaults to ~/legendary)")
     base_path_entry = Gtk.Entry()
     base_path_file_chooser_button = Gtk.Button(label="Browse")
     def base_path_choose_f(self):
@@ -102,6 +103,7 @@ def install_gtk(app_name, app_title, parent):
     # --game-folder <path>
     game_folder_box = Gtk.HBox()
     game_folder_label = Gtk.Label(label="Game Folder")
+    game_folder_label.set_tooltip_text("Folder for game installation (defaults to folder specified in metadata")
     game_folder_entry = Gtk.Entry()
     game_folder_file_chooser_button = Gtk.Button(label="Browse")
     def game_folder_choose_f(self):
@@ -131,6 +133,7 @@ def install_gtk(app_name, app_title, parent):
     # --max-shared-memory <size> (in MiB)
     max_shm_box = Gtk.HBox()
     max_shm_label = Gtk.Label(label="Max Shared Memory")
+    max_shm_label.set_tooltip_text("Maximum amount of shared memory to use (in MiB), default: 1 GiB")
     max_shm_entry = Gtk.Entry()
     max_shm_box.pack_start(max_shm_label, False, False, 10)
     max_shm_box.pack_start(max_shm_entry, True, True, 0)
@@ -139,6 +142,7 @@ def install_gtk(app_name, app_title, parent):
     # --max-workers <num>
     max_workers_box = Gtk.HBox()
     max_workers_label = Gtk.Label(label="Max Workers")
+    max_workers_label.set_tooltip_text("Maximum amount of download workers, default: min(2 * CPUs, 16)")
     max_workers_entry = Gtk.Entry()
     max_workers_box.pack_start(max_workers_label, False, False, 10)
     max_workers_box.pack_start(max_workers_entry, True, True, 0)
@@ -147,6 +151,7 @@ def install_gtk(app_name, app_title, parent):
     # --manifest <uri>
     override_manifest_box = Gtk.HBox()
     override_manifest_label = Gtk.Label(label="Manifest")
+    override_manifest_label.set_tooltip_text("Manifest URL or path to use instead of the CDN one (e.g. for downgrading)")
     override_manifest_entry = Gtk.Entry()
     override_manifest_file_chooser_button = Gtk.Button(label="Browse")
     def override_manifest_choose_f(self):
@@ -176,6 +181,7 @@ def install_gtk(app_name, app_title, parent):
     # --old-manifest <uri>
     override_old_manifest_box = Gtk.HBox()
     override_old_manifest_label = Gtk.Label(label="Old Manifest")
+    override_old_manifest_label.set_tooltip_text("Manifest URL or path to use as the old one (e.g. for testing patching)")
     override_old_manifest_entry = Gtk.Entry()
     override_old_manifest_file_chooser_button = Gtk.Button(label="Browse")
     def override_old_manifest_choose_f(self):
@@ -205,6 +211,7 @@ def install_gtk(app_name, app_title, parent):
     # --delta-manifest <uri>
     override_delta_manifest_box = Gtk.HBox()
     override_delta_manifest_label = Gtk.Label(label="Delta Manifest")
+    override_delta_manifest_label.set_tooltip_text("Manifest URL or path to use as the delta one (e.g. for testing)")
     override_delta_manifest_entry = Gtk.Entry()
     override_delta_manifest_file_chooser_button = Gtk.Button(label="Browse")
     def override_delta_manifest_choose_f(self):
@@ -234,6 +241,7 @@ def install_gtk(app_name, app_title, parent):
     # --base-url <url>
     override_base_url_box = Gtk.HBox()
     override_base_url_label = Gtk.Label(label="Base Url")
+    override_base_url_label.set_tooltip_text("Base URL to download from (e.g. to test or switch to a different CDNs)")
     override_base_url_entry = Gtk.Entry()
     override_base_url_box.pack_start(override_base_url_label, False, False, 10)
     override_base_url_box.pack_start(override_base_url_entry, True, True, 0)
@@ -242,6 +250,7 @@ def install_gtk(app_name, app_title, parent):
     # --force
     force = False
     force_check_button = Gtk.CheckButton(label="Force install")
+    force_check_button.set_tooltip_text("Download all files / ignore existing (overwrite)")
     def force_button_toggled(button, name):
         if button.get_active():
             force = False
@@ -254,6 +263,7 @@ def install_gtk(app_name, app_title, parent):
     # --disable-patching
     disable_patching = False
     disable_patching_check_button = Gtk.CheckButton(label="Disable patching")
+    disable_patching_check_button.set_tooltip_text("Do not attempt to patch existing installation (download entire changed files)")
     def disable_patching_button_toggled(button, name):
         if button.get_active():
             disable_patching = False
@@ -266,6 +276,7 @@ def install_gtk(app_name, app_title, parent):
     # --download-only, --no-install
     download_only = False
     download_only_check_button = Gtk.CheckButton(label="Download only")
+    download_only_check_button.set_tooltip_text("Do not intall app and do not run prerequisite installers after download")
     def download_only_button_toggled(button, name):
         if button.get_active():
             download_only = False
@@ -278,6 +289,7 @@ def install_gtk(app_name, app_title, parent):
     # --update-only
     update_only = False
     update_only_check_button = Gtk.CheckButton(label="Update only")
+    update_only_check_button.set_tooltip_text("Only update, do not do anything if specified app is not installed")
     def update_only_button_toggled(button, name):
         if button.get_active():
             update_only = False
@@ -290,6 +302,7 @@ def install_gtk(app_name, app_title, parent):
     # --dlm-debug
     glm_debug = False
     glm_debug_check_button = Gtk.CheckButton(label="Downloader debug messages")
+    glm_debug_check_button.set_tooltip_text("Set download manager and worker processes' loglevel to debug")
     def glm_debug_button_toggled(button, name):
         if button.get_active():
             glm_debug = False
@@ -302,6 +315,7 @@ def install_gtk(app_name, app_title, parent):
 	# --platform <Platform> # use drop-down menu
     platform_override_box = Gtk.HBox()
     platform_override_label = Gtk.Label(label="Platform")
+    platform_override_label.set_tooltip_text("Platform override for download (also sets 'Download Only')")
     platform_override_entry = Gtk.Entry()
     platform_override_box.pack_start(platform_override_label, False, False, 10)
     platform_override_box.pack_start(platform_override_entry, True, True, 0)
@@ -310,7 +324,9 @@ def install_gtk(app_name, app_title, parent):
 	# --prefix <prefix>
     file_prefix_filter_box = Gtk.HBox()
     file_prefix_filter_label = Gtk.Label(label="File prefix filter")
+    file_prefix_filter_label.set_tooltip_text("Only fetch files whose path starts with <prefix> (case insensitive)")
     file_prefix_filter_entry = Gtk.Entry()
+    file_prefix_filter_entry.set_placeholder_text("<prefix>")
     file_prefix_filter_box.pack_start(file_prefix_filter_label, False, False, 10)
     file_prefix_filter_box.pack_start(file_prefix_filter_entry, True, True, 0)
     advanced_options.add(file_prefix_filter_box)
@@ -318,7 +334,9 @@ def install_gtk(app_name, app_title, parent):
 	# --exclude <prefix>
     file_exclude_filter_box = Gtk.HBox()
     file_exclude_filter_label = Gtk.Label(label="File exclude filter")
+    file_exclude_filter_label.set_tooltip_text("Exclude files starting with <prefix> (case insensitive)")
     file_exclude_filter_entry = Gtk.Entry()
+    file_exclude_filter_entry.set_placeholder_text("<prefix>")
     file_exclude_filter_box.pack_start(file_exclude_filter_label, False, False, 10)
     file_exclude_filter_box.pack_start(file_exclude_filter_entry, True, True, 0)
     advanced_options.add(file_exclude_filter_box)
@@ -326,6 +344,7 @@ def install_gtk(app_name, app_title, parent):
 	# --install-tag <tag>
     file_install_tag_box = Gtk.HBox()
     file_install_tag_label = Gtk.Label(label="Install tag")
+    file_install_tag_label.set_tooltip_text("Only download files with the specified install tag")
     file_install_tag_entry = Gtk.Entry()
     file_install_tag_box.pack_start(file_install_tag_label, False, False, 10)
     file_install_tag_box.pack_start(file_install_tag_entry, True, True, 0)
@@ -334,6 +353,7 @@ def install_gtk(app_name, app_title, parent):
 	# --enable-reordering
     enable_reordering = False
     enable_reordering_check_button = Gtk.CheckButton(label="Enable reordering optimization")
+    enable_reordering_check_button.set_tooltip_text("Enable reordering optimization to reduce RAM requirements during download (may have adverse results for some titles)")
     def enable_reordering_button_toggled(button, name):
         if button.get_active():
             enable_reordering = False
@@ -346,6 +366,7 @@ def install_gtk(app_name, app_title, parent):
 	# --dl-timeout <sec> # use number thingy with - 00 +
     dl_timeout_box = Gtk.HBox()
     dl_timeout_label = Gtk.Label(label="Downloader timeout")
+    dl_timeout_label.set_tooltip_text("Connection timeout for downloader (default: 10 seconds)")
     dl_timeout_entry = Gtk.Entry()
     dl_timeout_box.pack_start(dl_timeout_label, False, False, 10)
     dl_timeout_box.pack_start(dl_timeout_entry, True, True, 0)
@@ -354,6 +375,7 @@ def install_gtk(app_name, app_title, parent):
 	# --save-path <path>
     save_path_box = Gtk.HBox()
     save_path_label = Gtk.Label(label="Save path")
+    save_path_label.set_tooltip_text("Set save game path to be used for sync-saves")
     save_path_entry = Gtk.Entry()
     save_path_file_chooser_button = Gtk.Button(label="Browse")
     def save_path_choose_f(self):
@@ -383,6 +405,7 @@ def install_gtk(app_name, app_title, parent):
 	# --repair
     repair = False
     repair_check_button = Gtk.CheckButton(label="Repair")
+    repair_check_button.set_tooltip_text("Repair installed game by checking and redownloading corrupted/missing files")
     def repair_button_toggled(button, name):
         if button.get_active():
             repair = False
@@ -395,6 +418,7 @@ def install_gtk(app_name, app_title, parent):
 	# --repair-and-update
     repair_and_update = False # or repair_use_latest
     repair_and_update_check_button = Gtk.CheckButton(label="Repair and Update")
+    repair_and_update_check_button.set_tooltip_text("Update game to the latest version when repairing")
     def repair_and_update_button_toggled(button, name):
         if button.get_active():
             repair_and_update = False
@@ -407,6 +431,7 @@ def install_gtk(app_name, app_title, parent):
 	# --ignore-free-space
     ignore_space_req = False
     ignore_space_req_check_button = Gtk.CheckButton(label="Ignore space requirements")
+    ignore_space_req_check_button.set_tooltip_text("Do not abort if not enough free space is available")
     def ignore_space_req_button_toggled(button, name):
         if button.get_active():
             ignore_space_req = False
@@ -419,6 +444,7 @@ def install_gtk(app_name, app_title, parent):
 	# --disable-delta-manifests
     override_delta_manifest = False
     override_delta_manifest_check_button = Gtk.CheckButton(label="Disable delta manifests")
+    override_delta_manifest_check_button.set_tooltip_text("Do not use delta manifests when updating (may increase download size)")
     def override_delta_manifest_button_toggled(button, name):
         if button.get_active():
             override_delta_manifest = False
@@ -431,6 +457,7 @@ def install_gtk(app_name, app_title, parent):
 	# --reset-sdl
     reset_sdl = False
     reset_sdl_check_button = Gtk.CheckButton(label="Reset selective downloading choices")
+    reset_sdl_check_button.set_tooltip_text("Reset selective downloading choices (requires repair to download new components)")
     def reset_sdl_button_toggled(button, name):
         if button.get_active():
             reset_sdl = False
