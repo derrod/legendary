@@ -491,7 +491,8 @@ def install_gtk(app_name, app_title, parent):
     #advanced_options.hide()
     #install_dialog.resize(400,5)
 
-    response = install_dialog.run()
+    install_dialog_response = install_dialog.run()
+
     base_path = base_path_entry.get_text()
     game_folder = game_folder_entry.get_text()
     max_shm = max_shm_entry.get_text()
@@ -506,13 +507,31 @@ def install_gtk(app_name, app_title, parent):
     file_install_tag = file_install_tag_entry.get_text()
     dl_timeout = dl_timeout_entry.get_text()
     save_path = save_path_entry.get_text()
+
     install_dialog.destroy()
-    #print(base_path)
+    print(  base_path,
+            game_folder,
+            max_shm,
+            max_workers,
+            override_manifest,
+            override_old_manifest,
+            override_delta_manifest,
+            override_base_url,
+            platform_override,
+            file_prefix_filter,
+            file_exclude_filter,
+            file_install_tag,
+            dl_timeout,
+            save_path,
+            # add bool options
+    sep='\n'
+    )
+    print("install")
     return 1
 
 
     # TODO:
-    if response != Gtk.ResponseType.OK:
+    if install_dialog_response != Gtk.ResponseType.OK:
         return 1
 
     if core.is_installed(app_name):
