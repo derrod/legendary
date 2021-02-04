@@ -17,13 +17,17 @@ from threading import Condition, Thread
 from legendary.downloader.workers import DLWorker, FileWorker
 from legendary.models.downloading import *
 from legendary.models.manifest import ManifestComparison, Manifest
+from legendary.downloader.log_dlm import log_dlm
 
+log_dlm = log_dlm()
 
 class DLManager(Process):
     def __init__(self, download_dir, base_url, cache_dir=None, status_q=None,
                  max_workers=0, update_interval=1.0, dl_timeout=10, resume_file=None,
                  max_shared_memory=1024 * 1024 * 1024, main_window="cli"):
         super().__init__(name='DLManager')
+        print("plip",main_window.get_title())
+        self.main_window = main_window
         self.log = logging.getLogger('DLM')
         self.proc_debug = False
 
@@ -577,7 +581,7 @@ class DLManager(Process):
         self.log.info(f'Download Manager running with process-id: {os.getpid()}')
 
         try:
-            self.run_real(main_window)
+            self.run_real(self.main_window)
         except KeyboardInterrupt:
             self.log.warning('Immediate exit requested!')
             self.running = False
@@ -616,6 +620,9 @@ class DLManager(Process):
 
         self.log.debug(f'Created {len(self.sms)} shared memory segments.')
 
+        obj_out = log_dlm.create(main_window)
+        print("created obj_out")
+
         # Create queues
         self.dl_worker_queue = MPQueue(-1)
         self.writer_queue = MPQueue(-1)
@@ -634,7 +641,9 @@ class DLManager(Process):
         writer_p = FileWorker(self.writer_queue, self.writer_result_q, self.dl_dir,
                               self.shared_memory.name, self.cache_dir, self.logging_queue)
         self.children.append(writer_p)
+        print("created obj_ou1t")
         writer_p.start()
+        print("created obj_ou2t")
 
         num_chunk_tasks = sum(isinstance(t, ChunkTask) for t in self.tasks)
         num_dl_tasks = len(self.chunks_to_dl)
@@ -659,8 +668,6 @@ class DLManager(Process):
         self.threads.append(Thread(target=self.download_job_manager, args=(task_cond, shm_cond)))
         self.threads.append(Thread(target=self.dl_results_handler, args=(task_cond,)))
         self.threads.append(Thread(target=self.fw_results_handler, args=(shm_cond,)))
-
-        obj_out = log_dlm.create(main_window)
 
         for t in self.threads:
             t.start()
@@ -728,6 +735,7 @@ class DLManager(Process):
                             r_speed,
                             obj_out
             )
+            print("updated obj_out")
 
             # send status update to back to instantiator (if queue exists)
             if self.status_queue:

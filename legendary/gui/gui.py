@@ -1,11 +1,21 @@
 #!/usr/bin/env python3
 
-import gi
+import sys
+# insert at 1, 0 is the script path (or '' in REPL)
+sys.path.insert(1, '../..')
+
 import webbrowser
+import time
+from multiprocessing import freeze_support, Queue as MPQueue
+
+import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
+
 import legendary.core
+import legendary.cli
 core = legendary.core.LegendaryCore()
+cli = legendary.cli.LegendaryCLI()
 
 class args_obj:
     base_path = ''
@@ -566,7 +576,7 @@ def install_gtk(app_name, app_title, parent):
             f"reset_sdl:\t\t {args.reset_sdl}",
     sep='\n'
     )
-    return 1
+    #return 1
 
     # TODO:
     if install_dialog_response != Gtk.ResponseType.OK:
@@ -577,7 +587,7 @@ def install_gtk(app_name, app_title, parent):
         if igame.needs_verification:
             repair_mode = True
     repair_file = None
-    if repair_mode:
+    if args.repair_mode:
         args.no_install = args.repair_and_update is False
         repair_file = os.path.join(core.lgd.get_tmp_path(), f'{app_name}.repair')
 
@@ -643,7 +653,7 @@ def install_gtk(app_name, app_title, parent):
     #    else:
     #        args.install_tag = config_tags.split(',')
 
-    log_gtk('Preparing download...')
+    print('Preparing download...')
     # todo use status queue to print progress from CLI
     # This has become a little ridiculous hasn't it?
     dlm, analysis, igame = core.prepare_download(game=game, base_game=base_game, base_path=args.base_path,
@@ -662,7 +672,7 @@ def install_gtk(app_name, app_title, parent):
                                                       repair=args.repair_mode,
                                                       repair_use_latest=args.repair_and_update,
                                                       disable_delta=args.disable_delta,
-                                                      override_delta_manifest=args.override_delta_manifest
+                                                      override_delta_manifest=args.override_delta_manifest,
                                                       main_window=parent)
 
     # game is either up to date or hasn't changed, so we have nothing to do
@@ -680,21 +690,21 @@ def install_gtk(app_name, app_title, parent):
         # check if install tags have changed, if they did; try deleting files that are no longer required.
         if old_igame and old_igame.install_tags != igame.install_tags:
             old_igame.install_tags = igame.install_tags
-            self.log_gtk('Deleting now untagged files.')
+            log_gtk('Deleting now untagged files.')
             core.uninstall_tag(old_igame)
             core.install_game(old_igame)
 
         exit(0)
 
-    log_gtk(f'Install size: {analysis.install_size / 1024 / 1024:.02f} MiB')
+    print(f'Install size: {analysis.install_size / 1024 / 1024:.02f} MiB')
     compression = (1 - (analysis.dl_size / analysis.uncompressed_dl_size)) * 100
-    log_gtk(f'Download size: {analysis.dl_size / 1024 / 1024:.02f} MiB '
+    print(f'Download size: {analysis.dl_size / 1024 / 1024:.02f} MiB '
                 f'(Compression savings: {compression:.01f}%)')
-    log_gtk(f'Reusable size: {analysis.reuse_size / 1024 / 1024:.02f} MiB (chunks) / '
+    print(f'Reusable size: {analysis.reuse_size / 1024 / 1024:.02f} MiB (chunks) / '
                 f'{analysis.unchanged / 1024 / 1024:.02f} MiB (unchanged / skipped)')
 
     res = core.check_installation_conditions(analysis=analysis, install=igame, game=game,
-                                                  updating=self.core.is_installed(app_name),
+                                                  updating=core.is_installed(app_name),
                                                   ignore_space_req=args.ignore_space)
 
     if res.warnings or res.failures:
@@ -710,16 +720,17 @@ def install_gtk(app_name, app_title, parent):
         log_gtk('Installation cannot proceed, exiting.')
         exit(1)
 
-    log_gtk('Downloads are resumable, you can interrupt the download with '
+    print('Downloads are resumable, you can interrupt the download with '
                 'CTRL-C and resume it using the same command later on.')
 
     start_t = time.time()
 
     try:
         # set up logging stuff (should be moved somewhere else later)
-        dlm.logging_queue = self.logging_queue
+        dlm.logging_queue = cli.logging_queue
         dlm.proc_debug = args.dlm_debug
 
+        #print("parent:",parent)
         dlm.start()
         dlm.join()
     except Exception as e:
@@ -728,60 +739,60 @@ def install_gtk(app_name, app_title, parent):
                        f'The following exception occurred while waiting for the downloader to finish: {e!r}. '
                        f'Try restarting the process, the resume file will be used to start where it failed. '
                        f'If it continues to fail please open an issue on GitHub.')
-    else:
-        end_t = time.time()
-        if not args.no_install:
-            # Allow setting savegame directory at install time so sync-saves will work immediately
-            if game.supports_cloud_saves and args.save_path:
-                igame.save_path = args.save_path
+    #else:
+    #    end_t = time.time()
+    #    if not args.no_install:
+    #        # Allow setting savegame directory at install time so sync-saves will work immediately
+    #        if game.supports_cloud_saves and args.save_path:
+    #            igame.save_path = args.save_path
 
-            postinstall = self.core.install_game(igame)
-            if postinstall:
-                self._handle_postinstall(postinstall, igame, yes=args.yes)
+    #        postinstall = self.core.install_game(igame)
+    #        if postinstall:
+    #            self._handle_postinstall(postinstall, igame, yes=args.yes)
 
-            dlcs = self.core.get_dlc_for_game(game.app_name)
-            if dlcs:
-                print('The following DLCs are available for this game:')
-                for dlc in dlcs:
-                    print(f' - {dlc.app_title} (App name: {dlc.app_name}, version: {dlc.app_version})')
-                print('Manually installing DLCs works the same; just use the DLC app name instead.')
+    #        dlcs = self.core.get_dlc_for_game(game.app_name)
+    #        if dlcs:
+    #            print('The following DLCs are available for this game:')
+    #            for dlc in dlcs:
+    #                print(f' - {dlc.app_title} (App name: {dlc.app_name}, version: {dlc.app_version})')
+    #            print('Manually installing DLCs works the same; just use the DLC app name instead.')
 
-                install_dlcs = True
-                if not args.yes:
-                    if not get_boolean_choice(f'Do you wish to automatically install DLCs?'):
-                        install_dlcs = False
+    #            install_dlcs = True
+    #            if not args.yes:
+    #                if not get_boolean_choice(f'Do you wish to automatically install DLCs?'):
+    #                    install_dlcs = False
 
-                if install_dlcs:
-                    _yes, _app_name = args.yes, app_name
-                    args.yes = True
-                    for dlc in dlcs:
-                        app_name = dlc.app_name
-                        self.install_game(args)
-                    args.yes, app_name = _yes, _app_name
+    #            if install_dlcs:
+    #                _yes, _app_name = args.yes, app_name
+    #                args.yes = True
+    #                for dlc in dlcs:
+    #                    app_name = dlc.app_name
+    #                    self.install_game(args)
+    #                args.yes, app_name = _yes, _app_name
 
-            if game.supports_cloud_saves and not game.is_dlc:
-                # todo option to automatically download saves after the installation
-                #  args does not have the required attributes for sync_saves in here,
-                #  not sure how to solve that elegantly.
-                log_gtk(f'This game supports cloud saves, syncing is handled by the "sync-saves" command.To download saves for this game run "legendary sync-saves {app_name}"')
+    #        if game.supports_cloud_saves and not game.is_dlc:
+    #            # todo option to automatically download saves after the installation
+    #            #  args does not have the required attributes for sync_saves in here,
+    #            #  not sure how to solve that elegantly.
+    #            log_gtk(f'This game supports cloud saves, syncing is handled by the "sync-saves" command.To download saves for this game run "legendary sync-saves {app_name}"')
 
-        old_igame = self.core.get_installed_game(game.app_name)
-        if old_igame and args.repair_mode and os.path.exists(repair_file):
-            if old_igame.needs_verification:
-                old_igame.needs_verification = False
-                self.core.install_game(old_igame)
+    #    old_igame = self.core.get_installed_game(game.app_name)
+    #    if old_igame and args.repair_mode and os.path.exists(repair_file):
+    #        if old_igame.needs_verification:
+    #            old_igame.needs_verification = False
+    #            self.core.install_game(old_igame)
 
-            log_gtk('Removing repair file.')
-            os.remove(repair_file)
+    #        log_gtk('Removing repair file.')
+    #        os.remove(repair_file)
 
-        # check if install tags have changed, if they did; try deleting files that are no longer required.
-        if old_igame and old_igame.install_tags != igame.install_tags:
-            old_igame.install_tags = igame.install_tags
-            log_gtk('Deleting now untagged files.')
-            core.uninstall_tag(old_igame)
-            core.install_game(old_igame)
+    #    # check if install tags have changed, if they did; try deleting files that are no longer required.
+    #    if old_igame and old_igame.install_tags != igame.install_tags:
+    #        old_igame.install_tags = igame.install_tags
+    #        log_gtk('Deleting now untagged files.')
+    #        core.uninstall_tag(old_igame)
+    #        core.install_game(old_igame)
 
-        log_gtk(f'Finished installation process in {end_t - start_t:.02f} seconds.')
+    #    log_gtk(f'Finished installation process in {end_t - start_t:.02f} seconds.')
 
 class main_window(Gtk.Window):
     def __init__(self):

@@ -18,7 +18,8 @@ from typing import List, Dict
 from uuid import uuid4
 
 from legendary.api.egs import EPCAPI
-from legendary.downloader.manager import DLManager
+#from legendary.downloader.manager import DLManager
+from legendary.gui.manager2 import DLManager
 from legendary.lfs.egl import EPCLFS
 from legendary.lfs.lgndry import LGDLFS
 from legendary.utils.lfs import clean_filename, delete_folder, delete_filelist
@@ -705,9 +706,10 @@ class LegendaryCore:
                          dl_optimizations: bool = False, dl_timeout: int = 10,
                          repair: bool = False, repair_use_latest: bool = False,
                          disable_delta: bool = False, override_delta_manifest: str = '',
-                         egl_guid: str = '', main_window="cli") -> (DLManager, AnalysisResult, ManifestMeta):
+                         egl_guid: str = '', main_window = "cli") -> (DLManager, AnalysisResult, ManifestMeta):
         # load old manifest
         old_manifest = None
+        print("prepare",main_window.get_title())
 
         # load old manifest if we have one
         if override_old_manifest:
