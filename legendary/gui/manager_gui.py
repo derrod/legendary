@@ -18,6 +18,9 @@ from legendary.downloader.workers import DLWorker, FileWorker
 from legendary.models.downloading import *
 from legendary.models.manifest import ManifestComparison, Manifest
 
+class ProgressBar_DLManager:
+    def __init__:
+        bar = Gtk.ProcessBar()
 
 class DLManager(Process):
     def __init__(self, download_dir, base_url, cache_dir=None, status_q=None,
@@ -707,16 +710,23 @@ class DLManager(Process):
                 hours = minutes = seconds = 0
                 rt_hours = rt_minutes = rt_seconds = 0
 
-            self.log.info(f'= Progress: {perc:.02f}% ({processed_chunks}/{num_chunk_tasks}), '
-                          f'Running for {rt_hours:02d}:{rt_minutes:02d}:{rt_seconds:02d}, '
-                          f'ETA: {hours:02d}:{minutes:02d}:{seconds:02d}')
-            self.log.info(f' - Downloaded: {total_dl / 1024 / 1024:.02f} MiB, '
-                          f'Written: {total_write / 1024 / 1024:.02f} MiB')
-            self.log.info(f' - Cache usage: {total_used} MiB, active tasks: {self.active_tasks}')
-            self.log.info(f' + Download\t- {dl_speed / 1024 / 1024:.02f} MiB/s (raw) '
-                          f'/ {dl_unc_speed / 1024 / 1024:.02f} MiB/s (decompressed)')
-            self.log.info(f' + Disk\t- {w_speed / 1024 / 1024:.02f} MiB/s (write) / '
-                          f'{r_speed / 1024 / 1024:.02f} MiB/s (read)')
+            bar.set_fraction(perc)
+            bar.set_text( f'{perc:.02f}% ({processed_chunks}/{num_chunk_tasks}), '
+                          f'Elapsed: {rt_hours:02d}:{rt_minutes:02d}:{rt_seconds:02d}, '
+                          f'ETA: {hours:02d}:{minutes:02d}:{seconds:02d}'
+                          f'{dl_speed / 1024 / 1024:.02f} MiB/s'
+            )
+
+            #self.log.info(f'= Progress: {perc:.02f}% ({processed_chunks}/{num_chunk_tasks}), '
+            #              f'Running for {rt_hours:02d}:{rt_minutes:02d}:{rt_seconds:02d}, '
+            #              f'ETA: {hours:02d}:{minutes:02d}:{seconds:02d}')
+            #self.log.info(f' - Downloaded: {total_dl / 1024 / 1024:.02f} MiB, '
+            #              f'Written: {total_write / 1024 / 1024:.02f} MiB')
+            #self.log.info(f' - Cache usage: {total_used} MiB, active tasks: {self.active_tasks}')
+            #self.log.info(f' + Download\t- {dl_speed / 1024 / 1024:.02f} MiB/s (raw) '
+            #              f'/ {dl_unc_speed / 1024 / 1024:.02f} MiB/s (decompressed)')
+            #self.log.info(f' + Disk\t- {w_speed / 1024 / 1024:.02f} MiB/s (write) / '
+            #              f'{r_speed / 1024 / 1024:.02f} MiB/s (read)')
 
             # send status update to back to instantiator (if queue exists)
             if self.status_queue:
