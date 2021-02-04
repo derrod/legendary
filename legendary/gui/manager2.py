@@ -620,9 +620,6 @@ class DLManager(Process):
 
         self.log.debug(f'Created {len(self.sms)} shared memory segments.')
 
-        obj_out = log_dlm.create("cli")
-        print("created obj_out")
-
         # Create queues
         self.dl_worker_queue = MPQueue(-1)
         self.writer_queue = MPQueue(-1)
@@ -641,9 +638,7 @@ class DLManager(Process):
         writer_p = FileWorker(self.writer_queue, self.writer_result_q, self.dl_dir,
                               self.shared_memory.name, self.cache_dir, self.logging_queue)
         self.children.append(writer_p)
-        print("created obj_ou1t")
         writer_p.start()
-        print("created obj_ou2t")
 
         num_chunk_tasks = sum(isinstance(t, ChunkTask) for t in self.tasks)
         num_dl_tasks = len(self.chunks_to_dl)
@@ -671,6 +666,9 @@ class DLManager(Process):
 
         for t in self.threads:
             t.start()
+
+        obj_out = log_dlm.create(main_window)
+        print("created obj_out")
 
         last_update = time.time()
 
@@ -716,7 +714,7 @@ class DLManager(Process):
                 hours = minutes = seconds = 0
                 rt_hours = rt_minutes = rt_seconds = 0
 
-            print("loop")
+            #debug print("loop")
             log_dlm.update( self,
                             perc,
                             processed_chunks,
