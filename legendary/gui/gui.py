@@ -58,10 +58,7 @@ def install_gtk(app_name, app_title, parent):
                                       )
     install_dialog.set_title(f"Install {app_title}")
     install_dialog.set_default_size(400, 0)
- #   install_dialog.remove(install_dialog.get_content_area())
-
     vbox = install_dialog.get_content_area()
-    #box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
 
     # advanced options declaration
     show_advanced = False
@@ -475,24 +472,18 @@ def install_gtk(app_name, app_title, parent):
             show_advanced = True
             advanced_options.set_no_show_all(False)
             install_dialog.show_all()
-#            advanced_options.show()
         else:
             show_advanced = False
-            #vbox.remove(advanced_options)
             advanced_options.hide()
         install_dialog.resize(400,5)
         print(name, "is now", show_advanced)
     show_advanced_check_button.connect("toggled", show_advanced_button_toggled, "show_advanced")
 
     advanced_options.set_no_show_all(True)
-    #vbox.show()
     install_dialog.show_all()
-    #install_dialog.get_content_area().show()
-    #advanced_options.hide()
-    #install_dialog.resize(400,5)
-
     install_dialog_response = install_dialog.run()
 
+    # entries
     base_path = base_path_entry.get_text()
     game_folder = game_folder_entry.get_text()
     max_shm = max_shm_entry.get_text()
@@ -507,7 +498,7 @@ def install_gtk(app_name, app_title, parent):
     file_install_tag = file_install_tag_entry.get_text()
     dl_timeout = dl_timeout_entry.get_text()
     save_path = save_path_entry.get_text()
-
+    # check boxes
     force = force_check_button.get_active()
     disable_patching = disable_patching_check_button.get_active()
     download_only = download_only_check_button.get_active()
@@ -546,7 +537,6 @@ def install_gtk(app_name, app_title, parent):
             f"reset_sdl:\t\t {reset_sdl}",
     sep='\n'
     )
-    print("install")
     return 1
 
 
