@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# TODO: fix progress bar
+
 import sys
 # insert at 1, 0 is the script path (or '' in REPL)
 sys.path.insert(1, '../..')
@@ -85,7 +87,7 @@ def update_avail(app_name):
     else:
         return ""
 
-# TODO: actual install
+# TODO: finish actual install
 def install_gtk(app_name, app_title, parent):
     install_dialog = Gtk.MessageDialog( parent=parent,
                                         destroy_with_parent=True,
@@ -592,7 +594,8 @@ def install_gtk(app_name, app_title, parent):
         repair_file = os.path.join(core.lgd.get_tmp_path(), f'{app_name}.repair')
 
     if not core.login():
-        log_gtk('Login failed! Cannot continue with download process.')
+        #log_gtk('Login failed! Cannot continue with download process.')
+        print('Login failed! Cannot continue with download process.')
         exit(1)
 
     if args.file_prefix or args.file_exclude_prefix or args.install_tag:
@@ -600,7 +603,8 @@ def install_gtk(app_name, app_title, parent):
 
     if args.update_only:
         if not core.is_installed(app_name):
-            log_gtk(f'Update requested for "{app_name}", but app not installed!')
+            #log_gtk(f'Update requested for "{app_name}", but app not installed!')
+            print(f'Update requested for "{app_name}", but app not installed!')
             exit(1)
 
     if args.platform_override:
@@ -609,19 +613,23 @@ def install_gtk(app_name, app_title, parent):
     game = core.get_game(app_name, update_meta=True)
 
     if not game:
-        log_gtk(f'Could not find "{app_name}" in list of available games,'
+        #log_gtk(f'Could not find "{app_name}" in list of available games,'
+        #             f'did you type the name correctly?')
+        print(f'Could not find "{app_name}" in list of available games,'
                      f'did you type the name correctly?')
         exit(1)
 
     if game.is_dlc:
-        log_gtk('Install candidate is DLC')
+        #log_gtk('Install candidate is DLC')
+        print('Install candidate is DLC')
         app_name = game.metadata['mainGameItem']['releaseInfo'][0]['appId']
         base_game = core.get_game(app_name)
         # check if base_game is actually installed
         if not core.is_installed(app_name):
             # download mode doesn't care about whether or not something's installed
             if not args.no_install:
-                log_gtk(f'Base game "{app_name}" is not installed!')
+                #log_gtk(f'Base game "{app_name}" is not installed!')
+                print(f'Base game "{app_name}" is not installed!')
                 exit(1)
     else:
         base_game = None
@@ -678,19 +686,22 @@ def install_gtk(app_name, app_title, parent):
     # game is either up to date or hasn't changed, so we have nothing to do
     if not analysis.dl_size:
         old_igame = core.get_installed_game(game.app_name)
-        log_gtk('Download size is 0, the game is either already up to date or has not changed. Exiting...')
+        #log_gtk('Download size is 0, the game is either already up to date or has not changed. Exiting...')
+        print('Download size is 0, the game is either already up to date or has not changed. Exiting...')
         if old_igame and args.repair_mode and os.path.exists(repair_file):
             if old_igame.needs_verification:
                 old_igame.needs_verification = False
                 core.install_game(old_igame)
 
-            log_gtk('Removing repair file.')
+            #log_gtk('Removing repair file.')
+            print('Removing repair file.')
             os.remove(repair_file)
 
         # check if install tags have changed, if they did; try deleting files that are no longer required.
         if old_igame and old_igame.install_tags != igame.install_tags:
             old_igame.install_tags = igame.install_tags
-            log_gtk('Deleting now untagged files.')
+            #log_gtk('Deleting now untagged files.')
+            print('Deleting now untagged files.')
             core.uninstall_tag(old_igame)
             core.install_game(old_igame)
 
@@ -708,15 +719,18 @@ def install_gtk(app_name, app_title, parent):
                                                   ignore_space_req=args.ignore_space)
 
     if res.warnings or res.failures:
-        log_gtk('Installation requirements check returned the following results:')
+        #log_gtk('Installation requirements check returned the following results:')
+        print('Installation requirements check returned the following results:')
 
     if res.warnings:
         for warn in sorted(res.warnings):
-            log_gtk(warn)
+            #log_gtk(warn)
+            print(warn)
 
     if res.failures:
         for msg in sorted(res.failures):
-            log_gtk(msg)
+            #log_gtk(msg)
+            print(msg)
         log_gtk('Installation cannot proceed, exiting.')
         exit(1)
 
@@ -735,7 +749,11 @@ def install_gtk(app_name, app_title, parent):
         dlm.join()
     except Exception as e:
         end_t = time.time()
-        log_gtk(f'Installation failed after {end_t - start_t:.02f} seconds.'
+        #log_gtk(f'Installation failed after {end_t - start_t:.02f} seconds.'
+        #               f'The following exception occurred while waiting for the downloader to finish: {e!r}. '
+        #               f'Try restarting the process, the resume file will be used to start where it failed. '
+        #               f'If it continues to fail please open an issue on GitHub.')
+        print(f'Installation failed after {end_t - start_t:.02f} seconds.'
                        f'The following exception occurred while waiting for the downloader to finish: {e!r}. '
                        f'Try restarting the process, the resume file will be used to start where it failed. '
                        f'If it continues to fail please open an issue on GitHub.')
@@ -826,6 +844,10 @@ class main_window(Gtk.Window):
             self.button_logout.connect("clicked", self.onclick_logout)
             self.login_vbox.pack_end(self.button_logout, False, False, 10)
             self.login_vbox.pack_end(self.username_label, False, False, 0)
+
+        # Proress Bar for downloads
+        self.progress_bar = Gtk.ProgressBar()
+        self.login_vbox.pack_end(self.progress_bar, False, False, 10)
 
         self.box.pack_start(self.login_vbox, False, False, 20)
 

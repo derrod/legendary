@@ -138,7 +138,6 @@ class FileWorker(Process):
         logger = logging.getLogger(self.name)
         logger.setLevel(self.log_level)
         logger.debug(f'Download worker reporting for duty!')
-        print(f'Download worker reporting for duty! {self.name}')
 
         last_filename = ''
         current_file = None
@@ -146,9 +145,7 @@ class FileWorker(Process):
         while True:
             try:
                 try:
-                    print(f'j = self.q.get - {self.name}')
-                    #j = self.q.get(timeout=10.0)
-                    j = self.q.get(timeout=0.5)
+                    j = self.q.get(timeout=10.0)
                 except Empty:
                     logger.warning('Writer queue empty!')
                     continue

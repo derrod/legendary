@@ -8,14 +8,15 @@ class log_dlm:
             print(main_window)
             return "cli"
         else:
-            bar = Gtk.ProgressBar()
-            main_window.login_vbox.pack_end(bar, False, False, 10)
             print(main_window)
-            return bar
+            return main_window.progress_bar
 
-    def update(self, perc, processed_chunks, num_chunk_tasks, rt_hours, rt_minutes, rt_seconds, hours, minutes, seconds, total_dl, total_write, total_used, dl_speed, dl_unc_speed, w_speed, r_speed, obj_out):
+    def update(self_log_dlm, self, perc, processed_chunks, num_chunk_tasks, rt_hours, rt_minutes, rt_seconds, hours, minutes, seconds, total_dl, total_write, total_used, dl_speed, dl_unc_speed, w_speed, r_speed, obj_out):
+        print("update_choose")
         if obj_out == "cli":
-            update_cli( self,
+            print("update_cli")
+            self_log_dlm.update_cli(
+                        self,
                         perc,
                         processed_chunks,
                         num_chunk_tasks,
@@ -33,7 +34,9 @@ class log_dlm:
                         w_speed,
                         r_speed)
         else:
-            update_gui( self,
+            print("update_gui")
+            self_log_dlm.update_gui(
+                        self,
                         perc,
                         processed_chunks,
                         num_chunk_tasks,
@@ -53,13 +56,14 @@ class log_dlm:
                         obj_out)
 
 
-    def update_gui(self, perc, processed_chunks, num_chunk_tasks, rt_hours, rt_minutes, rt_seconds, hours, minutes, seconds, total_dl, total_write, total_used, dl_speed, dl_unc_speed, w_speed, r_speed, bar):
+    def update_gui(self_log_dlm, self, perc, processed_chunks, num_chunk_tasks, rt_hours, rt_minutes, rt_seconds, hours, minutes, seconds, total_dl, total_write, total_used, dl_speed, dl_unc_speed, w_speed, r_speed, bar):
         bar.set_fraction(perc)
         bar.set_text(f"{dl_speed / 1024 / 1024:.02f} MiB/s - {(perc*100):.02f}% - ETA: {hours:02d}:{minutes:02d}:{seconds:02d}")
         print(bar.get_text())
 
-    def update_cli(self, perc, processed_chunks, num_chunk_tasks, rt_hours, rt_minutes, rt_seconds, hours, minutes, seconds, total_dl, total_write, total_used, dl_speed, dl_unc_speed, w_speed, r_speed):
+    def update_cli(self_log_dlm, self, perc, processed_chunks, num_chunk_tasks, rt_hours, rt_minutes, rt_seconds, hours, minutes, seconds, total_dl, total_write, total_used, dl_speed, dl_unc_speed, w_speed, r_speed):
         perc *= 100
+        print(f"perc: {perc}")
         self.log.info(f'= Progress: {perc:.02f}% ({processed_chunks}/{num_chunk_tasks}), '
                       f'Running for {rt_hours:02d}:{rt_minutes:02d}:{rt_seconds:02d}, '
                       f'ETA: {hours:02d}:{minutes:02d}:{seconds:02d}')

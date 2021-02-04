@@ -620,7 +620,7 @@ class DLManager(Process):
 
         self.log.debug(f'Created {len(self.sms)} shared memory segments.')
 
-        obj_out = log_dlm.create(main_window)
+        obj_out = log_dlm.create("cli")
         print("created obj_out")
 
         # Create queues
@@ -716,6 +716,7 @@ class DLManager(Process):
                 hours = minutes = seconds = 0
                 rt_hours = rt_minutes = rt_seconds = 0
 
+            print("loop")
             log_dlm.update( self,
                             perc,
                             processed_chunks,
