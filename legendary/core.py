@@ -705,7 +705,7 @@ class LegendaryCore:
                          dl_optimizations: bool = False, dl_timeout: int = 10,
                          repair: bool = False, repair_use_latest: bool = False,
                          disable_delta: bool = False, override_delta_manifest: str = '',
-                         egl_guid: str = '') -> (DLManager, AnalysisResult, ManifestMeta):
+                         egl_guid: str = '', main_window="cli") -> (DLManager, AnalysisResult, ManifestMeta):
         # load old manifest
         old_manifest = None
 
@@ -832,7 +832,7 @@ class LegendaryCore:
 
         dlm = DLManager(install_path, base_url, resume_file=resume_file, status_q=status_q,
                         max_shared_memory=max_shm * 1024 * 1024, max_workers=max_workers,
-                        dl_timeout=dl_timeout)
+                        dl_timeout=dl_timeout, main_window=main_window)
         anlres = dlm.run_analysis(manifest=new_manifest, old_manifest=old_manifest,
                                   patch=not disable_patching, resume=not force,
                                   file_prefix_filter=file_prefix_filter,

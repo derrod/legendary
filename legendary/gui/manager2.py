@@ -22,7 +22,7 @@ from legendary.models.manifest import ManifestComparison, Manifest
 class DLManager(Process):
     def __init__(self, download_dir, base_url, cache_dir=None, status_q=None,
                  max_workers=0, update_interval=1.0, dl_timeout=10, resume_file=None,
-                 max_shared_memory=1024 * 1024 * 1024, is_gui):
+                 max_shared_memory=1024 * 1024 * 1024, main_window="cli"):
         super().__init__(name='DLManager')
         self.log = logging.getLogger('DLM')
         self.proc_debug = False
@@ -577,7 +577,7 @@ class DLManager(Process):
         self.log.info(f'Download Manager running with process-id: {os.getpid()}')
 
         try:
-            self.run_real(is_gui)
+            self.run_real(main_window)
         except KeyboardInterrupt:
             self.log.warning('Immediate exit requested!')
             self.running = False
@@ -604,7 +604,7 @@ class DLManager(Process):
                     q.close()
                     q.join_thread()
 
-    def run_real(self, is_gui):
+    def run_real(self, main_window):
         self.shared_memory = SharedMemory(create=True, size=self.max_shared_memory)
         self.log.debug(f'Created shared memory of size: {self.shared_memory.size / 1024 / 1024:.02f} MiB')
 
@@ -660,6 +660,8 @@ class DLManager(Process):
         self.threads.append(Thread(target=self.dl_results_handler, args=(task_cond,)))
         self.threads.append(Thread(target=self.fw_results_handler, args=(shm_cond,)))
 
+        obj_out = log_dlm.create(main_window)
+
         for t in self.threads:
             t.start()
 
@@ -690,7 +692,7 @@ class DLManager(Process):
             self.bytes_decompressed_since_last = self.num_tasks_processed_since_last = 0
             last_update = time.time()
 
-            perc = (processed_chunks / num_chunk_tasks) * 100
+            perc = (processed_chunks / num_chunk_tasks)
             runtime = time.time() - s_time
             total_avail = len(self.sms)
             total_used = (num_shared_memory_segments - total_avail) * (self.analysis.biggest_chunk / 1024 / 1024)
@@ -707,24 +709,24 @@ class DLManager(Process):
                 hours = minutes = seconds = 0
                 rt_hours = rt_minutes = rt_seconds = 0
 
-            log_dlm(    self,
-                        perc,
-                        processed_chunks,
-                        num_chunk_tasks,
-                        rt_hours,
-                        rt_minutes,
-                        rt_seconds,
-                        hours,
-                        minutes,
-                        seconds,
-                        total_dl,
-                        total_write,
-                        total_used,
-                        dl_speed,
-                        dl_unc_speed,
-                        w_speed,
-                        r_speed,
-                        is_gui
+            log_dlm.update( self,
+                            perc,
+                            processed_chunks,
+                            num_chunk_tasks,
+                            rt_hours,
+                            rt_minutes,
+                            rt_seconds,
+                            hours,
+                            minutes,
+                            seconds,
+                            total_dl,
+                            total_write,
+                            total_used,
+                            dl_speed,
+                            dl_unc_speed,
+                            w_speed,
+                            r_speed,
+                            obj_out
             )
 
             # send status update to back to instantiator (if queue exists)

@@ -662,7 +662,8 @@ def install_gtk(app_name, app_title, parent):
                                                       repair=args.repair_mode,
                                                       repair_use_latest=args.repair_and_update,
                                                       disable_delta=args.disable_delta,
-                                                      override_delta_manifest=args.override_delta_manifest)
+                                                      override_delta_manifest=args.override_delta_manifest
+                                                      main_window=parent)
 
     # game is either up to date or hasn't changed, so we have nothing to do
     if not analysis.dl_size:
