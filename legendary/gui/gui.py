@@ -253,9 +253,9 @@ def install_gtk(app_name, app_title, parent):
     force_check_button.set_tooltip_text("Download all files / ignore existing (overwrite)")
     def force_button_toggled(button, name):
         if button.get_active():
-            force = False
-        else:
             force = True
+        else:
+            force = False
         print(name, "is now", force)
     force_check_button.connect("toggled", force_button_toggled, "force")
     advanced_options.add(force_check_button)
@@ -266,10 +266,10 @@ def install_gtk(app_name, app_title, parent):
     disable_patching_check_button.set_tooltip_text("Do not attempt to patch existing installation (download entire changed files)")
     def disable_patching_button_toggled(button, name):
         if button.get_active():
-            disable_patching = False
-        else:
             disable_patching = True
-        print(name, " is now ", state)
+        else:
+            disable_patching = False
+        print(name, "is now", disable_patching)
     disable_patching_check_button.connect("toggled", disable_patching_button_toggled, "disable_patching")
     advanced_options.add(disable_patching_check_button)
 
@@ -279,9 +279,9 @@ def install_gtk(app_name, app_title, parent):
     download_only_check_button.set_tooltip_text("Do not intall app and do not run prerequisite installers after download")
     def download_only_button_toggled(button, name):
         if button.get_active():
-            download_only = False
-        else:
             download_only = True
+        else:
+            download_only = False
         print(name, "is now", download_only)
     download_only_check_button.connect("toggled", download_only_button_toggled, "download_only")
     advanced_options.add(download_only_check_button)
@@ -292,9 +292,9 @@ def install_gtk(app_name, app_title, parent):
     update_only_check_button.set_tooltip_text("Only update, do not do anything if specified app is not installed")
     def update_only_button_toggled(button, name):
         if button.get_active():
-            update_only = False
-        else:
             update_only = True
+        else:
+            update_only = False
         print(name, "is now", update_only)
     update_only_check_button.connect("toggled", update_only_button_toggled, "update_only")
     advanced_options.add(update_only_check_button)
@@ -305,9 +305,9 @@ def install_gtk(app_name, app_title, parent):
     glm_debug_check_button.set_tooltip_text("Set download manager and worker processes' loglevel to debug")
     def glm_debug_button_toggled(button, name):
         if button.get_active():
-            glm_debug = False
-        else:
             glm_debug = True
+        else:
+            glm_debug = False
         print(name, "is now", glm_debug)
     glm_debug_check_button.connect("toggled", glm_debug_button_toggled, "glm_debug")
     advanced_options.add(glm_debug_check_button)
@@ -356,9 +356,9 @@ def install_gtk(app_name, app_title, parent):
     enable_reordering_check_button.set_tooltip_text("Enable reordering optimization to reduce RAM requirements during download (may have adverse results for some titles)")
     def enable_reordering_button_toggled(button, name):
         if button.get_active():
-            enable_reordering = False
-        else:
             enable_reordering = True
+        else:
+            enable_reordering = False
         print(name, "is now", enable_reordering)
     enable_reordering_check_button.connect("toggled", enable_reordering_button_toggled, "enable_reordering")
     advanced_options.add(enable_reordering_check_button)
@@ -408,9 +408,9 @@ def install_gtk(app_name, app_title, parent):
     repair_check_button.set_tooltip_text("Repair installed game by checking and redownloading corrupted/missing files")
     def repair_button_toggled(button, name):
         if button.get_active():
-            repair = False
-        else:
             repair = True
+        else:
+            repair = False
         print(name, "is now", repair)
     repair_check_button.connect("toggled", repair_button_toggled, "repair")
     advanced_options.add(repair_check_button)
@@ -421,9 +421,9 @@ def install_gtk(app_name, app_title, parent):
     repair_and_update_check_button.set_tooltip_text("Update game to the latest version when repairing")
     def repair_and_update_button_toggled(button, name):
         if button.get_active():
-            repair_and_update = False
-        else:
             repair_and_update = True
+        else:
+            repair_and_update = False
         print(name, "is now", repair_and_update)
     repair_and_update_check_button.connect("toggled", repair_and_update_button_toggled, "repair_and_update")
     advanced_options.add(repair_and_update_check_button)
@@ -434,9 +434,9 @@ def install_gtk(app_name, app_title, parent):
     ignore_space_req_check_button.set_tooltip_text("Do not abort if not enough free space is available")
     def ignore_space_req_button_toggled(button, name):
         if button.get_active():
-            ignore_space_req = False
-        else:
             ignore_space_req = True
+        else:
+            ignore_space_req = False
         print(name, "is now", ignore_space_req)
     ignore_space_req_check_button.connect("toggled", ignore_space_req_button_toggled, "ignore_space_req")
     advanced_options.add(ignore_space_req_check_button)
@@ -447,9 +447,9 @@ def install_gtk(app_name, app_title, parent):
     override_delta_manifest_check_button.set_tooltip_text("Do not use delta manifests when updating (may increase download size)")
     def override_delta_manifest_button_toggled(button, name):
         if button.get_active():
-            override_delta_manifest = False
-        else:
             override_delta_manifest = True
+        else:
+            override_delta_manifest = False
         print(name, "is now", override_delta_manifest)
     override_delta_manifest_check_button.connect("toggled", override_delta_manifest_button_toggled, "override_delta_manifest")
     advanced_options.add(override_delta_manifest_check_button)
@@ -460,9 +460,9 @@ def install_gtk(app_name, app_title, parent):
     reset_sdl_check_button.set_tooltip_text("Reset selective downloading choices (requires repair to download new components)")
     def reset_sdl_button_toggled(button, name):
         if button.get_active():
-            reset_sdl = False
-        else:
             reset_sdl = True
+        else:
+            reset_sdl = False
         print(name, "is now", reset_sdl)
     reset_sdl_check_button.connect("toggled", reset_sdl_button_toggled, "reset_sdl")
     advanced_options.add(reset_sdl_check_button)
@@ -509,21 +509,30 @@ def install_gtk(app_name, app_title, parent):
     save_path = save_path_entry.get_text()
 
     install_dialog.destroy()
-    print(  base_path,
-            game_folder,
-            max_shm,
-            max_workers,
-            override_manifest,
-            override_old_manifest,
-            override_delta_manifest,
-            override_base_url,
-            platform_override,
-            file_prefix_filter,
-            file_exclude_filter,
-            file_install_tag,
-            dl_timeout,
-            save_path,
-            # add bool options
+    print(  f"base_path:\t\t {base_path}",
+            f"game_folder:\t\t {game_folder}",
+            f"max_shm:\t\t {max_shm}",
+            f"max_workers:\t\t {max_workers}",
+            f"override_manifest:\t {override_manifest}",
+            f"override_old_manifest:\t {override_old_manifest}",
+            f"override_delta_manifest: {override_delta_manifest}",
+            f"override_base_url:\t {override_base_url}",
+            f"platform_override:\t {platform_override}",
+            f"file_prefix_filter:\t {file_prefix_filter}",
+            f"file_exclude_filter:\t {file_exclude_filter}",
+            f"file_install_tag:\t {file_install_tag}",
+            f"dl_timeout:\t\t {dl_timeout}",
+            f"save_path:\t\t {save_path}",
+            f"force:\t\t\t {force}",
+            f"disable_patching:\t {disable_patching}",
+            f"download_only:\t\t {download_only}",
+            f"update_only:\t\t {update_only}",
+            f"glm_debug:\t\t {glm_debug}",
+            f"enable_reordering:\t {enable_reordering}",
+            f"repair:\t\t\t {repair}",
+            f"repair_and_update:\t {repair_and_update}",
+            f"ignore_space_req:\t {ignore_space_req}",
+            f"reset_sdl:\t\t {reset_sdl}",
     sep='\n'
     )
     print("install")
