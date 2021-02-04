@@ -251,65 +251,65 @@ def install_gtk(app_name, app_title, parent):
     force = False
     force_check_button = Gtk.CheckButton(label="Force install")
     force_check_button.set_tooltip_text("Download all files / ignore existing (overwrite)")
-    def force_button_toggled(button, name):
-        if button.get_active():
-            force = True
-        else:
-            force = False
-        print(name, "is now", force)
-    force_check_button.connect("toggled", force_button_toggled, "force")
+    #def force_button_toggled(button, name):
+    #    if button.get_active():
+    #        force = True
+    #    else:
+    #        force = False
+    #    print(name, "is now", force)
+    #force_check_button.connect("toggled", force_button_toggled, "force")
     advanced_options.add(force_check_button)
 
     # --disable-patching
     disable_patching = False
     disable_patching_check_button = Gtk.CheckButton(label="Disable patching")
     disable_patching_check_button.set_tooltip_text("Do not attempt to patch existing installation (download entire changed files)")
-    def disable_patching_button_toggled(button, name):
-        if button.get_active():
-            disable_patching = True
-        else:
-            disable_patching = False
-        print(name, "is now", disable_patching)
-    disable_patching_check_button.connect("toggled", disable_patching_button_toggled, "disable_patching")
+    #def disable_patching_button_toggled(button, name):
+    #    if button.get_active():
+    #        disable_patching = True
+    #    else:
+    #        disable_patching = False
+    #    print(name, "is now", disable_patching)
+    #disable_patching_check_button.connect("toggled", disable_patching_button_toggled, "disable_patching")
     advanced_options.add(disable_patching_check_button)
 
     # --download-only, --no-install
     download_only = False
     download_only_check_button = Gtk.CheckButton(label="Download only")
     download_only_check_button.set_tooltip_text("Do not intall app and do not run prerequisite installers after download")
-    def download_only_button_toggled(button, name):
-        if button.get_active():
-            download_only = True
-        else:
-            download_only = False
-        print(name, "is now", download_only)
-    download_only_check_button.connect("toggled", download_only_button_toggled, "download_only")
+    #def download_only_button_toggled(button, name):
+    #    if button.get_active():
+    #        download_only = True
+    #    else:
+    #        download_only = False
+    #    print(name, "is now", download_only)
+    #download_only_check_button.connect("toggled", download_only_button_toggled, "download_only")
     advanced_options.add(download_only_check_button)
 
     # --update-only
     update_only = False
     update_only_check_button = Gtk.CheckButton(label="Update only")
     update_only_check_button.set_tooltip_text("Only update, do not do anything if specified app is not installed")
-    def update_only_button_toggled(button, name):
-        if button.get_active():
-            update_only = True
-        else:
-            update_only = False
-        print(name, "is now", update_only)
-    update_only_check_button.connect("toggled", update_only_button_toggled, "update_only")
+    #def update_only_button_toggled(button, name):
+    #    if button.get_active():
+    #        update_only = True
+    #    else:
+    #        update_only = False
+    #    print(name, "is now", update_only)
+    #update_only_check_button.connect("toggled", update_only_button_toggled, "update_only")
     advanced_options.add(update_only_check_button)
 
     # --dlm-debug
     glm_debug = False
     glm_debug_check_button = Gtk.CheckButton(label="Downloader debug messages")
     glm_debug_check_button.set_tooltip_text("Set download manager and worker processes' loglevel to debug")
-    def glm_debug_button_toggled(button, name):
-        if button.get_active():
-            glm_debug = True
-        else:
-            glm_debug = False
-        print(name, "is now", glm_debug)
-    glm_debug_check_button.connect("toggled", glm_debug_button_toggled, "glm_debug")
+    #def glm_debug_button_toggled(button, name):
+    #    if button.get_active():
+    #        glm_debug = True
+    #    else:
+    #        glm_debug = False
+    #    print(name, "is now", glm_debug)
+    #glm_debug_check_button.connect("toggled", glm_debug_button_toggled, "glm_debug")
     advanced_options.add(glm_debug_check_button)
     
 	# --platform <Platform> # use drop-down menu
@@ -354,13 +354,13 @@ def install_gtk(app_name, app_title, parent):
     enable_reordering = False
     enable_reordering_check_button = Gtk.CheckButton(label="Enable reordering optimization")
     enable_reordering_check_button.set_tooltip_text("Enable reordering optimization to reduce RAM requirements during download (may have adverse results for some titles)")
-    def enable_reordering_button_toggled(button, name):
-        if button.get_active():
-            enable_reordering = True
-        else:
-            enable_reordering = False
-        print(name, "is now", enable_reordering)
-    enable_reordering_check_button.connect("toggled", enable_reordering_button_toggled, "enable_reordering")
+    #def enable_reordering_button_toggled(button, name):
+    #    if button.get_active():
+    #        enable_reordering = True
+    #    else:
+    #        enable_reordering = False
+    #    print(name, "is now", enable_reordering)
+    #enable_reordering_check_button.connect("toggled", enable_reordering_button_toggled, "enable_reordering")
     advanced_options.add(enable_reordering_check_button)
     
 	# --dl-timeout <sec> # use number thingy with - 00 +
@@ -406,65 +406,65 @@ def install_gtk(app_name, app_title, parent):
     repair = False
     repair_check_button = Gtk.CheckButton(label="Repair")
     repair_check_button.set_tooltip_text("Repair installed game by checking and redownloading corrupted/missing files")
-    def repair_button_toggled(button, name):
-        if button.get_active():
-            repair = True
-        else:
-            repair = False
-        print(name, "is now", repair)
-    repair_check_button.connect("toggled", repair_button_toggled, "repair")
+    #def repair_button_toggled(button, name):
+    #    if button.get_active():
+    #        repair = True
+    #    else:
+    #        repair = False
+    #    print(name, "is now", repair)
+    #repair_check_button.connect("toggled", repair_button_toggled, "repair")
     advanced_options.add(repair_check_button)
     
 	# --repair-and-update
     repair_and_update = False # or repair_use_latest
     repair_and_update_check_button = Gtk.CheckButton(label="Repair and Update")
     repair_and_update_check_button.set_tooltip_text("Update game to the latest version when repairing")
-    def repair_and_update_button_toggled(button, name):
-        if button.get_active():
-            repair_and_update = True
-        else:
-            repair_and_update = False
-        print(name, "is now", repair_and_update)
-    repair_and_update_check_button.connect("toggled", repair_and_update_button_toggled, "repair_and_update")
+    #def repair_and_update_button_toggled(button, name):
+    #    if button.get_active():
+    #        repair_and_update = True
+    #    else:
+    #        repair_and_update = False
+    #    print(name, "is now", repair_and_update)
+    #repair_and_update_check_button.connect("toggled", repair_and_update_button_toggled, "repair_and_update")
     advanced_options.add(repair_and_update_check_button)
     
 	# --ignore-free-space
     ignore_space_req = False
     ignore_space_req_check_button = Gtk.CheckButton(label="Ignore space requirements")
     ignore_space_req_check_button.set_tooltip_text("Do not abort if not enough free space is available")
-    def ignore_space_req_button_toggled(button, name):
-        if button.get_active():
-            ignore_space_req = True
-        else:
-            ignore_space_req = False
-        print(name, "is now", ignore_space_req)
-    ignore_space_req_check_button.connect("toggled", ignore_space_req_button_toggled, "ignore_space_req")
+    #def ignore_space_req_button_toggled(button, name):
+    #    if button.get_active():
+    #        ignore_space_req = True
+    #    else:
+    #        ignore_space_req = False
+    #    print(name, "is now", ignore_space_req)
+    #ignore_space_req_check_button.connect("toggled", ignore_space_req_button_toggled, "ignore_space_req")
     advanced_options.add(ignore_space_req_check_button)
     
 	# --disable-delta-manifests
     override_delta_manifest = False
     override_delta_manifest_check_button = Gtk.CheckButton(label="Disable delta manifests")
     override_delta_manifest_check_button.set_tooltip_text("Do not use delta manifests when updating (may increase download size)")
-    def override_delta_manifest_button_toggled(button, name):
-        if button.get_active():
-            override_delta_manifest = True
-        else:
-            override_delta_manifest = False
-        print(name, "is now", override_delta_manifest)
-    override_delta_manifest_check_button.connect("toggled", override_delta_manifest_button_toggled, "override_delta_manifest")
+    #def override_delta_manifest_button_toggled(button, name):
+    #    if button.get_active():
+    #        override_delta_manifest = True
+    #    else:
+    #        override_delta_manifest = False
+    #    print(name, "is now", override_delta_manifest)
+    #override_delta_manifest_check_button.connect("toggled", override_delta_manifest_button_toggled, "override_delta_manifest")
     advanced_options.add(override_delta_manifest_check_button)
     
 	# --reset-sdl
     reset_sdl = False
     reset_sdl_check_button = Gtk.CheckButton(label="Reset selective downloading choices")
     reset_sdl_check_button.set_tooltip_text("Reset selective downloading choices (requires repair to download new components)")
-    def reset_sdl_button_toggled(button, name):
-        if button.get_active():
-            reset_sdl = True
-        else:
-            reset_sdl = False
-        print(name, "is now", reset_sdl)
-    reset_sdl_check_button.connect("toggled", reset_sdl_button_toggled, "reset_sdl")
+    #def reset_sdl_button_toggled(button, name):
+    #    if button.get_active():
+    #        reset_sdl = True
+    #    else:
+    #        reset_sdl = False
+    #    print(name, "is now", reset_sdl)
+    #reset_sdl_check_button.connect("toggled", reset_sdl_button_toggled, "reset_sdl")
     advanced_options.add(reset_sdl_check_button)
 
 
@@ -507,6 +507,17 @@ def install_gtk(app_name, app_title, parent):
     file_install_tag = file_install_tag_entry.get_text()
     dl_timeout = dl_timeout_entry.get_text()
     save_path = save_path_entry.get_text()
+
+    force = force_check_button.get_active()
+    disable_patching = disable_patching_check_button.get_active()
+    download_only = download_only_check_button.get_active()
+    update_only = update_only_check_button.get_active()
+    glm_debug = glm_debug_check_button.get_active()
+    enable_reordering = enable_reordering_check_button.get_active()
+    repair = repair_check_button.get_active()
+    repair_and_update = repair_and_update_check_button.get_active()
+    ignore_space_req = ignore_space_req_check_button.get_active()
+    reset_sdl = reset_sdl_check_button.get_active()
 
     install_dialog.destroy()
     print(  f"base_path:\t\t {base_path}",
@@ -831,7 +842,7 @@ class main_window(Gtk.Window):
             # add games to treeview
             #self.scroll.gview = Gtk.TreeView(Gtk.TreeModelSort(model=self.scroll.games))
             self.scroll.gview = Gtk.TreeView(model=self.scroll.games)
-            for i, c in enumerate(gcols):
+            for i, c in enumerate(gcols): # from https://developer.gnome.org/gnome-devel-demos/stable/treeview_simple_liststore.py.html.en
                 cell = Gtk.CellRendererText()
                 col = Gtk.TreeViewColumn(c, cell, text=i)
                 col.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
