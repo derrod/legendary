@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# TODO: fix progress bar
+# TODO: fix progress bar, games' contextual menu, tooltip show all info progress bar
 
 import sys
 # insert at 1, 0 is the script path (or '' in REPL)

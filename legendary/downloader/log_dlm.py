@@ -59,6 +59,7 @@ class log_dlm:
     def update_gui(self_log_dlm, self, perc, processed_chunks, num_chunk_tasks, rt_hours, rt_minutes, rt_seconds, hours, minutes, seconds, total_dl, total_write, total_used, dl_speed, dl_unc_speed, w_speed, r_speed, bar):
         bar.set_fraction(perc)
         bar.set_text(f"{dl_speed / 1024 / 1024:.02f} MiB/s - {(perc*100):.02f}% - ETA: {hours:02d}:{minutes:02d}:{seconds:02d}")
+        bar.set_tooltip_text("") # show all infos that are also in update_cli()
         print(bar.get_text())
 
     def update_cli(self_log_dlm, self, perc, processed_chunks, num_chunk_tasks, rt_hours, rt_minutes, rt_seconds, hours, minutes, seconds, total_dl, total_write, total_used, dl_speed, dl_unc_speed, w_speed, r_speed):
