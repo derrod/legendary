@@ -765,16 +765,17 @@ def install_gtk(app_name, app_title, parent):
         dlm.proc_debug = args.dlm_debug
 
         #print("parent:",parent)
-        dlm.perc = 0
-        dlm.dl_speed = 0
-        dlm.hours = 0
-        dlm.minutes = 0
-        dlm.seconds = 0
+    #    dlm.perc = 0
+    #    dlm.dl_speed = 0
+    #    dlm.hours = 0
+    #    dlm.minutes = 0
+    #    dlm.seconds = 0
     #bar.set_text(f"{dlm.dl_speed / 1024 / 1024:.02f} MiB/s - {(dlm.perc*100):.02f}% - ETA: {dlm.hours:02d}:{dlm.minutes:02d}:{dlm.seconds:02d}")
-        parent.timeout_id = GLib.timeout_add(1000, update_gui, dlm, parent.progress_bar)
-        print("timeout_add -",parent.timeout_id)
         dlm.start()
-        #dlm.join()
+        #time.sleep(4)
+        #parent.timeout_id = GLib.timeout_add(1000, update_gui, dlm, parent.progress_bar)
+        #print("timeout_add -",parent.timeout_id)
+        dlm.join()
     except Exception as e:
         end_t = time.time()
         #log_gtk(f'Installation failed after {end_t - start_t:.02f} seconds.'

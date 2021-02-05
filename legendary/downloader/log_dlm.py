@@ -10,7 +10,7 @@ class log_dlm:
         else:
             print("bar",main_window.get_title(),main_window)
             #self.update_gui_setup(dlm=dlm, bar=main_window.progress_bar)
-            self.update_gui_setup(dlm, main_window.progress_bar)
+            #self.update_gui_setup(dlm, main_window.progress_bar)
             print(main_window.progress_bar)
             return main_window.progress_bar
 
@@ -38,7 +38,7 @@ class log_dlm:
                         #r_speed)
         else:
             print("update_gui")
-            self.update_gui(dlm, dlm.obj_out)
+            #self.update_gui(dlm, dlm.obj_out)
             #self.update_gui(
             #           dlm,
             #           perc,

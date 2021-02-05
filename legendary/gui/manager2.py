@@ -19,6 +19,9 @@ from legendary.models.downloading import *
 from legendary.models.manifest import ManifestComparison, Manifest
 from legendary.downloader.log_dlm import log_dlm
 
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk, GLib
 log_dlm = log_dlm()
 
 class DLManager(Process):
@@ -669,6 +672,8 @@ class DLManager(Process):
 
         self.obj_out = log_dlm.create(self, main_window)
         print("created obj_out:", self.obj_out)
+        self.timeout_id = GLib.timeout_add(100, log_dlm.update_gui, self, self.obj_out)
+        print("timeout_add -",self.timeout_id)
 
         last_update = time.time()
         print("before loop")
@@ -717,7 +722,7 @@ class DLManager(Process):
 
             #debug print("loop")
             print("almost updated obj_out")
-            self.obj_out = "cli"
+            #self.obj_out = "cli"
             #if self.obj_out == "cli":
             log_dlm.update(self)
                             #self.perc,
