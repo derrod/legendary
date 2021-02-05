@@ -697,7 +697,7 @@ class DLManager(Process):
             self.bytes_decompressed_since_last = self.num_tasks_processed_since_last = 0
             last_update = time.time()
 
-            perc = (self.processed_chunks / self.num_chunk_tasks)
+            self.perc = (self.processed_chunks / self.num_chunk_tasks)
             runtime = time.time() - s_time
             self.total_avail = len(self.sms)
             self.total_used = (num_shared_memory_segments - self.total_avail) * (self.analysis.biggest_chunk / 1024 / 1024)
@@ -716,7 +716,7 @@ class DLManager(Process):
 
             #debug print("loop")
             log_dlm.update( self,
-                            perc,
+                            self.perc,
                             self.processed_chunks,
                             self.num_chunk_tasks,
                             self.rt_hours,
@@ -740,7 +740,7 @@ class DLManager(Process):
             if self.status_queue:
                 try:
                     self.status_queue.put(UIUpdate(
-                        progress=perc, download_speed=self.dl_unc_speed, write_speed=self.w_speed, read_speed=self.r_speed,
+                        progress=self.perc, download_speed=self.dl_unc_speed, write_speed=self.w_speed, read_speed=self.r_speed,
                         memory_usage=self.total_used * 1024 * 1024
                     ), timeout=1.0)
                 except Exception as e:
