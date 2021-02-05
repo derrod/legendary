@@ -717,6 +717,7 @@ class DLManager(Process):
 
             #debug print("loop")
             print("almost updated obj_out")
+            self.obj_out = "cli"
             #if self.obj_out == "cli":
             log_dlm.update(self)
                             #self.perc,

@@ -12,12 +12,28 @@ from multiprocessing import freeze_support, Queue as MPQueue
 
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk
+from gi.repository import Gtk, GLib
 
 import legendary.core
 import legendary.cli
 core = legendary.core.LegendaryCore()
 cli = legendary.cli.LegendaryCLI()
+
+def update_gui(dlm, bar):
+               # perc,
+               # processed_chunks, num_chunk_tasks,
+               # rt_hours, rt_minutes, rt_seconds,
+               # hours, minutes, seconds,
+               # total_dl, total_write, total_used,
+               # dl_speed, dl_unc_speed, w_speed, r_speed,
+    print(f"update_gui_{bar}")
+    print(f"{dlm}")
+    print(f"dhexid:{hex(id(dlm.perc))}")
+    bar.set_fraction(dlm.perc)
+    bar.set_text(f"{dlm.dl_speed / 1024 / 1024:.02f} MiB/s - {(dlm.perc*100):.02f}% - ETA: {dlm.hours:02d}:{dlm.minutes:02d}:{dlm.seconds:02d}")
+    bar.set_tooltip_text("tooltip") # show all infos that are also in update_cli()
+    print(bar.get_text())
+    return True # since this is a timeout function
 
 class args_obj:
     base_path = ''
@@ -582,7 +598,7 @@ def install_gtk(app_name, app_title, parent):
     # TODO:
     if install_dialog_response != Gtk.ResponseType.OK:
         return 1
-    install_dialog.destroy()
+    install_dialog.hide()
 
     if core.is_installed(app_name):
         igame = core.get_installed_game(app_name)
@@ -738,6 +754,10 @@ def install_gtk(app_name, app_title, parent):
                 'CTRL-C and resume it using the same command later on.')
 
     start_t = time.time()
+#    GLib.idle_add(dlm_start, args, dlm, start_t)
+#
+#def dlm_start(args, dlm, start_t):
+
 
     try:
         # set up logging stuff (should be moved somewhere else later)
@@ -745,8 +765,16 @@ def install_gtk(app_name, app_title, parent):
         dlm.proc_debug = args.dlm_debug
 
         #print("parent:",parent)
+        dlm.perc = 0
+        dlm.dl_speed = 0
+        dlm.hours = 0
+        dlm.minutes = 0
+        dlm.seconds = 0
+    #bar.set_text(f"{dlm.dl_speed / 1024 / 1024:.02f} MiB/s - {(dlm.perc*100):.02f}% - ETA: {dlm.hours:02d}:{dlm.minutes:02d}:{dlm.seconds:02d}")
+        parent.timeout_id = GLib.timeout_add(1000, update_gui, dlm, parent.progress_bar)
+        print("timeout_add -",parent.timeout_id)
         dlm.start()
-        dlm.join()
+        #dlm.join()
     except Exception as e:
         end_t = time.time()
         #log_gtk(f'Installation failed after {end_t - start_t:.02f} seconds.'
