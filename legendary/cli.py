@@ -23,8 +23,6 @@ from legendary.models.exceptions import InvalidCredentialsError
 from legendary.models.game import SaveGameStatus, VerifyResult
 from legendary.utils.cli import get_boolean_choice, sdl_prompt
 from legendary.utils.custom_parser import AliasedSubParsersAction
-from legendary.utils.lfs import validate_files
-from legendary.utils.selective_dl import get_sdl_appname
 
 # todo custom formatter for cli logger (clean info, highlighted error/warning)
 logging.basicConfig(
@@ -513,124 +511,49 @@ class LegendaryCLI:
             subprocess.Popen(params, cwd=cwd, env=env)
 
     def install_game(self, args):
-        if self.core.is_installed(args.app_name):
-            igame = self.core.get_installed_game(args.app_name)
-            if igame.needs_verification and not args.repair_mode:
-                logger.info('Game needs to be verified before updating, switching to repair mode...')
-                args.repair_mode = True
-
-        repair_file = None
         if args.subparser_name == 'download':
             logger.info('Setting --no-install flag since "download" command was used')
             args.no_install = True
-        elif args.subparser_name == 'repair' or args.repair_mode:
+        elif args.subparser_name == 'repair':
             args.repair_mode = True
-            args.no_install = args.repair_and_update is False
-            repair_file = os.path.join(self.core.lgd.get_tmp_path(), f'{args.app_name}.repair')
-
-        if not self.core.login():
-            logger.error('Login failed! Cannot continue with download process.')
-            exit(1)
-
-        if args.file_prefix or args.file_exclude_prefix or args.install_tag:
-            args.no_install = True
 
         if args.update_only:
             if not self.core.is_installed(args.app_name):
                 logger.error(f'Update requested for "{args.app_name}", but app not installed!')
                 exit(1)
 
-        if args.platform_override:
-            args.no_install = True
-
-        game = self.core.get_game(args.app_name, update_meta=True)
-
-        if not game:
-            logger.error(f'Could not find "{args.app_name}" in list of available games,'
-                         f'did you type the name correctly?')
-            exit(1)
-
-        if game.is_dlc:
-            logger.info('Install candidate is DLC')
-            app_name = game.metadata['mainGameItem']['releaseInfo'][0]['appId']
-            base_game = self.core.get_game(app_name)
-            # check if base_game is actually installed
-            if not self.core.is_installed(app_name):
-                # download mode doesn't care about whether or not something's installed
-                if not args.no_install:
-                    logger.fatal(f'Base game "{app_name}" is not installed!')
-                    exit(1)
-        else:
-            base_game = None
-
-        if args.repair_mode:
-            if not self.core.is_installed(game.app_name):
-                logger.error(f'Game "{game.app_title}" ({game.app_name}) is not installed!')
-                exit(0)
-
-            if not os.path.exists(repair_file):
-                logger.info('Game has not been verified yet.')
-                if not args.yes:
-                    if not get_boolean_choice(f'Verify "{game.app_name}" now ("no" will abort repair)?'):
-                        print('Aborting...')
-                        exit(0)
-
-                self.verify_game(args, print_command=False)
-            else:
-                logger.info(f'Using existing repair file: {repair_file}')
-
-        # Workaround for Cyberpunk 2077 preload
-        if not args.install_tag and not game.is_dlc and ((sdl_name := get_sdl_appname(game.app_name)) is not None):
-            config_tags = self.core.lgd.config.get(game.app_name, 'install_tags', fallback=None)
-            if not self.core.is_installed(game.app_name) or config_tags is None or args.reset_sdl:
-                args.install_tag = sdl_prompt(sdl_name, game.app_title)
-                if game.app_name not in self.core.lgd.config:
-                    self.core.lgd.config[game.app_name] = dict()
-                self.core.lgd.config.set(game.app_name, 'install_tags', ','.join(args.install_tag))
-            else:
-                args.install_tag = config_tags.split(',')
-
         logger.info('Preparing download...')
         # todo use status queue to print progress from CLI
         # This has become a little ridiculous hasn't it?
-        dlm, analysis, igame = self.core.prepare_download(game=game, base_game=base_game, base_path=args.base_path,
-                                                          force=args.force, max_shm=args.shared_memory,
-                                                          max_workers=args.max_workers, game_folder=args.game_folder,
-                                                          disable_patching=args.disable_patching,
-                                                          override_manifest=args.override_manifest,
-                                                          override_old_manifest=args.override_old_manifest,
-                                                          override_base_url=args.override_base_url,
-                                                          platform_override=args.platform_override,
-                                                          file_prefix_filter=args.file_prefix,
-                                                          file_exclude_filter=args.file_exclude_prefix,
-                                                          file_install_tag=args.install_tag,
-                                                          dl_optimizations=args.order_opt,
-                                                          dl_timeout=args.dl_timeout,
-                                                          repair=args.repair_mode,
-                                                          repair_use_latest=args.repair_and_update,
-                                                          disable_delta=args.disable_delta,
-                                                          override_delta_manifest=args.override_delta_manifest)
-
-        # game is either up to date or hasn't changed, so we have nothing to do
-        if not analysis.dl_size:
-            old_igame = self.core.get_installed_game(game.app_name)
-            logger.info('Download size is 0, the game is either already up to date or has not changed. Exiting...')
-            if old_igame and args.repair_mode and os.path.exists(repair_file):
-                if old_igame.needs_verification:
-                    old_igame.needs_verification = False
-                    self.core.install_game(old_igame)
-
-                logger.debug('Removing repair file.')
-                os.remove(repair_file)
-
-            # check if install tags have changed, if they did; try deleting files that are no longer required.
-            if old_igame and old_igame.install_tags != igame.install_tags:
-                old_igame.install_tags = igame.install_tags
-                self.logger.info('Deleting now untagged files.')
-                self.core.uninstall_tag(old_igame)
-                self.core.install_game(old_igame)
-
-            exit(0)
+        try:
+            dlm, analysis, game, igame, repair, repair_file = self.core.prepare_download(
+                app_name=args.app_name,
+                base_path=args.base_path,
+                force=args.force,
+                no_install=args.no_install,
+                max_shm=args.shared_memory,
+                max_workers=args.max_workers,
+                game_folder=args.game_folder,
+                disable_patching=args.disable_patching,
+                override_manifest=args.override_manifest,
+                override_old_manifest=args.override_old_manifest,
+                override_base_url=args.override_base_url,
+                platform_override=args.platform_override,
+                file_prefix_filter=args.file_prefix,
+                file_exclude_filter=args.file_exclude_prefix,
+                file_install_tag=args.install_tag,
+                dl_optimizations=args.order_opt,
+                dl_timeout=args.dl_timeout,
+                repair=args.repair_mode,
+                repair_use_latest=args.repair_and_update,
+                ignore_space_req=args.ignore_space,
+                disable_delta=args.disable_delta,
+                override_delta_manifest=args.override_delta_manifest,
+                reset_sdl=args.reset_sdl,
+                sdl_prompt=sdl_prompt)
+        except Exception as e:
+            logger.fatal(e)
+            exit(1)
 
         logger.info(f'Install size: {analysis.install_size / 1024 / 1024:.02f} MiB')
         compression = (1 - (analysis.dl_size / analysis.uncompressed_dl_size)) * 100
@@ -639,30 +562,13 @@ class LegendaryCLI:
         logger.info(f'Reusable size: {analysis.reuse_size / 1024 / 1024:.02f} MiB (chunks) / '
                     f'{analysis.unchanged / 1024 / 1024:.02f} MiB (unchanged / skipped)')
 
-        res = self.core.check_installation_conditions(analysis=analysis, install=igame, game=game,
-                                                      updating=self.core.is_installed(args.app_name),
-                                                      ignore_space_req=args.ignore_space)
-
-        if res.warnings or res.failures:
-            logger.info('Installation requirements check returned the following results:')
-
-        if res.warnings:
-            for warn in sorted(res.warnings):
-                logger.warning(warn)
-
-        if res.failures:
-            for msg in sorted(res.failures):
-                logger.fatal(msg)
-            logger.error('Installation cannot proceed, exiting.')
-            exit(1)
-
-        logger.info('Downloads are resumable, you can interrupt the download with '
-                    'CTRL-C and resume it using the same command later on.')
-
         if not args.yes:
             if not get_boolean_choice(f'Do you wish to install "{igame.title}"?'):
                 print('Aborting...')
                 exit(0)
+
+        logger.info('Downloads are resumable, you can interrupt the download with '
+            'CTRL-C and resume it using the same command later on.')
 
         start_t = time.time()
 
@@ -717,21 +623,7 @@ class LegendaryCLI:
                     logger.info('This game supports cloud saves, syncing is handled by the "sync-saves" command.')
                     logger.info(f'To download saves for this game run "legendary sync-saves {args.app_name}"')
 
-            old_igame = self.core.get_installed_game(game.app_name)
-            if old_igame and args.repair_mode and os.path.exists(repair_file):
-                if old_igame.needs_verification:
-                    old_igame.needs_verification = False
-                    self.core.install_game(old_igame)
-
-                logger.debug('Removing repair file.')
-                os.remove(repair_file)
-
-            # check if install tags have changed, if they did; try deleting files that are no longer required.
-            if old_igame and old_igame.install_tags != igame.install_tags:
-                old_igame.install_tags = igame.install_tags
-                self.logger.info('Deleting now untagged files.')
-                self.core.uninstall_tag(old_igame)
-                self.core.install_game(old_igame)
+            self.core.clean_post_install(game=game, igame=igame, repair=repair, repair_file=repair_file)
 
             logger.info(f'Finished installation process in {end_t - start_t:.02f} seconds.')
 
@@ -786,60 +678,15 @@ class LegendaryCLI:
         except Exception as e:
             logger.warning(f'Removing game failed: {e!r}, please remove {igame.install_path} manually.')
 
+    def output_progress(self, num, total):
+        stdout.write(f'Verification progress: {num}/{total} ({num * 100 / total:.01f}%)\t\r')
+        stdout.flush()
+
     def verify_game(self, args, print_command=True):
-        if not self.core.is_installed(args.app_name):
-            logger.error(f'Game "{args.app_name}" is not installed')
-            return
-
-        logger.info(f'Loading installed manifest for "{args.app_name}"')
-        igame = self.core.get_installed_game(args.app_name)
-        manifest_data, _ = self.core.get_installed_manifest(args.app_name)
-        manifest = self.core.load_manifest(manifest_data)
-
-        files = sorted(manifest.file_manifest_list.elements,
-                       key=lambda a: a.filename.lower())
-
-        # build list of hashes
-        file_list = [(f.filename, f.sha_hash.hex()) for f in files]
-        total = len(file_list)
-        num = 0
-        failed = []
-        missing = []
-
-        logger.info(f'Verifying "{igame.title}" version "{manifest.meta.build_version}"')
-        repair_file = []
-        for result, path, result_hash in validate_files(igame.install_path, file_list):
-            stdout.write(f'Verification progress: {num}/{total} ({num * 100 / total:.01f}%)\t\r')
-            stdout.flush()
-            num += 1
-
-            if result == VerifyResult.HASH_MATCH:
-                repair_file.append(f'{result_hash}:{path}')
-                continue
-            elif result == VerifyResult.HASH_MISMATCH:
-                logger.error(f'File does not match hash: "{path}"')
-                repair_file.append(f'{result_hash}:{path}')
-                failed.append(path)
-            elif result == VerifyResult.FILE_MISSING:
-                logger.error(f'File is missing: "{path}"')
-                missing.append(path)
-            else:
-                logger.error(f'Other failure (see log), treating file as missing: "{path}"')
-                missing.append(path)
-
-        stdout.write(f'Verification progress: {num}/{total} ({num * 100 / total:.01f}%)\t\n')
-
-        # always write repair file, even if all match
-        if repair_file:
-            repair_filename = os.path.join(self.core.lgd.get_tmp_path(), f'{args.app_name}.repair')
-            with open(repair_filename, 'w') as f:
-                f.write('\n'.join(repair_file))
-            logger.debug(f'Written repair file to "{repair_filename}"')
-
-        if not missing and not failed:
-            logger.info('Verification finished successfully.')
-        else:
-            logger.error(f'Verification failed, {len(failed)} file(s) corrupted, {len(missing)} file(s) are missing.')
+        try:
+            self.core.verify_game(app_name=args.app_name, callback=self.output_progress)
+        except Exception as e:
+            logger.error(e)
             if print_command:
                 logger.info(f'Run "legendary repair {args.app_name}" to repair your game installation.')
 
