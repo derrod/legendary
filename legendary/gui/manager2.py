@@ -648,10 +648,10 @@ class DLManager(Process):
 
         # active downloader tasks
         self.active_tasks = 0
-        processed_chunks = 0
-        processed_tasks = 0
-        total_dl = 0
-        total_write = 0
+        self.processed_chunks = 0
+        self.processed_tasks = 0
+        self.total_dl = 0
+        self.total_write = 0
 
         # synchronization conditions
         shm_cond = Condition()
@@ -667,7 +667,7 @@ class DLManager(Process):
         for t in self.threads:
             t.start()
 
-        obj_out = log_dlm.create(main_window)
+        self.obj_out = log_dlm.create(self, main_window)
         print("created obj_out")
 
         last_update = time.time()
@@ -679,16 +679,16 @@ class DLManager(Process):
                 continue
 
             # update all the things
-            processed_chunks += self.num_processed_since_last
+            self.processed_chunks += self.num_processed_since_last
             processed_tasks += self.num_tasks_processed_since_last
 
-            total_dl += self.bytes_downloaded_since_last
-            total_write += self.bytes_written_since_last
+            self.total_dl += self.bytes_downloaded_since_last
+            self.total_write += self.bytes_written_since_last
 
-            dl_speed = self.bytes_downloaded_since_last / delta
-            dl_unc_speed = self.bytes_decompressed_since_last / delta
-            w_speed = self.bytes_written_since_last / delta
-            r_speed = self.bytes_read_since_last / delta
+            self.dl_speed = self.bytes_downloaded_since_last / delta
+            self.dl_unc_speed = self.bytes_decompressed_since_last / delta
+            self.w_speed = self.bytes_written_since_last / delta
+            self.r_speed = self.bytes_read_since_last / delta
             # c_speed = self.num_processed_since_last / delta
 
             # set temporary counters to 0
@@ -697,42 +697,42 @@ class DLManager(Process):
             self.bytes_decompressed_since_last = self.num_tasks_processed_since_last = 0
             last_update = time.time()
 
-            perc = (processed_chunks / num_chunk_tasks)
+            perc = (self.processed_chunks / self.num_chunk_tasks)
             runtime = time.time() - s_time
-            total_avail = len(self.sms)
-            total_used = (num_shared_memory_segments - total_avail) * (self.analysis.biggest_chunk / 1024 / 1024)
+            self.total_avail = len(self.sms)
+            self.total_used = (num_shared_memory_segments - self.total_avail) * (self.analysis.biggest_chunk / 1024 / 1024)
 
-            if runtime and processed_chunks:
-                rt_hours, runtime = int(runtime // 3600), runtime % 3600
-                rt_minutes, rt_seconds = int(runtime // 60), int(runtime % 60)
+            if runtime and self.processed_chunks:
+                self.rt_hours, runtime = int(runtime // 3600), runtime % 3600
+                self.rt_minutes, self.rt_seconds = int(runtime // 60), int(runtime % 60)
 
-                average_speed = processed_chunks / runtime
-                estimate = (num_chunk_tasks - processed_chunks) / average_speed
-                hours, estimate = int(estimate // 3600), estimate % 3600
-                minutes, seconds = int(estimate // 60), int(estimate % 60)
+                average_speed = self.processed_chunks / runtime
+                estimate = (self.num_chunk_tasks - self.processed_chunks) / average_speed
+                self.hours, estimate = int(estimate // 3600), estimate % 3600
+                self.minutes, self.seconds = int(estimate // 60), int(estimate % 60)
             else:
-                hours = minutes = seconds = 0
-                rt_hours = rt_minutes = rt_seconds = 0
+                self.hours = self.minutes = self.seconds = 0
+                self.rt_hours = self.rt_minutes = self.rt_seconds = 0
 
             #debug print("loop")
             log_dlm.update( self,
-                            perc,
-                            processed_chunks,
-                            num_chunk_tasks,
-                            rt_hours,
-                            rt_minutes,
-                            rt_seconds,
-                            hours,
-                            minutes,
-                            seconds,
-                            total_dl,
-                            total_write,
-                            total_used,
-                            dl_speed,
-                            dl_unc_speed,
-                            w_speed,
-                            r_speed,
-                            obj_out
+                            self.perc,
+                            self.self.processed_chunks,
+                            self.self.num_chunk_tasks,
+                            self.self.rt_hours,
+                            self.self.rt_minutes,
+                            self.self.rt_seconds,
+                            self.self.hours,
+                            self.self.minutes,
+                            self.self.seconds,
+                            self.self.total_dl,
+                            self.self.total_write,
+                            self.self.total_used,
+                            self.self.dl_speed,
+                            self.self.dl_unc_speed,
+                            self.self.w_speed,
+                            self.self.r_speed,
+                            self.obj_out
             )
             print("updated obj_out")
 
@@ -740,8 +740,8 @@ class DLManager(Process):
             if self.status_queue:
                 try:
                     self.status_queue.put(UIUpdate(
-                        progress=perc, download_speed=dl_unc_speed, write_speed=w_speed, read_speed=r_speed,
-                        memory_usage=total_used * 1024 * 1024
+                        progress=perc, download_speed=self.dl_unc_speed, write_speed=self.w_speed, read_speed=self.r_speed,
+                        memory_usage=self.total_used * 1024 * 1024
                     ), timeout=1.0)
                 except Exception as e:
                     self.log.warning(f'Failed to send status update to queue: {e!r}')
