@@ -640,16 +640,16 @@ class DLManager(Process):
         self.children.append(writer_p)
         writer_p.start()
 
-        num_chunk_tasks = sum(isinstance(t, ChunkTask) for t in self.tasks)
+        self.num_chunk_tasks = sum(isinstance(t, ChunkTask) for t in self.tasks)
         num_dl_tasks = len(self.chunks_to_dl)
         num_tasks = len(self.tasks)
         num_shared_memory_segments = len(self.sms)
-        self.log.debug(f'Chunks to download: {num_dl_tasks}, File tasks: {num_tasks}, Chunk tasks: {num_chunk_tasks}')
+        self.log.debug(f'Chunks to download: {num_dl_tasks}, File tasks: {num_tasks}, Chunk tasks: {self.num_chunk_tasks}')
 
         # active downloader tasks
         self.active_tasks = 0
         self.processed_chunks = 0
-        self.processed_tasks = 0
+        processed_tasks = 0
         self.total_dl = 0
         self.total_write = 0
 
@@ -668,9 +668,10 @@ class DLManager(Process):
             t.start()
 
         self.obj_out = log_dlm.create(self, main_window)
-        print("created obj_out")
+        print("created obj_out:", self.obj_out)
 
         last_update = time.time()
+        print("before loop")
 
         while processed_tasks < num_tasks:
             delta = time.time() - last_update
@@ -715,25 +716,26 @@ class DLManager(Process):
                 self.rt_hours = self.rt_minutes = self.rt_seconds = 0
 
             #debug print("loop")
-            log_dlm.update( self,
-                            self.perc,
-                            self.processed_chunks,
-                            self.num_chunk_tasks,
-                            self.rt_hours,
-                            self.rt_minutes,
-                            self.rt_seconds,
-                            self.hours,
-                            self.minutes,
-                            self.seconds,
-                            self.total_dl,
-                            self.total_write,
-                            self.total_used,
-                            self.dl_speed,
-                            self.dl_unc_speed,
-                            self.w_speed,
-                            self.r_speed,
-                            self.obj_out
-            )
+            print("almost updated obj_out")
+            #if self.obj_out == "cli":
+            log_dlm.update(self)
+                            #self.perc,
+                            #self.processed_chunks,
+                            #self.num_chunk_tasks,
+                            #self.rt_hours,
+                            #self.rt_minutes,
+                            #self.rt_seconds,
+                            #self.hours,
+                            #self.minutes,
+                            #self.seconds,
+                            #self.total_dl,
+                            #self.total_write,
+                            #self.total_used,
+                            #self.dl_speed,
+                            #self.dl_unc_speed,
+                            #self.w_speed,
+                            #self.r_speed,
+                            #self.obj_out
             print("updated obj_out")
 
             # send status update to back to instantiator (if queue exists)

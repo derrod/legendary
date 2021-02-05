@@ -551,7 +551,6 @@ def install_gtk(app_name, app_title, parent):
     args.disable_delta = disable_delta_manifest_check_button.get_active()
     args.reset_sdl = reset_sdl_check_button.get_active()
 
-    install_dialog.destroy()
     print(  f"base_path:\t\t {args.base_path}",
             f"game_folder:\t\t {args.game_folder}",
             f"max_shm:\t\t {args.shared_memory}",
@@ -583,6 +582,7 @@ def install_gtk(app_name, app_title, parent):
     # TODO:
     if install_dialog_response != Gtk.ResponseType.OK:
         return 1
+    install_dialog.destroy()
 
     if core.is_installed(app_name):
         igame = core.get_installed_game(app_name)
@@ -847,6 +847,7 @@ class main_window(Gtk.Window):
 
         # Proress Bar for downloads
         self.progress_bar = Gtk.ProgressBar()
+        self.progress_bar.set_show_text(True)
         self.login_vbox.pack_end(self.progress_bar, False, False, 10)
 
         self.box.pack_start(self.login_vbox, False, False, 20)
