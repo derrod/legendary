@@ -3,9 +3,11 @@
 
 import argparse
 import csv
+import datetime
 import json
 import logging
 import os
+import queue
 import shlex
 import subprocess
 import time
@@ -501,13 +503,13 @@ class LegendaryCLI:
             logger.info(f'Launch parameters: {shlex.join(params)}')
             logger.info(f'Working directory: {cwd}')
             if env:
-                logger.info('Environment overrides:', env)
+                logger.info(f'Environment overrides: {env}')
         else:
             logger.info(f'Launching {app_name}...')
             logger.debug(f'Launch parameters: {shlex.join(params)}')
             logger.debug(f'Working directory: {cwd}')
             if env:
-                logger.debug('Environment overrides:', env)
+                logger.debug(f'Environment overrides: {env}')
             subprocess.Popen(params, cwd=cwd, env=env)
 
     def install_game(self, args):
@@ -522,15 +524,15 @@ class LegendaryCLI:
                 logger.error(f'Update requested for "{args.app_name}", but app not installed!')
                 exit(1)
 
+        status_queue = MPQueue()
         logger.info('Preparing download...')
-        # todo use status queue to print progress from CLI
-        # This has become a little ridiculous hasn't it?
         try:
             dlm, analysis, game, igame, repair, repair_file = self.core.prepare_download(
                 app_name=args.app_name,
                 base_path=args.base_path,
                 force=args.force,
                 no_install=args.no_install,
+                status_q=status_queue,
                 max_shm=args.shared_memory,
                 max_workers=args.max_workers,
                 game_folder=args.game_folder,
@@ -578,6 +580,22 @@ class LegendaryCLI:
             dlm.proc_debug = args.dlm_debug
 
             dlm.start()
+            time.sleep(1)
+            while dlm.is_alive():
+                try:
+                    status = status_queue.get(timeout=0.1)
+                    logger.info(f'= Progress: {status.progress:.02f}% ({status.processed_chunks}/{status.chunk_tasks}), '
+                        f'Running for {str(datetime.timedelta(seconds=status.runtime))}, '
+                        f'ETA: {str(datetime.timedelta(seconds=status.estimated_time_left))}')
+                    logger.info(f' - Downloaded: {status.total_downloaded / 1024 / 1024:.02f} MiB, '
+                                f'Written: {status.total_written / 1024 / 1024:.02f} MiB')
+                    logger.info(f' - Cache usage: {status.cache_usage} MiB, active tasks: {status.active_tasks}')
+                    logger.info(f' + Download\t- {status.download_speed / 1024 / 1024:.02f} MiB/s (raw) '
+                                f'/ {status.download_decompressed_speed / 1024 / 1024:.02f} MiB/s (decompressed)')
+                    logger.info(f' + Disk\t- {status.write_speed / 1024 / 1024:.02f} MiB/s (write) / '
+                                f'{status.read_speed / 1024 / 1024:.02f} MiB/s (read)')
+                except queue.Empty:
+                    pass
             dlm.join()
         except Exception as e:
             end_t = time.time()
