@@ -595,10 +595,10 @@ def install_gtk(app_name, app_title, parent):
     )
     #return 1
 
-    install_dialog.hide()
     # TODO:
     if install_dialog_response != Gtk.ResponseType.OK:
         return 1
+    install_dialog.hide()
 
     if core.is_installed(app_name):
         igame = core.get_installed_game(app_name)
@@ -680,8 +680,7 @@ def install_gtk(app_name, app_title, parent):
     print('Preparing download...')
     # todo use status queue to print progress from CLI
     # This has become a little ridiculous hasn't it?
-    array_dlm = [0]
-    array_dlm[0], analysis, igame = core.prepare_download(game=game, base_game=base_game, base_path=args.base_path,
+    dlm, analysis, igame = core.prepare_download(game=game, base_game=base_game, base_path=args.base_path,
                                                       force=args.force, max_shm=args.shared_memory,
                                                       max_workers=args.max_workers, game_folder=args.game_folder,
                                                       disable_patching=args.disable_patching,
@@ -762,10 +761,8 @@ def install_gtk(app_name, app_title, parent):
 
     try:
         # set up logging stuff (should be moved somewhere else later)
-        #dlm.logging_queue = cli.logging_queue
-        #dlm.proc_debug = args.dlm_debug
-        array_dlm[0].logging_queue = cli.logging_queue
-        array_dlm[0].proc_debug = args.dlm_debug
+        dlm.logging_queue = cli.logging_queue
+        dlm.proc_debug = args.dlm_debug
 
         #print("parent:",parent)
     #    dlm.perc = 0
@@ -774,11 +771,11 @@ def install_gtk(app_name, app_title, parent):
     #    dlm.minutes = 0
     #    dlm.seconds = 0
     #bar.set_text(f"{dlm.dl_speed / 1024 / 1024:.02f} MiB/s - {(dlm.perc*100):.02f}% - ETA: {dlm.hours:02d}:{dlm.minutes:02d}:{dlm.seconds:02d}")
-        array_dlm[0].start()
+        dlm.start()
         #time.sleep(4)
-        parent.timeout_id = GLib.timeout_add(1000, update_gui, array_dlm[0], parent.progress_bar)
-        print("timeout_add -",parent.timeout_id)
-        array_dlm[0].join()
+        #parent.timeout_id = GLib.timeout_add(1000, update_gui, dlm, parent.progress_bar)
+        #print("timeout_add -",parent.timeout_id)
+        dlm.join()
     except Exception as e:
         end_t = time.time()
         #log_gtk(f'Installation failed after {end_t - start_t:.02f} seconds.'
