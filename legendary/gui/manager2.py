@@ -672,8 +672,8 @@ class DLManager(Process):
 
         self.obj_out = log_dlm.create(self, main_window)
         print("created obj_out:", self.obj_out)
-        self.timeout_id = GLib.timeout_add(100, log_dlm.update_gui, self, self.obj_out)
-        print("timeout_add -",self.timeout_id)
+        #self.timeout_id = GLib.timeout_add(100, log_dlm.update_gui, self, self.obj_out)
+        #print("timeout_add -",self.timeout_id)
 
         last_update = time.time()
         print("before loop")
