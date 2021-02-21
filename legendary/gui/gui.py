@@ -19,7 +19,7 @@ import legendary.cli
 core = legendary.core.LegendaryCore()
 cli = legendary.cli.LegendaryCLI()
 
-def update_gui(dlm, bar):
+def update_gui(dlm, bar, perc):
                # perc,
                # processed_chunks, num_chunk_tasks,
                # rt_hours, rt_minutes, rt_seconds,
@@ -27,10 +27,11 @@ def update_gui(dlm, bar):
                # total_dl, total_write, total_used,
                # dl_speed, dl_unc_speed, w_speed, r_speed,
     print(f"update_gui_{bar}")
-    print(f"{dlm}")
-    print(f"dhexid:{hex(id(dlm.perc))}")
-    bar.set_fraction(dlm.perc)
-    bar.set_text(f"{dlm.dl_speed / 1024 / 1024:.02f} MiB/s - {(dlm.perc*100):.02f}% - ETA: {dlm.hours:02d}:{dlm.minutes:02d}:{dlm.seconds:02d}")
+    #print(f"{dlm}")
+    #print(f"dhexid:{hex(id(dlm.perc))}")
+    #bar.set_fraction(dlm.perc)
+    bar.set_fraction(perc)
+    #bar.set_text(f"{dlm.dl_speed / 1024 / 1024:.02f} MiB/s - {(dlm.perc*100):.02f}% - ETA: {dlm.hours:02d}:{dlm.minutes:02d}:{dlm.seconds:02d}")
     bar.set_tooltip_text("tooltip") # show all infos that are also in update_cli()
     print(bar.get_text())
     return True # since this is a timeout function
@@ -773,8 +774,9 @@ def install_gtk(app_name, app_title, parent):
     #bar.set_text(f"{dlm.dl_speed / 1024 / 1024:.02f} MiB/s - {(dlm.perc*100):.02f}% - ETA: {dlm.hours:02d}:{dlm.minutes:02d}:{dlm.seconds:02d}")
         dlm.start()
         #time.sleep(4)
-        #parent.timeout_id = GLib.timeout_add(1000, update_gui, dlm, parent.progress_bar)
-        #print("timeout_add -",parent.timeout_id)
+        perch = 0
+        parent.timeout_id = GLib.timeout_add(1000, update_gui, dlm, parent.progress_bar, perch)
+        print("timeout_add -",parent.timeout_id)
         dlm.join()
     except Exception as e:
         end_t = time.time()
