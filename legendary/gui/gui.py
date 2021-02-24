@@ -19,7 +19,7 @@ import legendary.cli
 core = legendary.core.LegendaryCore()
 cli = legendary.cli.LegendaryCLI()
 
-def update_gui(parent, bar):
+def update_gui(dlm, bar):
                # perc,
                # processed_chunks, num_chunk_tasks,
                # rt_hours, rt_minutes, rt_seconds,
@@ -29,9 +29,9 @@ def update_gui(parent, bar):
     print(f"update_gui_{bar}")
     #print(f"{dlm}")
     #print(f"dhexid:{hex(id(dlm.perc))}")
-    bar.set_fraction(parent.dlm.perc)
+    bar.set_fraction(dlm.perc)
     #bar.set_fraction(perc)
-    bar.set_text(f"{parent.dlm.dl_speed / 1024 / 1024:.02f} MiB/s - {(parent.dlm.perc*100):.02f}% - ETA: {parent.dlm.hours:02d}:{parent.dlm.minutes:02d}:{parent.dlm.seconds:02d}")
+    bar.set_text(f"{dlm.dl_speed / 1024 / 1024:.02f} MiB/s - {(dlm.perc*100):.02f}% - ETA: {dlm.hours:02d}:{dlm.minutes:02d}:{dlm.seconds:02d}")
     bar.set_tooltip_text("tooltip") # show all infos that are also in update_cli()
     print(bar.get_text())
     return True # since this is a timeout function
@@ -681,7 +681,7 @@ def install_gtk(app_name, app_title, parent):
     print('Preparing download...')
     # todo use status queue to print progress from CLI
     # This has become a little ridiculous hasn't it?
-    parent.dlm, analysis, igame = core.prepare_download(game=game, base_game=base_game, base_path=args.base_path,
+    dlm, analysis, igame = core.prepare_download(game=game, base_game=base_game, base_path=args.base_path,
                                                       force=args.force, max_shm=args.shared_memory,
                                                       max_workers=args.max_workers, game_folder=args.game_folder,
                                                       disable_patching=args.disable_patching,
@@ -762,8 +762,8 @@ def install_gtk(app_name, app_title, parent):
 
     try:
         # set up logging stuff (should be moved somewhere else later)
-        parent.dlm.logging_queue = cli.logging_queue
-        parent.dlm.proc_debug = args.dlm_debug
+        dlm.logging_queue = cli.logging_queue
+        dlm.proc_debug = args.dlm_debug
 
         #print("parent:",parent)
     #    dlm.perc = 0
@@ -772,10 +772,10 @@ def install_gtk(app_name, app_title, parent):
     #    dlm.minutes = 0
     #    dlm.seconds = 0
     #bar.set_text(f"{dlm.dl_speed / 1024 / 1024:.02f} MiB/s - {(dlm.perc*100):.02f}% - ETA: {dlm.hours:02d}:{dlm.minutes:02d}:{dlm.seconds:02d}")
-        parent.dlm.start()
+        dlm.start()
         #time.sleep(4)
         #perch = 0
-        parent.timeout_id = GLib.timeout_add(500, update_gui, parent, parent.progress_bar)
+        parent.timeout_id = GLib.timeout_add(500, update_gui, dlm, parent.progress_bar)
         print("timeout_add -",parent.timeout_id)
         #dlm.join()
     except Exception as e:
