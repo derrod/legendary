@@ -12,7 +12,7 @@ from multiprocessing import freeze_support, Queue as MPQueue
 
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, GLib
+from gi.repository import Gtk, GLib, Gdk
 
 import legendary.core
 import legendary.cli
@@ -988,11 +988,12 @@ class main_window(Gtk.Window):
             self.scroll.add(g)
 
     def context_menu(self, selection, event):
-        model, treeiter = selection.get_selection().get_selected()
-        if treeiter is not None:
-            app_name = model[treeiter][0]
-            app_title = model[treeiter][1]
-            print(app_title,app_name)
+        if event.type == Gdk.EventType.BUTTON_PRESS and event.button == 3:
+            model, treeiter = selection.get_selection().get_selected()
+            if treeiter is not None:
+                app_name = model[treeiter][0]
+                app_title = model[treeiter][1]
+                print(app_title,app_name)
         
     def onclick_login(self, widget):
         webbrowser.open('https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect')
