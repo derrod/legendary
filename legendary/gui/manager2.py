@@ -35,11 +35,12 @@ class DLManager(Process):
         self.proc_debug = False
 
         ###
-        self.perc = 1
-        self.dl_speed = 1
-        self.hours = 1
-        self.minutes = 1
-        self.seconds = 1
+        #self.queue_log = 
+        #self.perc = 1
+        #self.dl_speed = 1
+        #self.hours = 1
+        #self.minutes = 1
+        #self.seconds = 1
         ###
 
         self.base_url = base_url
@@ -733,23 +734,42 @@ class DLManager(Process):
             #self.obj_out = "cli"
             #if self.obj_out == "cli":
             log_dlm.update(self)
-                            #self.perc,
-                            #self.processed_chunks,
-                            #self.num_chunk_tasks,
-                            #self.rt_hours,
-                            #self.rt_minutes,
-                            #self.rt_seconds,
-                            #self.hours,
-                            #self.minutes,
-                            #self.seconds,
-                            #self.total_dl,
-                            #self.total_write,
-                            #self.total_used,
-                            #self.dl_speed,
-                            #self.dl_unc_speed,
-                            #self.w_speed,
-                            #self.r_speed,
-                            #self.obj_out
+            main_window.values_dlm = [
+                    # 0
+                    self.perc,
+                    # 1
+                    self.processed_chunks,
+                    # 2
+                    self.num_chunk_tasks,
+                    # 3
+                    self.rt_hours,
+                    # 4
+                    self.rt_minutes,
+                    # 5
+                    self.rt_seconds,
+                    # 6
+                    self.hours,
+                    # 7
+                    self.minutes,
+                    # 8
+                    self.seconds,
+                    # 9
+                    self.total_dl,
+                    # 10
+                    self.total_write,
+                    # 11
+                    self.total_used,
+                    # 12
+                    self.dl_speed,
+                    # 13
+                    self.dl_unc_speed,
+                    # 14
+                    self.w_speed,
+                    # 15
+                    self.r_speed,
+                    # 16
+                    self.obj_out
+                    ]
             print("updated obj_out")
 
             # send status update to back to instantiator (if queue exists)
