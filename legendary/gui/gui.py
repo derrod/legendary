@@ -987,6 +987,16 @@ class main_window(Gtk.Window):
             g.attach(l, 0, 1, 1, 1)
             self.scroll.add(g)
 
+        self.cmenu = Gtk.Menu.new()
+        menu_entries = {
+                'Uninstall': uninstall_gtk,
+                }
+        for entry, func in menu_entries:
+            self.cm_item = Gtk.MenuItem.new_with_label(entry)
+            self.cm_item.connect('activate', func)
+            self.cmenu.append(self.cm_item)
+        self.cmenu.show_all()
+
     def context_menu(self, selection, event):
         if event.type == Gdk.EventType.BUTTON_PRESS and event.button == 3:
             model, treeiter = selection.get_selection().get_selected()
@@ -994,6 +1004,8 @@ class main_window(Gtk.Window):
                 app_name = model[treeiter][0]
                 app_title = model[treeiter][1]
                 print(app_title,app_name)
+            self.cmenu.popup_at_pointer()
+            print("ciao")
         
     def onclick_login(self, widget):
         webbrowser.open('https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect')
