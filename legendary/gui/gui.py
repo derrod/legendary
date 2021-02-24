@@ -124,7 +124,7 @@ def update_avail(app_name):
         except ValueError:
             log_gtk(f'Metadata for "{game.app_name}" is missing, the game may have been removed from '
                            f'your account or not be in legendary\'s database yet, try rerunning the command '
-                           f'with "--check-updates".')
+                           f'with "--check-updates".').show_all()
         if version != g.version:
             if print_version: # for future config
                 return f"Yes (Old: {g.version}; New: {version})"
@@ -641,18 +641,18 @@ def install_gtk(app_name, app_title, parent):
         repair_file = os.path.join(core.lgd.get_tmp_path(), f'{app_name}.repair')
 
     if not core.login():
-        #log_gtk('Login failed! Cannot continue with download process.')
+        log_gtk('Login failed! Cannot continue with download process.').show_all()
         print('Login failed! Cannot continue with download process.')
-        exit(1)
+        return 1
 
     if parent.args.file_prefix or parent.args.file_exclude_prefix or parent.args.install_tag:
         parent.args.no_install = True
 
     if parent.args.update_only:
         if not core.is_installed(app_name):
-            #log_gtk(f'Update requested for "{app_name}", but app not installed!')
+            log_gtk(f'Update requested for "{app_name}", but app not installed!').show_all()
             print(f'Update requested for "{app_name}", but app not installed!')
-            exit(1)
+            return 1
 
     if parent.args.platform_override:
         parent.args.no_install = True
@@ -660,14 +660,14 @@ def install_gtk(app_name, app_title, parent):
     parent.game = core.get_game(app_name, update_meta=True)
 
     if not parent.game:
-        #log_gtk(f'Could not find "{app_name}" in list of available games,'
-        #             f'did you type the name correctly?')
+        log_gtk(f'Could not find "{app_name}" in list of available games,'
+                     f'did you type the name correctly?').show_all()
         print(f'Could not find "{app_name}" in list of available games,'
                      f'did you type the name correctly?')
-        exit(1)
+        return 1
 
     if parent.game.is_dlc:
-        #log_gtk('Install candidate is DLC')
+        #log_gtk('Install candidate is DLC').show_all()
         print('Install candidate is DLC')
         app_name = parent.game.metadata['mainGameItem']['releaseInfo'][0]['appId']
         base_game = core.get_game(app_name)
@@ -675,19 +675,19 @@ def install_gtk(app_name, app_title, parent):
         if not core.is_installed(app_name):
             # download mode doesn't care about whether or not something's installed
             if not parent.args.no_install:
-                #log_gtk(f'Base parent.game "{app_name}" is not installed!')
+                log_gtk(f'Base parent.game "{app_name}" is not installed!').show_all()
                 print(f'Base parent.game "{app_name}" is not installed!')
-                exit(1)
+                return 1
     else:
         base_game = None
 
     #if parent.args.repair_mode:
     #    if not core.is_installed(parent.game.app_name):
-    #        log_gtk(f'Game "{parent.game.app_title}" ({parent.game.app_name}) is not installed!')
+    #        log_gtk(f'Game "{parent.game.app_title}" ({parent.game.app_name}) is not installed!').show_all()
     #        exit(0)
 
     #    if not os.path.exists(repair_file):
-    #        log_gtk('Game has not been verified yet.')
+    #        log_gtk('Game has not been verified yet.').show_all()
     #        if not parent.args.yes:
     #            if not get_boolean_choice(f'Verify "{parent.game.app_name}" now ("no" will abort repair)?'):
     #                print('Aborting...')
@@ -695,7 +695,7 @@ def install_gtk(app_name, app_title, parent):
 
     #        self.verify_game(parent.args, print_command=False)
     #    else:
-    #        log_gtk(f'Using existing repair file: {repair_file}')
+    #        log_gtk(f'Using existing repair file: {repair_file}').show_all()
 
     # Workaround for Cyberpunk 2077 preload
     #if not parent.args.install_tag and not parent.game.is_dlc and ((sdl_name := get_sdl_appname(parent.game.app_name)) is not None):
@@ -739,16 +739,16 @@ def install_gtk(app_name, app_title, parent):
                 old_igame.needs_verification = False
                 core.install_game(old_igame)
 
-            #log_gtk('Removing repair file.')
-            l=log_gtk('Removing repair file.')
+            #log_gtk('Removing repair file.').show_all()
+            l=log_gtk('Removing repair file.').show_all()
             os.remove(repair_file)
             l.destroy()
 
         # check if install tags have changed, if they did; try deleting files that are no longer required.
         if old_igame and old_igame.install_tags != parent.igame.install_tags:
             old_igame.install_tags = parent.igame.install_tags
-            #log_gtk('Deleting now untagged files.')
-            l=log_gtk('Deleting now untagged files.')
+            #log_gtk('Deleting now untagged files.').show_all()
+            l=log_gtk('Deleting now untagged files.').show_all()
             core.uninstall_tag(old_igame)
             core.install_game(old_igame)
             l.destroy()
@@ -767,20 +767,20 @@ def install_gtk(app_name, app_title, parent):
                                                   ignore_space_req=parent.args.ignore_space)
 
     if res.warnings or res.failures:
-        #log_gtk('Installation requirements check returned the following results:')
+        #log_gtk('Installation requirements check returned the following results:').show_all()
         print('Installation requirements check returned the following results:')
 
     if res.warnings:
         for warn in sorted(res.warnings):
-            #log_gtk(warn)
+            #log_gtk(warn).show_all()
             print(warn)
 
     if res.failures:
         for msg in sorted(res.failures):
-            #log_gtk(msg)
+            #log_gtk(msg).show_all()
             print(msg)
-        log_gtk('Installation cannot proceed, exiting.')
-        exit(1)
+        log_gtk('Installation cannot proceed, exiting.').show_all()
+        return 1
 
     print('Downloads are resumable, you can interrupt the download with '
                 'CTRL-C and resume it using the same command later on.')
@@ -872,7 +872,7 @@ def install_gtk(app_name, app_title, parent):
         log_gtk(f'Installation failed after {end_t - parent.start_t:.02f} seconds.'
                        f'The following exception occurred while waiting for the downloader to finish: {e!r}. '
                        f'Try restarting the process, the resume file will be used to start where it failed. '
-                       f'If it continues to fail please open an issue on GitHub.')
+                       f'If it continues to fail please open an issue on GitHub.').show_all()
 
 def post_dlm(main_window):
     #else:
@@ -911,7 +911,7 @@ def post_dlm(main_window):
             # todo option to automatically download saves after the installation
             #  main_window.args does not have the required attributes for sync_saves in here,
             #  not sure how to solve that elegantly.
-            log_gtk(f'This main_window.game supports cloud saves, syncing is handled by the "sync-saves" command.To download saves for this main_window.game run "legendary sync-saves {main_window.game.app_name}"')
+            log_gtk(f'This main_window.game supports cloud saves, syncing is handled by the "sync-saves" command.To download saves for this main_window.game run "legendary sync-saves {main_window.game.app_name}"').show_all()
 
     old_igame = core.get_installed_game(main_window.game.app_name)
     if old_igame and main_window.args.repair_mode and os.path.exists(repair_file):
@@ -919,17 +919,17 @@ def post_dlm(main_window):
             old_igame.needs_verification = False
             core.install_game(old_igame)
 
-        log_gtk('Removing repair file.')
+        log_gtk('Removing repair file.').show_all()
         os.remove(repair_file)
 
     # check if install tags have changed, if they did; try deleting files that are no longer required.
     if old_igame and old_igame.install_tags != main_window.igame.install_tags:
         old_igame.install_tags = main_window.igame.install_tags
-        log_gtk('Deleting now untagged files.')
+        log_gtk('Deleting now untagged files.').show_all()
         core.uninstall_tag(old_igame)
         core.install_game(old_igame)
 
-    log_gtk(f'Finished installation process in {main_window.end_t - main_window.start_t:.02f} seconds.')
+    log_gtk(f'Finished installation process in {main_window.end_t - main_window.start_t:.02f} seconds.').show_all()
 
 def launch_gtk(app_name, app_title, parent): pass
 
@@ -963,21 +963,21 @@ def uninstall_gtk(menu, app_name, app_title, parent):
         for dlc in dlcs:
             if (idlc := core.get_installed_game(dlc.app_name)) is not None:
                 print(f'Uninstalling DLC "{dlc.app_name}"...')
-                l = log_gtk(f'Uninstalling DLC "{dlc.app_name}"...')
+                l = log_gtk(f'Uninstalling DLC "{dlc.app_name}"...').show_all()
                 core.uninstall_game(idlc, delete_files=not args.keep_files)
                 l.destroy()
 
         print(f'Removing "{igame.title}" from "{igame.install_path}"...')
-        l=log_gtk(f'Removing "{igame.title}" from "{igame.install_path}"...')
+        l=log_gtk(f'Removing "{igame.title}" from "{igame.install_path}"...').show_all()
         core.uninstall_game(igame, delete_files=not args.keep_files, delete_root_directory=True)
         l.destroy()
         print('Game has been uninstalled.')
-        log_gtk('Game has been uninstalled.')
+        log_gtk('Game has been uninstalled.').show_all()
         main_window.scroll.destroy()
         main_window.list_games()
     except Exception as e:
         print(f'Removing game failed: {e!r}, please remove {igame.install_path} manually.')
-        log_gtk(f'Removing game failed: {e!r}, please remove {igame.install_path} manually.')
+        log_gtk(f'Removing game failed: {e!r}, please remove {igame.install_path} manually.').show_all()
 
 def list_files_gtk(app_name, app_title, parent): pass
 
@@ -1124,18 +1124,18 @@ class main_window(Gtk.Window):
         sid = ask_sid(self)
         exchange_token = core.auth_sid(sid)
         if not exchange_token:
-            log_gtk('No exchange token, cannot login.')
+            log_gtk('No exchange token, cannot login.').show_all()
             return
         if core.auth_code(exchange_token):
-            log_gtk(f'Successfully logged in as "{core.lgd.userdata["displayName"]}"')
+            log_gtk(f'Successfully logged in as "{core.lgd.userdata["displayName"]}"').show_all()
         else:
-            log_gtk('Login attempt failed, please see log for details.')
+            log_gtk('Login attempt failed, please see log for details.').show_all()
         self.destroy()
         main()
 
     def onclick_logout(self, widget):
         core.lgd.invalidate_userdata()
-        log_gtk("Successfully logged out")
+        log_gtk("Successfully logged out").show_all()
         self.destroy()
         main()
 
