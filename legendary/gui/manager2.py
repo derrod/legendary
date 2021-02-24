@@ -34,6 +34,14 @@ class DLManager(Process):
         self.log = logging.getLogger('DLM')
         self.proc_debug = False
 
+        # ###
+        # self.perc = 1
+        # self.dl_speed = 1
+        # self.hours = 1
+        # self.minutes = 1
+        # self.seconds = 1
+        # ###
+
         self.base_url = base_url
         self.dl_dir = download_dir
         self.cache_dir = cache_dir if cache_dir else os.path.join(download_dir, '.cache')

@@ -38,6 +38,7 @@ class log_dlm:
                         #r_speed)
         else:
             print("update_gui")
+            print(f"{dlm.dl_speed / 1024 / 1024:.02f} MiB/s - {(dlm.perc*100):.02f}% - ETA: {dlm.hours:02d}:{dlm.minutes:02d}:{dlm.seconds:02d} - log_dlm")
             #self.update_gui(dlm, dlm.obj_out)
             #self.update_gui(
             #           dlm,
