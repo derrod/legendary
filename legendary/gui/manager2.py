@@ -688,7 +688,7 @@ class DLManager(Process):
         print("before loop")
 
         while processed_tasks < num_tasks:
-            time.sleep(0.250)
+            if obj_out != "cli": time.sleep(0.250)
             delta = time.time() - last_update
             if not delta:
                 time.sleep(self.update_interval)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# TODO: fix progress bar, games' contextual menu, tooltip show all info progress bar
+# TODO: games' contextual menu, tooltip show all info progress bar
 
 import sys
 # insert at 1, 0 is the script path (or '' in REPL)
@@ -19,40 +19,42 @@ import legendary.cli
 core = legendary.core.LegendaryCore()
 cli = legendary.cli.LegendaryCLI()
 
-def update_gui(par, bar):
+def update_gui(main_window, dlm):
                # perc,
                # processed_chunks, num_chunk_tasks,
                # rt_hours, rt_minutes, rt_seconds,
                # hours, minutes, seconds,
                # total_dl, total_write, total_used,
                # dl_speed, dl_unc_speed, w_speed, r_speed,
-    print(f"update_gui_{bar}")
+    print(f"update_gui_{main_window.progress_bar}")
     #print(f"{dlm}")
     #print(f"dhexid:{hex(id(dlm.perc))}")
 
-    perc = par.bar_queue.get()
-    processed_chunks = par.bar_queue.get()
-    num_chunk_tasks = par.bar_queue.get()
-    rt_hours = par.bar_queue.get()
-    rt_minutes = par.bar_queue.get()
-    rt_seconds = par.bar_queue.get()
-    hours = par.bar_queue.get()
-    minutes = par.bar_queue.get()
-    seconds = par.bar_queue.get()
-    total_dl = par.bar_queue.get()
-    total_write = par.bar_queue.get()
-    total_used = par.bar_queue.get()
-    dl_speed = par.bar_queue.get()
-    dl_unc_speed = par.bar_queue.get()
-    w_speed = par.bar_queue.get()
-    r_speed = par.bar_queue.get()
-    #obj_out = par.bar_queue.get()
-    bar.set_fraction(perc)
-    #bar.set_fraction(perc)
-    bar.set_text(f"{dl_speed / 1024 / 1024:.02f} MiB/s - {(perc*100):.02f}% - ETA: {hours:02d}:{minutes:02d}:{seconds:02d}")
-    ##a## bar.set_text(f"{parent.values_dlm[0] / 1024 / 1024:.02f} MiB/s - {(parent.values_dlm[0]*100):.02f}% - ETA: {parent.values_dlm[6]:02d}:{parent.values_dlm[7]:02d}:{parent.values_dlm[8]:02d}")
-    bar.set_tooltip_text("tooltip") # show all infos that are also in update_cli()
-    print(bar.get_text())
+    perc = main_window.bar_queue.get()
+    processed_chunks = main_window.bar_queue.get()
+    num_chunk_tasks = main_window.bar_queue.get()
+    rt_hours = main_window.bar_queue.get()
+    rt_minutes = main_window.bar_queue.get()
+    rt_seconds = main_window.bar_queue.get()
+    hours = main_window.bar_queue.get()
+    minutes = main_window.bar_queue.get()
+    seconds = main_window.bar_queue.get()
+    total_dl = main_window.bar_queue.get()
+    total_write = main_window.bar_queue.get()
+    total_used = main_window.bar_queue.get()
+    dl_speed = main_window.bar_queue.get()
+    dl_unc_speed = main_window.bar_queue.get()
+    w_speed = main_window.bar_queue.get()
+    r_speed = main_window.bar_queue.get()
+    main_window.progress_bar.set_fraction(perc)
+    main_window.progress_bar.set_text(f"{dl_speed / 1024 / 1024:.02f} MiB/s - {(perc*100):.02f}% - ETA: {hours:02d}:{minutes:02d}:{seconds:02d}")
+    ##a## main_window.progress_bar.set_text(f"{parent.values_dlm[0] / 1024 / 1024:.02f} MiB/s - {(parent.values_dlm[0]*100):.02f}% - ETA: {parent.values_dlm[6]:02d}:{parent.values_dlm[7]:02d}:{parent.values_dlm[8]:02d}")
+    main_window.progress_bar.set_tooltip_text("tooltip") # show all infos that are also in update_cli()
+    print(main_window.progress_bar.get_text())
+    if not dlm.is_alive():
+        main_window.progress_bar.set_text("Completing...")
+        main_window.progress_bar.set_tooltip_text("Finishing...")
+        post_dlm(main_window)
     return True # since this is a timeout function
 
 class args_obj:
@@ -558,59 +560,59 @@ def install_gtk(app_name, app_title, parent):
     install_dialog.show_all()
     install_dialog_response = install_dialog.run()
 
-    args = args_obj()
+    parent.args = args_obj()
     # entries
-    args.base_path = base_path_entry.get_text()
-    args.game_folder = game_folder_entry.get_text()
-    args.shared_memory = max_shm_entry.get_text()
-    args.max_workers = max_workers_entry.get_text()
-    args.override_manifest = override_manifest_entry.get_text()
-    args.override_old_manifest = override_old_manifest_entry.get_text()
-    args.override_delta_manifest = override_delta_manifest_entry.get_text()
-    args.override_base_url = override_base_url_entry.get_text()
-    args.platform_override = platform_override_entry.get_text()
-    args.file_prefix = file_prefix_filter_entry.get_text()
-    args.file_exclude_prefix = file_exclude_filter_entry.get_text()
-    args.install_tag = file_install_tag_entry.get_text()
-    args.dl_timeout = dl_timeout_entry.get_text()
-    args.save_path = save_path_entry.get_text()
+    parent.args.base_path = base_path_entry.get_text()
+    parent.args.game_folder = game_folder_entry.get_text()
+    parent.args.shared_memory = max_shm_entry.get_text()
+    parent.args.max_workers = max_workers_entry.get_text()
+    parent.args.override_manifest = override_manifest_entry.get_text()
+    parent.args.override_old_manifest = override_old_manifest_entry.get_text()
+    parent.args.override_delta_manifest = override_delta_manifest_entry.get_text()
+    parent.args.override_base_url = override_base_url_entry.get_text()
+    parent.args.platform_override = platform_override_entry.get_text()
+    parent.args.file_prefix = file_prefix_filter_entry.get_text()
+    parent.args.file_exclude_prefix = file_exclude_filter_entry.get_text()
+    parent.args.install_tag = file_install_tag_entry.get_text()
+    parent.args.dl_timeout = dl_timeout_entry.get_text()
+    parent.args.save_path = save_path_entry.get_text()
     # check boxes
-    args.force = force_check_button.get_active()
-    args.disable_patching = disable_patching_check_button.get_active()
-    args.no_install = download_only_check_button.get_active()
-    args.update_only = update_only_check_button.get_active()
-    args.dlm_debug = dlm_debug_check_button.get_active()
-    args.order_opt = enable_reordering_check_button.get_active()
-    args.repair_mode = repair_check_button.get_active()
-    args.repair_and_update = repair_and_update_check_button.get_active()
-    args.ignore_space = ignore_space_req_check_button.get_active()
-    args.disable_delta = disable_delta_manifest_check_button.get_active()
-    args.reset_sdl = reset_sdl_check_button.get_active()
+    parent.args.force = force_check_button.get_active()
+    parent.args.disable_patching = disable_patching_check_button.get_active()
+    parent.args.no_install = download_only_check_button.get_active()
+    parent.args.update_only = update_only_check_button.get_active()
+    parent.args.dlm_debug = dlm_debug_check_button.get_active()
+    parent.args.order_opt = enable_reordering_check_button.get_active()
+    parent.args.repair_mode = repair_check_button.get_active()
+    parent.args.repair_and_update = repair_and_update_check_button.get_active()
+    parent.args.ignore_space = ignore_space_req_check_button.get_active()
+    parent.args.disable_delta = disable_delta_manifest_check_button.get_active()
+    parent.args.reset_sdl = reset_sdl_check_button.get_active()
 
-    print(  f"base_path:\t\t {args.base_path}",
-            f"game_folder:\t\t {args.game_folder}",
-            f"max_shm:\t\t {args.shared_memory}",
-            f"max_workers:\t\t {args.max_workers}",
-            f"override_manifest:\t {args.override_manifest}",
-            f"override_old_manifest:\t {args.override_old_manifest}",
-            f"override_delta_manifest: {args.override_delta_manifest}",
-            f"override_base_url:\t {args.override_base_url}",
-            f"platform_override:\t {args.platform_override}",
-            f"file_prefix_filter:\t {args.file_prefix}",
-            f"file_exclude_filter:\t {args.file_exclude_prefix}",
-            f"file_install_tag:\t {args.install_tag}",
-            f"dl_timeout:\t\t {args.dl_timeout}",
-            f"save_path:\t\t {args.save_path}",
-            f"force:\t\t\t {args.force}",
-            f"disable_patching:\t {args.disable_patching}",
-            f"download_only:\t\t {args.no_install}",
-            f"update_only:\t\t {args.update_only}",
-            f"dlm_debug:\t\t {args.dlm_debug}",
-            f"enable_reordering:\t {args.order_opt}",
-            f"repair:\t\t\t {args.repair_mode}",
-            f"repair_and_update:\t {args.repair_and_update}",
-            f"ignore_space_req:\t {args.ignore_space}",
-            f"reset_sdl:\t\t {args.reset_sdl}",
+    print(  f"base_path:\t\t {parent.args.base_path}",
+            f"game_folder:\t\t {parent.args.game_folder}",
+            f"max_shm:\t\t {parent.args.shared_memory}",
+            f"max_workers:\t\t {parent.args.max_workers}",
+            f"override_manifest:\t {parent.args.override_manifest}",
+            f"override_old_manifest:\t {parent.args.override_old_manifest}",
+            f"override_delta_manifest: {parent.args.override_delta_manifest}",
+            f"override_base_url:\t {parent.args.override_base_url}",
+            f"platform_override:\t {parent.args.platform_override}",
+            f"file_prefix_filter:\t {parent.args.file_prefix}",
+            f"file_exclude_filter:\t {parent.args.file_exclude_prefix}",
+            f"file_install_tag:\t {parent.args.install_tag}",
+            f"dl_timeout:\t\t {parent.args.dl_timeout}",
+            f"save_path:\t\t {parent.args.save_path}",
+            f"force:\t\t\t {parent.args.force}",
+            f"disable_patching:\t {parent.args.disable_patching}",
+            f"download_only:\t\t {parent.args.no_install}",
+            f"update_only:\t\t {parent.args.update_only}",
+            f"dlm_debug:\t\t {parent.args.dlm_debug}",
+            f"enable_reordering:\t {parent.args.order_opt}",
+            f"repair:\t\t\t {parent.args.repair_mode}",
+            f"repair_and_update:\t {parent.args.repair_and_update}",
+            f"ignore_space_req:\t {parent.args.ignore_space}",
+            f"reset_sdl:\t\t {parent.args.reset_sdl}",
     sep='\n'
     )
     #return 1
@@ -625,8 +627,8 @@ def install_gtk(app_name, app_title, parent):
         if igame.needs_verification:
             repair_mode = True
     repair_file = None
-    if args.repair_mode:
-        args.no_install = args.repair_and_update is False
+    if parent.args.repair_mode:
+        parent.args.no_install = parent.args.repair_and_update is False
         repair_file = os.path.join(core.lgd.get_tmp_path(), f'{app_name}.repair')
 
     if not core.login():
@@ -634,19 +636,19 @@ def install_gtk(app_name, app_title, parent):
         print('Login failed! Cannot continue with download process.')
         exit(1)
 
-    if args.file_prefix or args.file_exclude_prefix or args.install_tag:
-        args.no_install = True
+    if parent.args.file_prefix or parent.args.file_exclude_prefix or parent.args.install_tag:
+        parent.args.no_install = True
 
-    if args.update_only:
+    if parent.args.update_only:
         if not core.is_installed(app_name):
             #log_gtk(f'Update requested for "{app_name}", but app not installed!')
             print(f'Update requested for "{app_name}", but app not installed!')
             exit(1)
 
-    if args.platform_override:
-        args.no_install = True
+    if parent.args.platform_override:
+        parent.args.no_install = True
 
-    game = core.get_game(app_name, update_meta=True)
+    parent.game = core.get_game(app_name, update_meta=True)
 
     if not game:
         #log_gtk(f'Could not find "{app_name}" in list of available games,'
@@ -663,60 +665,60 @@ def install_gtk(app_name, app_title, parent):
         # check if base_game is actually installed
         if not core.is_installed(app_name):
             # download mode doesn't care about whether or not something's installed
-            if not args.no_install:
+            if not parent.args.no_install:
                 #log_gtk(f'Base game "{app_name}" is not installed!')
                 print(f'Base game "{app_name}" is not installed!')
                 exit(1)
     else:
         base_game = None
 
-    #if args.repair_mode:
+    #if parent.args.repair_mode:
     #    if not core.is_installed(game.app_name):
     #        log_gtk(f'Game "{game.app_title}" ({game.app_name}) is not installed!')
     #        exit(0)
 
     #    if not os.path.exists(repair_file):
     #        log_gtk('Game has not been verified yet.')
-    #        if not args.yes:
+    #        if not parent.args.yes:
     #            if not get_boolean_choice(f'Verify "{game.app_name}" now ("no" will abort repair)?'):
     #                print('Aborting...')
     #                exit(0)
 
-    #        self.verify_game(args, print_command=False)
+    #        self.verify_game(parent.args, print_command=False)
     #    else:
     #        log_gtk(f'Using existing repair file: {repair_file}')
 
     # Workaround for Cyberpunk 2077 preload
-    #if not args.install_tag and not game.is_dlc and ((sdl_name := get_sdl_appname(game.app_name)) is not None):
+    #if not parent.args.install_tag and not game.is_dlc and ((sdl_name := get_sdl_appname(game.app_name)) is not None):
     #    config_tags = core.lgd.config.get(game.app_name, 'install_tags', fallback=None)
-    #    if not core.is_installed(game.app_name) or config_tags is None or args.reset_sdl:
-    #        args.install_tag = sdl_prompt(sdl_name, game.app_title)
-    #        if game.app_name not in self.core.lgd.config:
+    #    if not core.is_installed(game.app_name) or config_tags is None or parent.args.reset_sdl:
+    #        parent.args.install_tag = sdl_prompt(sdl_name, game.app_title)
+    #        if game.app_name not in core.lgd.config:
     #            core.lgd.config[game.app_name] = dict()
-    #        core.lgd.config.set(game.app_name, 'install_tags', ','.join(args.install_tag))
+    #        core.lgd.config.set(game.app_name, 'install_tags', ','.join(parent.args.install_tag))
     #    else:
-    #        args.install_tag = config_tags.split(',')
+    #        parent.args.install_tag = config_tags.split(',')
 
     print('Preparing download...')
     # todo use status queue to print progress from CLI
     # This has become a little ridiculous hasn't it?
-    dlm, analysis, igame = core.prepare_download(game=game, base_game=base_game, base_path=args.base_path,
-                                                      force=args.force, max_shm=args.shared_memory,
-                                                      max_workers=args.max_workers, game_folder=args.game_folder,
-                                                      disable_patching=args.disable_patching,
-                                                      override_manifest=args.override_manifest,
-                                                      override_old_manifest=args.override_old_manifest,
-                                                      override_base_url=args.override_base_url,
-                                                      platform_override=args.platform_override,
-                                                      file_prefix_filter=args.file_prefix,
-                                                      file_exclude_filter=args.file_exclude_prefix,
-                                                      file_install_tag=args.install_tag,
-                                                      dl_optimizations=args.order_opt,
-                                                      dl_timeout=args.dl_timeout,
-                                                      repair=args.repair_mode,
-                                                      repair_use_latest=args.repair_and_update,
-                                                      disable_delta=args.disable_delta,
-                                                      override_delta_manifest=args.override_delta_manifest,
+    dlm, analysis, parent.igame = core.prepare_download(game=game, base_game=base_game, base_path=parent.args.base_path,
+                                                      force=parent.args.force, max_shm=parent.args.shared_memory,
+                                                      max_workers=parent.args.max_workers, game_folder=parent.args.game_folder,
+                                                      disable_patching=parent.args.disable_patching,
+                                                      override_manifest=parent.args.override_manifest,
+                                                      override_old_manifest=parent.args.override_old_manifest,
+                                                      override_base_url=parent.args.override_base_url,
+                                                      platform_override=parent.args.platform_override,
+                                                      file_prefix_filter=parent.args.file_prefix,
+                                                      file_exclude_filter=parent.args.file_exclude_prefix,
+                                                      file_install_tag=parent.args.install_tag,
+                                                      dl_optimizations=parent.args.order_opt,
+                                                      dl_timeout=parent.args.dl_timeout,
+                                                      repair=parent.args.repair_mode,
+                                                      repair_use_latest=parent.args.repair_and_update,
+                                                      disable_delta=parent.args.disable_delta,
+                                                      override_delta_manifest=parent.args.override_delta_manifest,
                                                       main_window=parent)
 
     # game is either up to date or hasn't changed, so we have nothing to do
@@ -724,7 +726,7 @@ def install_gtk(app_name, app_title, parent):
         old_igame = core.get_installed_game(game.app_name)
         #log_gtk('Download size is 0, the game is either already up to date or has not changed. Exiting...')
         print('Download size is 0, the game is either already up to date or has not changed. Exiting...')
-        if old_igame and args.repair_mode and os.path.exists(repair_file):
+        if old_igame and parent.args.repair_mode and os.path.exists(repair_file):
             if old_igame.needs_verification:
                 old_igame.needs_verification = False
                 core.install_game(old_igame)
@@ -752,7 +754,7 @@ def install_gtk(app_name, app_title, parent):
 
     res = core.check_installation_conditions(analysis=analysis, install=igame, game=game,
                                                   updating=core.is_installed(app_name),
-                                                  ignore_space_req=args.ignore_space)
+                                                  ignore_space_req=parent.args.ignore_space)
 
     if res.warnings or res.failures:
         #log_gtk('Installation requirements check returned the following results:')
@@ -773,16 +775,16 @@ def install_gtk(app_name, app_title, parent):
     print('Downloads are resumable, you can interrupt the download with '
                 'CTRL-C and resume it using the same command later on.')
 
-    start_t = time.time()
-#    GLib.idle_add(dlm_start, args, dlm, start_t)
+    parent.start_t = time.time()
+#    GLib.idle_add(dlm_start, parent.args, dlm, start_t)
 #
-#def dlm_start(args, dlm, start_t):
+#def dlm_start(parent.args, dlm, start_t):
 
 
     try:
         # set up logging stuff (should be moved somewhere else later)
         dlm.logging_queue = cli.logging_queue
-        dlm.proc_debug = args.dlm_debug
+        dlm.proc_debug = parent.args.dlm_debug
 
         #print("parent:",parent)
     #    dlm.perc = 0
@@ -813,73 +815,75 @@ def install_gtk(app_name, app_title, parent):
         ##a##                     0,
         ##a##                     0
         ##a##                     ]
-        parent.timeout_id = GLib.timeout_add(1000, update_gui, parent, parent.progress_bar)
+        parent.timeout_id = GLib.timeout_add(1000, update_gui, parent, dlm)
         print("timeout_add -",parent.timeout_id)
         #dlm.join()
     except Exception as e:
         end_t = time.time()
-        #log_gtk(f'Installation failed after {end_t - start_t:.02f} seconds.'
-        #               f'The following exception occurred while waiting for the downloader to finish: {e!r}. '
-        #               f'Try restarting the process, the resume file will be used to start where it failed. '
-        #               f'If it continues to fail please open an issue on GitHub.')
-        print(f'Installation failed after {end_t - start_t:.02f} seconds.'
+        print(f'Installation failed after {end_t - parent.start_t:.02f} seconds.'
                        f'The following exception occurred while waiting for the downloader to finish: {e!r}. '
                        f'Try restarting the process, the resume file will be used to start where it failed. '
                        f'If it continues to fail please open an issue on GitHub.')
+        log_gtk(f'Installation failed after {end_t - parent.start_t:.02f} seconds.'
+                       f'The following exception occurred while waiting for the downloader to finish: {e!r}. '
+                       f'Try restarting the process, the resume file will be used to start where it failed. '
+                       f'If it continues to fail please open an issue on GitHub.')
+
+def post_dlm(main_window):
     #else:
-    #    end_t = time.time()
-    #    if not args.no_install:
-    #        # Allow setting savegame directory at install time so sync-saves will work immediately
-    #        if game.supports_cloud_saves and args.save_path:
-    #            igame.save_path = args.save_path
+    end_t = time.time()
+    if not main_window.args.no_install:
+        # Allow setting savegame directory at install time so sync-saves will work immediately
+        if main_window.game.supports_cloud_saves and main_window.args.save_path:
+            main_window.igame.save_path = main_window.args.save_path
 
-    #        postinstall = self.core.install_game(igame)
-    #        if postinstall:
-    #            self._handle_postinstall(postinstall, igame, yes=args.yes)
+        postinstall = core.install_game(igame)
+        if postinstall:
+            cli._handle_postinstall(postinstall, igame, yes=main_window.args.yes)
 
-    #        dlcs = self.core.get_dlc_for_game(game.app_name)
-    #        if dlcs:
-    #            print('The following DLCs are available for this game:')
-    #            for dlc in dlcs:
-    #                print(f' - {dlc.app_title} (App name: {dlc.app_name}, version: {dlc.app_version})')
-    #            print('Manually installing DLCs works the same; just use the DLC app name instead.')
+        dlcs = core.get_dlc_for_game(main_window.game.app_name)
+        if dlcs:
+            print('The following DLCs are available for this game:')
+            for dlc in dlcs:
+                print(f' - {dlc.app_title} (App name: {dlc.app_name}, version: {dlc.app_version})')
+            print('Manually installing DLCs works the same; just use the DLC app name instead.')
 
-    #            install_dlcs = True
-    #            if not args.yes:
-    #                if not get_boolean_choice(f'Do you wish to automatically install DLCs?'):
-    #                    install_dlcs = False
+            install_dlcs = True
+            if not main_window.args.yes:
+                if not get_boolean_choice(f'Do you wish to automatically install DLCs?'):
+                    install_dlcs = False
 
-    #            if install_dlcs:
-    #                _yes, _app_name = args.yes, app_name
-    #                args.yes = True
-    #                for dlc in dlcs:
-    #                    app_name = dlc.app_name
-    #                    self.install_game(args)
-    #                args.yes, app_name = _yes, _app_name
+            if install_dlcs:
+                _yes, _app_name = main_window.args.yes, app_name
+                main_window.args.yes = True
+                for dlc in dlcs:
+                    app_name = dlc.app_name
+                    self.install_game(args)
+                main_window.args.yes, app_name = _yes, _app_name
 
-    #        if game.supports_cloud_saves and not game.is_dlc:
-    #            # todo option to automatically download saves after the installation
-    #            #  args does not have the required attributes for sync_saves in here,
-    #            #  not sure how to solve that elegantly.
-    #            log_gtk(f'This game supports cloud saves, syncing is handled by the "sync-saves" command.To download saves for this game run "legendary sync-saves {app_name}"')
+        if main_window.game.supports_cloud_saves and not main_window.game.is_dlc:
+            # todo option to automatically download saves after the installation
+            #  args does not have the required attributes for sync_saves in here,
+            #  not sure how to solve that elegantly.
+            log_gtk(f'This game supports cloud saves, syncing is handled by the "sync-saves" command.To download saves for this game run "legendary sync-saves {app_name}"')
 
-    #    old_igame = self.core.get_installed_game(game.app_name)
-    #    if old_igame and args.repair_mode and os.path.exists(repair_file):
-    #        if old_igame.needs_verification:
-    #            old_igame.needs_verification = False
-    #            self.core.install_game(old_igame)
+    old_igame = core.get_installed_game(main_window.game.app_name)
+    if old_igame and main_window.args.repair_mode and os.path.exists(repair_file):
+        if old_igame.needs_verification:
+            old_igame.needs_verification = False
+            core.install_game(old_igame)
 
-    #        log_gtk('Removing repair file.')
-    #        os.remove(repair_file)
+        log_gtk('Removing repair file.')
+        os.remove(repair_file)
 
-    #    # check if install tags have changed, if they did; try deleting files that are no longer required.
-    #    if old_igame and old_igame.install_tags != igame.install_tags:
-    #        old_igame.install_tags = igame.install_tags
-    #        log_gtk('Deleting now untagged files.')
-    #        core.uninstall_tag(old_igame)
-    #        core.install_game(old_igame)
+    # check if install tags have changed, if they did; try deleting files that are no longer required.
+    if old_igame and old_igame.install_tags != main_window.igame.install_tags:
+        old_igame.install_tags = main_window.igame.install_tags
+        log_gtk('Deleting now untagged files.')
+        core.uninstall_tag(old_igame)
+        core.install_game(old_igame)
 
-    #    log_gtk(f'Finished installation process in {end_t - start_t:.02f} seconds.')
+    log_gtk(f'Finished installation process in {end_t - main_window.start_t:.02f} seconds.')
 
 class main_window(Gtk.Window):
     def __init__(self):
