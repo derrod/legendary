@@ -734,43 +734,60 @@ class DLManager(Process):
             #self.obj_out = "cli"
             #if self.obj_out == "cli":
             log_dlm.update(self)
-            main_window.values_dlm = [
-                    # 0
-                    self.perc,
-                    # 1
-                    self.processed_chunks,
-                    # 2
-                    self.num_chunk_tasks,
-                    # 3
-                    self.rt_hours,
-                    # 4
-                    self.rt_minutes,
-                    # 5
-                    self.rt_seconds,
-                    # 6
-                    self.hours,
-                    # 7
-                    self.minutes,
-                    # 8
-                    self.seconds,
-                    # 9
-                    self.total_dl,
-                    # 10
-                    self.total_write,
-                    # 11
-                    self.total_used,
-                    # 12
-                    self.dl_speed,
-                    # 13
-                    self.dl_unc_speed,
-                    # 14
-                    self.w_speed,
-                    # 15
-                    self.r_speed,
-                    # 16
-                    self.obj_out
-                    ]
+                            #self.perc,
+                            #self.processed_chunks,
+                            #self.num_chunk_tasks,
+                            #self.rt_hours,
+                            #self.rt_minutes,
+                            #self.rt_seconds,
+                            #self.hours,
+                            #self.minutes,
+                            #self.seconds,
+                            #self.total_dl,
+                            #self.total_write,
+                            #self.total_used,
+                            #self.dl_speed,
+                            #self.dl_unc_speed,
+                            #self.w_speed,
+                            #self.r_speed,
+                            #self.obj_out
             print("updated obj_out")
+            ##a## main_window.values_dlm = [
+            ##a##         # 0
+            ##a##         self.perc,
+            ##a##         # 1
+            ##a##         self.processed_chunks,
+            ##a##         # 2
+            ##a##         self.num_chunk_tasks,
+            ##a##         # 3
+            ##a##         self.rt_hours,
+            ##a##         # 4
+            ##a##         self.rt_minutes,
+            ##a##         # 5
+            ##a##         self.rt_seconds,
+            ##a##         # 6
+            ##a##         self.hours,
+            ##a##         # 7
+            ##a##         self.minutes,
+            ##a##         # 8
+            ##a##         self.seconds,
+            ##a##         # 9
+            ##a##         self.total_dl,
+            ##a##         # 10
+            ##a##         self.total_write,
+            ##a##         # 11
+            ##a##         self.total_used,
+            ##a##         # 12
+            ##a##         self.dl_speed,
+            ##a##         # 13
+            ##a##         self.dl_unc_speed,
+            ##a##         # 14
+            ##a##         self.w_speed,
+            ##a##         # 15
+            ##a##         self.r_speed,
+            ##a##         # 16
+            ##a##         self.obj_out
+            ##a##         ]
 
             # send status update to back to instantiator (if queue exists)
             if self.status_queue:
