@@ -57,6 +57,12 @@ def update_gui(main_window, dlm):
         main_window.progress_bar.set_text("Completing...")
         main_window.progress_bar.set_tooltip_text("Finishing...")
         post_dlm(main_window)
+        main_window.progress_bar.set_text("Nothing in download")
+        main_window.progress_bar.set_tooltip_text("Nothing in download")
+        main_window.progress_bar.set_fraction(0)
+        main_window.scroll.destroy()
+        main_window.list_games()
+        print("finished post_dlm and update_gui")
         return False
     return True # since this is a timeout function
 
@@ -93,7 +99,8 @@ def log_gtk(msg):
     dialog.log.set_selectable(True)
     box = dialog.get_content_area()
     box.add(dialog.log)
-    dialog.show_all()
+    return dialog
+    #dialog.show_all()
 
 def is_installed(app_name):
     if core.get_installed_game(app_name) == None:
@@ -888,15 +895,59 @@ def post_dlm(main_window):
 
     log_gtk(f'Finished installation process in {main_window.end_t - main_window.start_t:.02f} seconds.')
 
-def launch_gtk(app_name, app_title, parent):
+def launch_gtk(app_name, app_title, parent): pass
 
-def uninstall_gtk(app_name, app_title, parent):
+def uninstall_gtk(menu, app_name, app_title, parent):
+    igame = core.get_installed_game(app_name)
+    if not igame:
+        log_gtk(f'Game {app_name} not installed, cannot uninstall!').show_all()
+        return 0
+    if igame.is_dlc:
+        log_gtk('Uninstalling DLC is not supported.').show_all()
+        return 1
+    uninstall_dialog = Gtk.MessageDialog(parent=parent,
+                                        destroy_with_parent=True,
+                                        message_type=Gtk.MessageType.QUESTION,
+                                        buttons=Gtk.ButtonsType.OK_CANCEL,
+                                        text=f'Do you wish to uninstall "{igame.title}"?'
+                                      )
+    uninstall_dialog.set_title(f"Uninstall {app_title}")
+    uninstall_dialog.set_default_size(400, 0)
+    uninstall_dialog_response = uninstall_dialog.run()
+    if uninstall_dialog_response != Gtk.ResponseType.OK:
+        uninstall_dialog.destroy()
+        return 1
+    uninstall_dialog.destroy()
+    args = args_obj()
+    args.keep_files = 0
+    
+    try:
+        # Remove DLC first so directory is empty when game uninstall runs
+        dlcs = core.get_dlc_for_game(igame.app_name)
+        for dlc in dlcs:
+            if (idlc := core.get_installed_game(dlc.app_name)) is not None:
+                print(f'Uninstalling DLC "{dlc.app_name}"...')
+                l = log_gtk(f'Uninstalling DLC "{dlc.app_name}"...')
+                core.uninstall_game(idlc, delete_files=not args.keep_files)
+                l.destroy()
 
-def list_files_gtk(app_name, app_title, parent):
+        print(f'Removing "{igame.title}" from "{igame.install_path}"...')
+        l=log_gtk(f'Removing "{igame.title}" from "{igame.install_path}"...')
+        core.uninstall_game(igame, delete_files=not args.keep_files, delete_root_directory=True)
+        l.destroy()
+        print('Game has been uninstalled.')
+        log_gtk('Game has been uninstalled.')
+        main_window.scroll.destroy()
+        main_window.list_games()
+    except Exception as e:
+        print(f'Removing game failed: {e!r}, please remove {igame.install_path} manually.')
+        log_gtk(f'Removing game failed: {e!r}, please remove {igame.install_path} manually.')
 
-def sync_saves_gtk(app_name, app_title, parent):
+def list_files_gtk(app_name, app_title, parent): pass
 
-def verify_game_gtk(app_name, app_title, parent):
+def sync_saves_gtk(app_name, app_title, parent): pass
+
+def verify_game_gtk(app_name, app_title, parent): pass
 
 class main_window(Gtk.Window):
     def __init__(self):
@@ -939,6 +990,12 @@ class main_window(Gtk.Window):
 
         self.box.pack_start(self.login_vbox, False, False, 20)
 
+        if logged:
+            self.scroll = self.list_games()
+
+        self.cmenu = Gtk.Menu.new()
+
+    def list_games(self):
         # Games
         self.scroll = Gtk.ScrolledWindow()
         self.scroll.set_border_width(10)
@@ -947,75 +1004,55 @@ class main_window(Gtk.Window):
         self.scroll.games = Gtk.ListStore(str, str, str, str, str)
         gcols = ["appname","Title","Installed","Size","Update Avaiable"]
 
-        if logged:
-            # get games
-            games, dlc_list = core.get_game_and_dlc_list()
-            games = sorted(games, key=lambda x: x.app_title.lower())
-            for citem_id in dlc_list.keys():
-                dlc_list[citem_id] = sorted(dlc_list[citem_id], key=lambda d: d.app_title.lower())
-            # add games to liststore for treeview
-            for game in games:
-                ls = (  game.app_name,
-                        game.app_title,
-                        is_installed(game.app_name),
-                        installed_size(game.app_name),
-                        update_avail(game.app_name),
+        # get games
+        games, dlc_list = core.get_game_and_dlc_list()
+        games = sorted(games, key=lambda x: x.app_title.lower())
+        for citem_id in dlc_list.keys():
+            dlc_list[citem_id] = sorted(dlc_list[citem_id], key=lambda d: d.app_title.lower())
+        # add games to liststore for treeview
+        for game in games:
+            ls = (  game.app_name,
+                    game.app_title,
+                    is_installed(game.app_name),
+                    installed_size(game.app_name),
+                    update_avail(game.app_name),
+                 )
+            self.scroll.games.append(list(ls))
+            #print(f' * {game.app_title} (App name: {game.app_name} | Version: {game.app_version})')
+            for dlc in dlc_list[game.asset_info.catalog_item_id]:
+                ls = (  dlc.app_name,
+                        dlc.app_title+f" (DLC of {game.app_title})",
+                        is_installed(dlc.app_name),
+                        installed_size(dlc.app_name),
+                        update_avail(dlc.app_name),
                      )
                 self.scroll.games.append(list(ls))
-                #print(f' * {game.app_title} (App name: {game.app_name} | Version: {game.app_version})')
-                for dlc in dlc_list[game.asset_info.catalog_item_id]:
-                    ls = (  dlc.app_name,
-                            dlc.app_title+f" (DLC of {game.app_title})",
-                            is_installed(dlc.app_name),
-                            installed_size(dlc.app_name),
-                            update_avail(dlc.app_name),
-                         )
-                    self.scroll.games.append(list(ls))
-                    #print(f'  + {dlc.app_title} (App name: {dlc.app_name} | Version: {dlc.app_version})')
+                #print(f'  + {dlc.app_title} (App name: {dlc.app_name} | Version: {dlc.app_version})')
 
-            # add games to treeview
-            #self.scroll.gview = Gtk.TreeView(Gtk.TreeModelSort(model=self.scroll.games))
-            self.scroll.gview = Gtk.TreeView(model=self.scroll.games)
-            for i, c in enumerate(gcols): # from https://developer.gnome.org/gnome-devel-demos/stable/treeview_simple_liststore.py.html.en
-                cell = Gtk.CellRendererText()
-                col = Gtk.TreeViewColumn(c, cell, text=i)
-                col.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
-                col.set_resizable(True)
-                col.set_reorderable(True)
-                col.set_sort_column_id(i)
-                if c == "appname":
-                    col.set_visible(False)
-                self.scroll.gview.append_column(col)
+        # add games to treeview
+        #self.scroll.gview = Gtk.TreeView(Gtk.TreeModelSort(model=self.scroll.games))
+        self.scroll.gview = Gtk.TreeView(model=self.scroll.games)
+        for i, c in enumerate(gcols): # from https://developer.gnome.org/gnome-devel-demos/stable/treeview_simple_liststore.py.html.en
+            cell = Gtk.CellRendererText()
+            col = Gtk.TreeViewColumn(c, cell, text=i)
+            col.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
+            col.set_resizable(True)
+            col.set_reorderable(True)
+            col.set_sort_column_id(i)
+            if c == "appname":
+                col.set_visible(False)
+            self.scroll.gview.append_column(col)
 
-            self.scroll.gview.connect("row-activated", self.on_tree_selection_changed)
-            self.scroll.gview.connect("button-press-event", self.context_menu)
+        self.scroll.gview.connect("row-activated", self.on_tree_selection_changed)
+        self.scroll.gview.connect("button-press-event", self.context_menu)
 
-            l = Gtk.Label()
-            l.set_text("")
-            g = Gtk.Grid()
-            g.attach(self.scroll.gview, 0, 0, 1, 1)
-            g.attach(l, 0, 1, 1, 1)
-            self.scroll.add(g)
-
-        self.cmenu = Gtk.Menu.new()
-
-        self.cm_item = Gtk.MenuItem.new_with_label('Launch')
-        self.cm_item.connect('activate', launch_gtk)
-        self.cmenu.append(self.cm_item)
-        self.cm_item = Gtk.MenuItem.new_with_label('Uninstall')
-        self.cm_item.connect('activate', uninstall_gtk)
-        self.cmenu.append(self.cm_item)
-        self.cm_item = Gtk.MenuItem.new_with_label('List files')
-        self.cm_item.connect('activate', list_files_gtk)
-        self.cmenu.append(self.cm_item)
-        self.cm_item = Gtk.MenuItem.new_with_label('Sync saves')
-        self.cm_item.connect('activate', sync_saves_gtk)
-        self.cmenu.append(self.cm_item)
-        self.cm_item = Gtk.MenuItem.new_with_label('Verify game')
-        self.cm_item.connect('activate', verify_game_gtk)
-        self.cmenu.append(self.cm_item)
-        
-        self.cmenu.show_all()
+        l = Gtk.Label()
+        l.set_text("")
+        g = Gtk.Grid()
+        g.attach(self.scroll.gview, 0, 0, 1, 1)
+        g.attach(l, 0, 1, 1, 1)
+        self.scroll.add(g)
+        return self.scroll
 
     def context_menu(self, selection, event):
         if event.type == Gdk.EventType.BUTTON_PRESS and event.button == 3:
@@ -1024,6 +1061,24 @@ class main_window(Gtk.Window):
                 app_name = model[treeiter][0]
                 app_title = model[treeiter][1]
                 print(app_title,app_name)
+
+            self.cm_item = Gtk.MenuItem.new_with_label('Launch')
+            self.cm_item.connect('activate', launch_gtk)
+            self.cmenu.append(self.cm_item)
+            self.cm_item = Gtk.MenuItem.new_with_label('Uninstall')
+            self.cm_item.connect('activate', uninstall_gtk, app_name, app_title, self)
+            self.cmenu.append(self.cm_item)
+            self.cm_item = Gtk.MenuItem.new_with_label('List files')
+            self.cm_item.connect('activate', list_files_gtk)
+            self.cmenu.append(self.cm_item)
+            self.cm_item = Gtk.MenuItem.new_with_label('Sync saves')
+            self.cm_item.connect('activate', sync_saves_gtk)
+            self.cmenu.append(self.cm_item)
+            self.cm_item = Gtk.MenuItem.new_with_label('Verify game')
+            self.cm_item.connect('activate', verify_game_gtk)
+            self.cmenu.append(self.cm_item)
+            
+            self.cmenu.show_all()
             self.cmenu.popup_at_pointer()
             print("ciao")
         
@@ -1048,7 +1103,7 @@ class main_window(Gtk.Window):
         self.destroy()
         main()
 
-    def on_tree_selection_changed(self, selection):
+    def on_tree_selection_changed(self, selection, dummy1, dummy2):
         model, treeiter = selection.get_selection().get_selected()
         if treeiter is not None:
             install_gtk(model[treeiter][0], model[treeiter][1], self)
