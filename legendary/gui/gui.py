@@ -888,6 +888,16 @@ def post_dlm(main_window):
 
     log_gtk(f'Finished installation process in {main_window.end_t - main_window.start_t:.02f} seconds.')
 
+def launch_gtk(app_name, app_title, parent):
+
+def uninstall_gtk(app_name, app_title, parent):
+
+def list_files_gtk(app_name, app_title, parent):
+
+def sync_saves_gtk(app_name, app_title, parent):
+
+def verify_game_gtk(app_name, app_title, parent):
+
 class main_window(Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self,title="Legendary")
@@ -988,13 +998,23 @@ class main_window(Gtk.Window):
             self.scroll.add(g)
 
         self.cmenu = Gtk.Menu.new()
-        menu_entries = {
-                'Uninstall': uninstall_gtk,
-                }
-        for entry, func in menu_entries:
-            self.cm_item = Gtk.MenuItem.new_with_label(entry)
-            self.cm_item.connect('activate', func)
-            self.cmenu.append(self.cm_item)
+
+        self.cm_item = Gtk.MenuItem.new_with_label('Launch')
+        self.cm_item.connect('activate', launch_gtk)
+        self.cmenu.append(self.cm_item)
+        self.cm_item = Gtk.MenuItem.new_with_label('Uninstall')
+        self.cm_item.connect('activate', uninstall_gtk)
+        self.cmenu.append(self.cm_item)
+        self.cm_item = Gtk.MenuItem.new_with_label('List files')
+        self.cm_item.connect('activate', list_files_gtk)
+        self.cmenu.append(self.cm_item)
+        self.cm_item = Gtk.MenuItem.new_with_label('Sync saves')
+        self.cm_item.connect('activate', sync_saves_gtk)
+        self.cmenu.append(self.cm_item)
+        self.cm_item = Gtk.MenuItem.new_with_label('Verify game')
+        self.cm_item.connect('activate', verify_game_gtk)
+        self.cmenu.append(self.cm_item)
+        
         self.cmenu.show_all()
 
     def context_menu(self, selection, event):
