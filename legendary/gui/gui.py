@@ -19,7 +19,7 @@ import legendary.cli
 core = legendary.core.LegendaryCore()
 cli = legendary.cli.LegendaryCLI()
 
-def update_gui(dlm, bar):
+def update_gui(par, bar):
                # perc,
                # processed_chunks, num_chunk_tasks,
                # rt_hours, rt_minutes, rt_seconds,
@@ -29,9 +29,27 @@ def update_gui(dlm, bar):
     print(f"update_gui_{bar}")
     #print(f"{dlm}")
     #print(f"dhexid:{hex(id(dlm.perc))}")
-    bar.set_fraction(dlm.perc)
+
+    perc = par.bar_queue.get()
+    processed_chunks = par.bar_queue.get()
+    num_chunk_tasks = par.bar_queue.get()
+    rt_hours = par.bar_queue.get()
+    rt_minutes = par.bar_queue.get()
+    rt_seconds = par.bar_queue.get()
+    hours = par.bar_queue.get()
+    minutes = par.bar_queue.get()
+    seconds = par.bar_queue.get()
+    total_dl = par.bar_queue.get()
+    total_write = par.bar_queue.get()
+    total_used = par.bar_queue.get()
+    dl_speed = par.bar_queue.get()
+    dl_unc_speed = par.bar_queue.get()
+    w_speed = par.bar_queue.get()
+    r_speed = par.bar_queue.get()
+    #obj_out = par.bar_queue.get()
+    bar.set_fraction(perc)
     #bar.set_fraction(perc)
-    bar.set_text(f"{dlm.dl_speed / 1024 / 1024:.02f} MiB/s - {(dlm.perc*100):.02f}% - ETA: {dlm.hours:02d}:{dlm.minutes:02d}:{dlm.seconds:02d}")
+    bar.set_text(f"{dl_speed / 1024 / 1024:.02f} MiB/s - {(perc*100):.02f}% - ETA: {hours:02d}:{minutes:02d}:{seconds:02d}")
     ##a## bar.set_text(f"{parent.values_dlm[0] / 1024 / 1024:.02f} MiB/s - {(parent.values_dlm[0]*100):.02f}% - ETA: {parent.values_dlm[6]:02d}:{parent.values_dlm[7]:02d}:{parent.values_dlm[8]:02d}")
     bar.set_tooltip_text("tooltip") # show all infos that are also in update_cli()
     print(bar.get_text())
@@ -795,7 +813,7 @@ def install_gtk(app_name, app_title, parent):
         ##a##                     0,
         ##a##                     0
         ##a##                     ]
-        parent.timeout_id = GLib.timeout_add(500, update_gui, dlm, parent.progress_bar)
+        parent.timeout_id = GLib.timeout_add(1000, update_gui, parent, parent.progress_bar)
         print("timeout_add -",parent.timeout_id)
         #dlm.join()
     except Exception as e:
@@ -870,6 +888,7 @@ class main_window(Gtk.Window):
         self.set_default_size(800, 600)
         self.box = Gtk.Box()
         self.add(self.box)
+        self.bar_queue = MPQueue(-1)
 
         logged = False
         try:
