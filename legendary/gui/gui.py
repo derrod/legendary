@@ -733,26 +733,27 @@ def install_gtk(app_name, app_title, parent):
     # parent.game is either up to date or hasn't changed, so we have nothing to do
     if not analysis.dl_size:
         old_igame = core.get_installed_game(parent.game.app_name)
-        #log_gtk('Download size is 0, the parent.game is either already up to date or has not changed. Exiting...')
-        print('Download size is 0, the parent.game is either already up to date or has not changed. Exiting...')
+        log_gtk(f'Download size is 0, {app_title} is either already up to date or has not changed.').show_all()
         if old_igame and parent.args.repair_mode and os.path.exists(repair_file):
             if old_igame.needs_verification:
                 old_igame.needs_verification = False
                 core.install_game(old_igame)
 
             #log_gtk('Removing repair file.')
-            print('Removing repair file.')
+            l=log_gtk('Removing repair file.')
             os.remove(repair_file)
+            l.destroy()
 
         # check if install tags have changed, if they did; try deleting files that are no longer required.
         if old_igame and old_igame.install_tags != parent.igame.install_tags:
             old_igame.install_tags = parent.igame.install_tags
             #log_gtk('Deleting now untagged files.')
-            print('Deleting now untagged files.')
+            l=log_gtk('Deleting now untagged files.')
             core.uninstall_tag(old_igame)
             core.install_game(old_igame)
+            l.destroy()
 
-        exit(0)
+        return 0
 
     print(f'Install size: {analysis.install_size / 1024 / 1024:.02f} MiB')
     compression = (1 - (analysis.dl_size / analysis.uncompressed_dl_size)) * 100
@@ -783,6 +784,41 @@ def install_gtk(app_name, app_title, parent):
 
     print('Downloads are resumable, you can interrupt the download with '
                 'CTRL-C and resume it using the same command later on.')
+
+    do_install_dialog = Gtk.MessageDialog(
+                                        parent=parent,
+                                        destroy_with_parent=True,
+                                        message_type=Gtk.MessageType.QUESTION,
+                                        buttons=Gtk.ButtonsType.OK_CANCEL,
+                                        text=f'Do you wish to install "{parent.igame.title}"?'
+                                      )
+    do_install_dialog.set_title(f"Install {app_title}")
+    do_install_dialog.set_default_size(400, 0)
+    box_stats = do_install_dialog.get_content_area()
+
+    box_stats.label = Gtk.Label(
+        label=f'Install size: {analysis.install_size / 1024 / 1024:.02f} MiB ({analysis.install_size / 1024 / 1024 / 1024:.03f} GiB)\n'
+              f'Download size: {analysis.dl_size / 1024 / 1024:.02f} MiB ({analysis.dl_size / 1024 / 1024 / 1024:.03f} GiB) (Compression savings: {compression:.01f}%)\n'
+              f'Reusable size: {analysis.reuse_size / 1024 / 1024:.02f} MiB (chunks) / {analysis.unchanged / 1024 / 1024:.02f} MiB (unchanged / skipped)'
+            )
+    box_stats.label.set_margin_start(10)
+    box_stats.label.set_margin_end(10)
+    box_stats.add(box_stats.label)
+
+    #box_stats.label = Gtk.Label(label=f'Install size: {analysis.install_size / 1024 / 1024:.02f} MiB')
+    #box_stats.add(box_stats.label)
+    #box_stats.label = Gtk.Label(label=f'Download size: {analysis.dl_size / 1024 / 1024:.02f} MiB (Compression savings: {compression:.01f}%)')
+    #box_stats.add(box_stats.label)
+    #box_stats.label = Gtk.Label(label=f'Reusable size: {analysis.reuse_size / 1024 / 1024:.02f} MiB (chunks) / {analysis.unchanged / 1024 / 1024:.02f} MiB (unchanged / skipped)')
+    #box_stats.add(box_stats.label)
+    do_install_dialog.show_all()
+    do_install_dialog_response = do_install_dialog.run()
+    if do_install_dialog_response != Gtk.ResponseType.OK:
+        do_install_dialog.destroy()
+        return 1
+    do_install_dialog.hide()
+    
+
 
     parent.start_t = time.time()
 #    GLib.idle_add(dlm_start, parent.args, dlm, start_t)
