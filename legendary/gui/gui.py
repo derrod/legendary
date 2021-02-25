@@ -9,6 +9,9 @@ sys.path.insert(1, '../..')
 import webbrowser
 import time
 from multiprocessing import freeze_support, Queue as MPQueue
+from distutils.util import strtobool
+import os
+import shlex
 
 import gi
 gi.require_version('Gtk', '3.0')
@@ -67,6 +70,7 @@ def update_gui(main_window, dlm):
     return True # since this is a timeout function
 
 class args_obj:
+    # install_parser
     base_path = ''
     game_folder = ''
     shared_memory = ''
@@ -92,17 +96,20 @@ class args_obj:
     ignore_space = ''
     disable_delta = ''
     reset_sdl = ''
+    # uninstall_parser
+    keep_files = False
+    # launch_parser
     offline = False
     skip_version_check = False
-    user_name_override = False
+    user_name_override = ''
     language = ''
     wrapper = os.environ.get('LGDRY_WRAPPER', None)
-    set_defaults = False
-    reset_defaults = False
+    set_defaults = ''
+    reset_defaults = ''
     wine_bin = os.environ.get('LGDRY_WINE_BINARY', None) if os.name != 'nt' else ''
     wine_pfx = os.environ.get('LGDRY_WINE_PREFIX', None) if os.name != 'nt' else ''
-    no_wine = strtobool(os.environ.get('LGDRY_NO_WINE', 'False') if os.name != 'nt' else True
-    executable_override = False
+    no_wine = strtobool(os.environ.get('LGDRY_NO_WINE', 'False')) if os.name != 'nt' else True
+    executable_override = ''
 
 def log_gtk(msg):
     dialog = Gtk.Dialog(title="Legendary Log")
@@ -946,6 +953,7 @@ def post_dlm(main_window):
 # launch
 #
 def launch_gtk(menu, app_name, app_title, parent):
+    parent.cmenu.destroy()
     igame = core.get_installed_game(app_name)
     if not igame:
         aprint(f'Game {app_name} is not currently installed!')
@@ -991,7 +999,8 @@ def launch_gtk(menu, app_name, app_title, parent):
                 return 1
 
     params, cwd, env = core.get_launch_parameters(app_name=app_name, offline=args.offline,
-                                                       extra_args=extra, user=args.user_name_override,
+                                                       extra_args=None, user=args.user_name_override,
+                                                       #extra_args=extra, user=args.user_name_override,
                                                        wine_bin=args.wine_bin, wine_pfx=args.wine_pfx,
                                                        language=args.language, wrapper=args.wrapper,
                                                        disable_wine=args.no_wine,
@@ -1029,9 +1038,11 @@ def launch_gtk(menu, app_name, app_title, parent):
 # dry launch
 #
 def dry_launch_gtk(menu, app_name, app_title, parent):
+    parent.cmenu.destroy()
     args = args_obj()
     params, cwd, env = core.get_launch_parameters(app_name=app_name, offline=args.offline,
-                                                       extra_args=extra, user=args.user_name_override,
+                                                       extra_args=None, user=args.user_name_override,
+                                                       #extra_args=extra, user=args.user_name_override,
                                                        wine_bin=args.wine_bin, wine_pfx=args.wine_pfx,
                                                        language=args.language, wrapper=args.wrapper,
                                                        disable_wine=args.no_wine,
@@ -1048,10 +1059,13 @@ def dry_launch_gtk(menu, app_name, app_title, parent):
 
     box_stats = launch_dryrun_dialog.get_content_area()
     box_stats.label = Gtk.Label(
-        label=f'Launch parameters: {shlex.join(params)}\n'
+        label=f'Launch parameters:\n{shlex.join(params)}\n\n'
               f'Working directory: {cwd}'
-              f'Environment overrides: {env}' if env else ""
+              #f'Environment overrides: {env}' if env else "" #TODO fix this
             )
+    box_stats.label.set_max_width_chars(40)
+    box_stats.label.set_line_wrap(True)
+    box_stats.label.set_selectable(True)
     box_stats.label.set_margin_start(10)
     box_stats.label.set_margin_end(10)
     box_stats.add(box_stats.label)
@@ -1063,11 +1077,13 @@ def dry_launch_gtk(menu, app_name, app_title, parent):
     print(f'Working directory: {cwd}')
     if env:
         print('Environment overrides:', env)
+    launch_dryrun_dialog.destroy()
 
 #
 # uninstall
 #
 def uninstall_gtk(menu, app_name, app_title, parent):
+    parent.cmenu.destroy()
     igame = core.get_installed_game(app_name)
     if not igame:
         log_gtk(f'Game {app_name} not installed, cannot uninstall!').show_all()
@@ -1089,7 +1105,6 @@ def uninstall_gtk(menu, app_name, app_title, parent):
         return 1
     uninstall_dialog.destroy()
     args = args_obj()
-    args.keep_files = 0
     
     try:
         # Remove DLC first so directory is empty when game uninstall runs
@@ -1253,7 +1268,7 @@ class main_window(Gtk.Window):
             
             self.cmenu.show_all()
             self.cmenu.popup_at_pointer()
-            print("ciao")
+            #print("ciao")
         
     def onclick_login(self, widget):
         webbrowser.open('https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect')
