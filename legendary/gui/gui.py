@@ -92,6 +92,17 @@ class args_obj:
     ignore_space = ''
     disable_delta = ''
     reset_sdl = ''
+    offline = False
+    skip_version_check = False
+    user_name_override = False
+    language = ''
+    wrapper = os.environ.get('LGDRY_WRAPPER', None)
+    set_defaults = False
+    reset_defaults = False
+    wine_bin = os.environ.get('LGDRY_WINE_BINARY', None) if os.name != 'nt' else ''
+    wine_pfx = os.environ.get('LGDRY_WINE_PREFIX', None) if os.name != 'nt' else ''
+    no_wine = strtobool(os.environ.get('LGDRY_NO_WINE', 'False') if os.name != 'nt' else True
+    executable_override = False
 
 def log_gtk(msg):
     dialog = Gtk.Dialog(title="Legendary Log")
@@ -931,8 +942,131 @@ def post_dlm(main_window):
 
     log_gtk(f'Finished installation process in {main_window.end_t - main_window.start_t:.02f} seconds.').show_all()
 
-def launch_gtk(app_name, app_title, parent): pass
+#
+# launch
+#
+def launch_gtk(menu, app_name, app_title, parent):
+    igame = core.get_installed_game(app_name)
+    if not igame:
+        aprint(f'Game {app_name} is not currently installed!')
+        print(f'Game {app_name} is not currently installed!')
+        return 1
 
+    if igame.is_dlc:
+        aprint(f'{app_name} is DLC; please launch the base game instead!')
+        print(f'{app_name} is DLC; please launch the base game instead!')
+        return 1
+
+    if not os.path.exists(igame.install_path):
+        aprint(f'Install directory "{igame.install_path}" appears to be deleted, cannot launch {app_name}!')
+        print(f'Install directory "{igame.install_path}" appears to be deleted, cannot launch {app_name}!')
+        return 1
+
+    if args.reset_defaults:
+        aprint(f'Removing configuration section for "{app_name}"...')
+        print(f'Removing configuration section for "{app_name}"...')
+        core.lgd.config.remove_section(app_name)
+        l.destroy()
+        return
+
+    # override with config value
+    args.offline = core.is_offline_game(app_name) or args.offline
+    if not args.offline:
+        if not core.login():
+            aprint('Login failed, cannot continue!')
+            print('Login failed, cannot continue!')
+            return 1
+
+        if not args.skip_version_check and not core.is_noupdate_game(app_name):
+            try:
+                latest = core.get_asset(app_name, update=True)
+            except ValueError:
+                aprint(f'Metadata for "{app_name}" does not exist, cannot launch!')
+                print(f'Metadata for "{app_name}" does not exist, cannot launch!')
+                return 1
+
+            if latest.build_version != igame.version:
+                aprint('Game is out of date, please update or launch with update check skipping!')
+                print('Game is out of date, please update or launch with update check skipping!')
+                return 1
+
+    params, cwd, env = core.get_launch_parameters(app_name=app_name, offline=args.offline,
+                                                       extra_args=extra, user=args.user_name_override,
+                                                       wine_bin=args.wine_bin, wine_pfx=args.wine_pfx,
+                                                       language=args.language, wrapper=args.wrapper,
+                                                       disable_wine=args.no_wine,
+                                                       executable_override=args.executable_override)
+
+    if args.set_defaults:
+        core.lgd.config[app_name] = dict()
+        # we have to do this if-cacophony here because an empty value is still
+        # valid and could cause issues when relying on config.get()'s fallback
+        if args.offline:
+            core.lgd.config[app_name]['offline'] = 'true'
+        if args.skip_version_check:
+            core.lgd.config[app_name]['skip_update_check'] = 'true'
+        if extra:
+            core.lgd.config[app_name]['start_params'] = shlex.join(extra)
+        if args.wine_bin:
+            core.lgd.config[app_name]['wine_executable'] = args.wine_bin
+        if args.wine_pfx:
+            core.lgd.config[app_name]['wine_prefix'] = args.wine_pfx
+        if args.no_wine:
+            core.lgd.config[app_name]['no_wine'] = 'true'
+        if args.language:
+            core.lgd.config[app_name]['language'] = args.language
+        if args.wrapper:
+            core.lgd.config[app_name]['wrapper'] = args.wrapper
+
+    #print(f'Launching {app_name}...')
+    #print(f'Launch parameters: {shlex.join(params)}')
+    #print(f'Working directory: {cwd}')
+    #if env:
+    #    print('Environment overrides:', env)
+    subprocess.Popen(params, cwd=cwd, env=env)
+
+#
+# dry launch
+#
+def dry_launch_gtk(menu, app_name, app_title, parent):
+    args = args_obj()
+    params, cwd, env = core.get_launch_parameters(app_name=app_name, offline=args.offline,
+                                                       extra_args=extra, user=args.user_name_override,
+                                                       wine_bin=args.wine_bin, wine_pfx=args.wine_pfx,
+                                                       language=args.language, wrapper=args.wrapper,
+                                                       disable_wine=args.no_wine,
+                                                       executable_override=args.executable_override)
+    launch_dryrun_dialog = Gtk.MessageDialog(
+                                        parent=parent,
+                                        destroy_with_parent=True,
+                                        message_type=Gtk.MessageType.INFO,
+                                        buttons=Gtk.ButtonsType.OK,
+                                        text=f'Launch parameters for {app_title}'
+                                      )
+    launch_dryrun_dialog.set_title(f"Launch parameters for {app_title}")
+    launch_dryrun_dialog.set_default_size(400, 0)
+
+    box_stats = launch_dryrun_dialog.get_content_area()
+    box_stats.label = Gtk.Label(
+        label=f'Launch parameters: {shlex.join(params)}\n'
+              f'Working directory: {cwd}'
+              f'Environment overrides: {env}' if env else ""
+            )
+    box_stats.label.set_margin_start(10)
+    box_stats.label.set_margin_end(10)
+    box_stats.add(box_stats.label)
+
+    launch_dryrun_dialog.show_all()
+    launch_dryrun_dialog_response = launch_dryrun_dialog.run()
+    print(f'Not Launching {app_name} (dry run)')
+    print(f'Launch parameters: {shlex.join(params)}')
+    print(f'Working directory: {cwd}')
+    if env:
+        print('Environment overrides:', env)
+
+#
+# uninstall
+#
 def uninstall_gtk(menu, app_name, app_title, parent):
     igame = core.get_installed_game(app_name)
     if not igame:
@@ -1099,19 +1233,22 @@ class main_window(Gtk.Window):
                 print(app_title,app_name)
 
             self.cm_item = Gtk.MenuItem.new_with_label('Launch')
-            self.cm_item.connect('activate', launch_gtk)
+            self.cm_item.connect('activate', launch_gtk, app_name, app_title, self)
+            self.cmenu.append(self.cm_item)
+            self.cm_item = Gtk.MenuItem.new_with_label('Dry launch')
+            self.cm_item.connect('activate', dry_launch_gtk, app_name, app_title, self)
             self.cmenu.append(self.cm_item)
             self.cm_item = Gtk.MenuItem.new_with_label('Uninstall')
             self.cm_item.connect('activate', uninstall_gtk, app_name, app_title, self)
             self.cmenu.append(self.cm_item)
             self.cm_item = Gtk.MenuItem.new_with_label('List files')
-            self.cm_item.connect('activate', list_files_gtk)
+            self.cm_item.connect('activate', list_files_gtk, app_name, app_title, self)
             self.cmenu.append(self.cm_item)
             self.cm_item = Gtk.MenuItem.new_with_label('Sync saves')
-            self.cm_item.connect('activate', sync_saves_gtk)
+            self.cm_item.connect('activate', sync_saves_gtk, app_name, app_title, self)
             self.cmenu.append(self.cm_item)
             self.cm_item = Gtk.MenuItem.new_with_label('Verify game')
-            self.cm_item.connect('activate', verify_game_gtk)
+            self.cm_item.connect('activate', verify_game_gtk, app_name, app_title, self)
             self.cmenu.append(self.cm_item)
             
             self.cmenu.show_all()
