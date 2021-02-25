@@ -1177,31 +1177,19 @@ class main_window(Gtk.Window):
             self.scroll = self.list_games()
 
         self.cmenu = Gtk.Menu.new()
-        self.cmenu.launch = Gtk.MenuItem.new_with_label('Launch')
-        self.cmenu.launch.connect('activate', self.context_menu_destroy, self)
-        self.cmenu.dry_launch = Gtk.MenuItem.new_with_label('Dry launch')
-        self.cmenu.dry_launch.connect('activate', self.context_menu_destroy, self)
-        self.cmenu.uninstall = Gtk.MenuItem.new_with_label('Uninstall')
-        self.cmenu.uninstall.connect('activate', self.context_menu_destroy, self)
-        self.cmenu.list_files = Gtk.MenuItem.new_with_label('List files')
-        self.cmenu.list_files.connect('activate', self.context_menu_destroy, self)
-        self.cmenu.sync_saves = Gtk.MenuItem.new_with_label('Sync saves')
-        self.cmenu.sync_saves.connect('activate', self.context_menu_destroy, self)
+        self.cmenu.launch      = Gtk.MenuItem.new_with_label('Launch')
+        self.cmenu.dry_launch  = Gtk.MenuItem.new_with_label('Dry launch')
+        self.cmenu.uninstall   = Gtk.MenuItem.new_with_label('Uninstall')
+        self.cmenu.list_files  = Gtk.MenuItem.new_with_label('List files')
+        self.cmenu.sync_saves  = Gtk.MenuItem.new_with_label('Sync saves')
         self.cmenu.verify_game = Gtk.MenuItem.new_with_label('Verify game')
-        self.cmenu.verify_game.connect('activate', self.context_menu_destroy, self)
-        self.cmenu.append(self.cmenu.cm_)
-        self.cmenu.append(self.cmenu.cm_)
-        self.cmenu.append(self.cmenu.cm_)
-        self.cmenu.append(self.cmenu.cm_)
-        self.cmenu.append(self.cmenu.cm_)
-        self.cmenu.append(self.cmenu.cm_)
+        self.cmenu.append(self.cmenu.launch)
+        self.cmenu.append(self.cmenu.dry_launch)
+        self.cmenu.append(self.cmenu.uninstall)
+        self.cmenu.append(self.cmenu.list_files)
+        self.cmenu.append(self.cmenu.sync_saves)
+        self.cmenu.append(self.cmenu.verify_game)
 
-        self.cm_item.connect('activate', launch_gtk, app_name, app_title, self)
-        self.cm_item.connect('activate', dry_launch_gtk, app_name, app_title, self)
-        self.cm_item.connect('activate', uninstall_gtk, app_name, app_title, self)
-        self.cm_item.connect('activate', list_files_gtk, app_name, app_title, self)
-        self.cm_item.connect('activate', sync_saves_gtk, app_name, app_title, self)
-        self.cm_item.connect('activate', verify_game_gtk, app_name, app_title, self)
 
     def list_games(self):
         # Games
@@ -1269,8 +1257,13 @@ class main_window(Gtk.Window):
                 app_name = model[treeiter][0]
                 app_title = model[treeiter][1]
                 print(app_title,app_name)
+            self.cmenu.launch      .connect('activate', launch_gtk, app_name, app_title, self)
+            self.cmenu.dry_launch  .connect('activate', dry_launch_gtk, app_name, app_title, self)
+            self.cmenu.uninstall   .connect('activate', uninstall_gtk, app_name, app_title, self)
+            self.cmenu.list_files  .connect('activate', list_files_gtk, app_name, app_title, self)
+            self.cmenu.sync_saves  .connect('activate', sync_saves_gtk, app_name, app_title, self)
+            self.cmenu.verify_game .connect('activate', verify_game_gtk, app_name, app_title, self)
 
-            
             self.cmenu.show_all()
             self.cmenu.popup_at_pointer()
             #print("ciao")
