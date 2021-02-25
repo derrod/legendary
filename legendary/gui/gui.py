@@ -953,7 +953,6 @@ def post_dlm(main_window):
 # launch
 #
 def launch_gtk(menu, app_name, app_title, parent):
-    parent.cmenu.destroy()
     igame = core.get_installed_game(app_name)
     if not igame:
         aprint(f'Game {app_name} is not currently installed!')
@@ -1038,7 +1037,6 @@ def launch_gtk(menu, app_name, app_title, parent):
 # dry launch
 #
 def dry_launch_gtk(menu, app_name, app_title, parent):
-    parent.cmenu.destroy()
     args = args_obj()
     params, cwd, env = core.get_launch_parameters(app_name=app_name, offline=args.offline,
                                                        extra_args=None, user=args.user_name_override,
@@ -1249,26 +1247,33 @@ class main_window(Gtk.Window):
 
             self.cm_item = Gtk.MenuItem.new_with_label('Launch')
             self.cm_item.connect('activate', launch_gtk, app_name, app_title, self)
+            self.cm_item.connect('activate', self.context_menu_destroy, self)
             self.cmenu.append(self.cm_item)
             self.cm_item = Gtk.MenuItem.new_with_label('Dry launch')
             self.cm_item.connect('activate', dry_launch_gtk, app_name, app_title, self)
+            self.cm_item.connect('activate', self.context_menu_destroy, self)
             self.cmenu.append(self.cm_item)
             self.cm_item = Gtk.MenuItem.new_with_label('Uninstall')
             self.cm_item.connect('activate', uninstall_gtk, app_name, app_title, self)
+            self.cm_item.connect('activate', self.context_menu_destroy, self)
             self.cmenu.append(self.cm_item)
             self.cm_item = Gtk.MenuItem.new_with_label('List files')
             self.cm_item.connect('activate', list_files_gtk, app_name, app_title, self)
+            self.cm_item.connect('activate', self.context_menu_destroy, self)
             self.cmenu.append(self.cm_item)
             self.cm_item = Gtk.MenuItem.new_with_label('Sync saves')
             self.cm_item.connect('activate', sync_saves_gtk, app_name, app_title, self)
+            self.cm_item.connect('activate', self.context_menu_destroy, self)
             self.cmenu.append(self.cm_item)
             self.cm_item = Gtk.MenuItem.new_with_label('Verify game')
             self.cm_item.connect('activate', verify_game_gtk, app_name, app_title, self)
+            self.cm_item.connect('activate', self.context_menu_destroy, self)
             self.cmenu.append(self.cm_item)
             
             self.cmenu.show_all()
             self.cmenu.popup_at_pointer()
             #print("ciao")
+    def context_menu_destroy(parent): parent.cmenu.destroy()
         
     def onclick_login(self, widget):
         webbrowser.open('https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect')
