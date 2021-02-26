@@ -952,25 +952,28 @@ def post_dlm(main_window):
 #
 # launch
 #
-def launch_gtk(menu, app_name, app_title, parent):
+def launch_gtk(menu, app_names, parent):
+    args = args_obj()
+    app_name = app_names[0]
+    app_title = app_names[1]
     igame = core.get_installed_game(app_name)
     if not igame:
-        aprint(f'Game {app_name} is not currently installed!')
+        log_gtk(f'Game {app_name} is not currently installed!').show_all()
         print(f'Game {app_name} is not currently installed!')
         return 1
 
     if igame.is_dlc:
-        aprint(f'{app_name} is DLC; please launch the base game instead!')
+        log_gtk(f'{app_name} is DLC; please launch the base game instead!').show_all()
         print(f'{app_name} is DLC; please launch the base game instead!')
         return 1
 
     if not os.path.exists(igame.install_path):
-        aprint(f'Install directory "{igame.install_path}" appears to be deleted, cannot launch {app_name}!')
+        log_gtk(f'Install directory "{igame.install_path}" appears to be deleted, cannot launch {app_name}!').show_all()
         print(f'Install directory "{igame.install_path}" appears to be deleted, cannot launch {app_name}!')
         return 1
 
     if args.reset_defaults:
-        aprint(f'Removing configuration section for "{app_name}"...')
+        log_gtk(f'Removing configuration section for "{app_name}"...').show_all()
         print(f'Removing configuration section for "{app_name}"...')
         core.lgd.config.remove_section(app_name)
         l.destroy()
@@ -980,7 +983,7 @@ def launch_gtk(menu, app_name, app_title, parent):
     args.offline = core.is_offline_game(app_name) or args.offline
     if not args.offline:
         if not core.login():
-            aprint('Login failed, cannot continue!')
+            log_gtk('Login failed, cannot continue!').show_all()
             print('Login failed, cannot continue!')
             return 1
 
@@ -988,12 +991,12 @@ def launch_gtk(menu, app_name, app_title, parent):
             try:
                 latest = core.get_asset(app_name, update=True)
             except ValueError:
-                aprint(f'Metadata for "{app_name}" does not exist, cannot launch!')
+                log_gtk(f'Metadata for "{app_name}" does not exist, cannot launch!').show_all()
                 print(f'Metadata for "{app_name}" does not exist, cannot launch!')
                 return 1
 
             if latest.build_version != igame.version:
-                aprint('Game is out of date, please update or launch with update check skipping!')
+                log_gtk('Game is out of date, please update or launch with update check skipping!').show_all()
                 print('Game is out of date, please update or launch with update check skipping!')
                 return 1
 
@@ -1039,7 +1042,51 @@ def launch_gtk(menu, app_name, app_title, parent):
 def dry_launch_gtk(menu, app_names, parent):
     args = args_obj()
     app_name = app_names[0]
-    app_title = app_names[0]
+    app_title = app_names[1]
+
+    igame = core.get_installed_game(app_name)
+    if not igame:
+        log_gtk(f'Game {app_name} ({app_title}) is not currently installed!').show_all()
+        print(f'Game {app_name} ({app_title}) is not currently installed!')
+        return 1
+
+    if igame.is_dlc:
+        log_gtk(f'{app_name} ({app_title}) is DLC; please launch the base game instead!').show_all()
+        print(f'{app_name} ({app_title}) is DLC; please launch the base game instead!')
+        return 1
+
+    if not os.path.exists(igame.install_path):
+        log_gtk(f'Install directory "{igame.install_path}" appears to be deleted, cannot launch {app_name}!').show_all()
+        print(f'Install directory "{igame.install_path}" appears to be deleted, cannot launch {app_name}!')
+        return 1
+
+    if args.reset_defaults:
+        log_gtk(f'Removing configuration section for "{app_name} ({app_title})"...').show_all()
+        print(f'Removing configuration section for "{app_name} ({app_title})"...')
+        core.lgd.config.remove_section(app_name)
+        l.destroy()
+        return
+
+    # override with config value
+    args.offline = core.is_offline_game(app_name) or args.offline
+    if not args.offline:
+        if not core.login():
+            log_gtk('Login failed, cannot continue!').show_all()
+            print('Login failed, cannot continue!')
+            return 1
+
+        if not args.skip_version_check and not core.is_noupdate_game(app_name):
+            try:
+                latest = core.get_asset(app_name, update=True)
+            except ValueError:
+                log_gtk(f'Metadata for "{app_name}" ({app_title}) does not exist, cannot launch!').show_all()
+                print(f'Metadata for "{app_name}" ({app_title}) does not exist, cannot launch!')
+                return 1
+
+            if latest.build_version != igame.version:
+                log_gtk('Game is out of date, please update or launch with update check skipping!').show_all()
+                print('Game is out of date, please update or launch with update check skipping!')
+                return 1
 
     params, cwd, env = core.get_launch_parameters(app_name=app_name, offline=args.offline,
                                                        extra_args=None, user=args.user_name_override,
