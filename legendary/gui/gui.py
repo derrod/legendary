@@ -1036,8 +1036,11 @@ def launch_gtk(menu, app_name, app_title, parent):
 #
 # dry launch
 #
-def dry_launch_gtk(menu, app_name, app_title, parent):
+def dry_launch_gtk(menu, app_names, parent):
     args = args_obj()
+    app_name = app_names[0]
+    app_title = app_names[0]
+
     params, cwd, env = core.get_launch_parameters(app_name=app_name, offline=args.offline,
                                                        extra_args=None, user=args.user_name_override,
                                                        #extra_args=extra, user=args.user_name_override,
@@ -1179,18 +1182,25 @@ class main_window(Gtk.Window):
         self.cmenu = Gtk.Menu.new()
         self.cmenu.app_name = ''
         self.cmenu.app_title = ''
+        self.cmenu.app_s = [0,0]
         self.cmenu.launch      = Gtk.MenuItem.new_with_label('Launch')
         self.cmenu.dry_launch  = Gtk.MenuItem.new_with_label('Dry launch')
         self.cmenu.uninstall   = Gtk.MenuItem.new_with_label('Uninstall')
         self.cmenu.list_files  = Gtk.MenuItem.new_with_label('List files')
         self.cmenu.sync_saves  = Gtk.MenuItem.new_with_label('Sync saves')
         self.cmenu.verify_game = Gtk.MenuItem.new_with_label('Verify game')
-        self.cmenu.launch     .connect('activate', launch_gtk, self.cmenu.app_name, self.cmenu.app_title, self)
-        self.cmenu.dry_launch .connect('activate', dry_launch_gtk, self.cmenu.app_name, self.cmenu.app_title, self)
-        self.cmenu.uninstall  .connect('activate', uninstall_gtk, self.cmenu.app_name, self.cmenu.app_title, self)
-        self.cmenu.list_files .connect('activate', list_files_gtk, self.cmenu.app_name, self.cmenu.app_title, self)
-        self.cmenu.sync_saves .connect('activate', sync_saves_gtk, self.cmenu.app_name, self.cmenu.app_title, self)
-        self.cmenu.verify_game.connect('activate', verify_game_gtk, self.cmenu.app_name, self.cmenu.app_title, self)
+        self.cmenu.launch     .connect('activate', launch_gtk, self.cmenu.app_s, self)
+        self.cmenu.dry_launch .connect('activate', dry_launch_gtk, self.cmenu.app_s, self)
+        self.cmenu.uninstall  .connect('activate', uninstall_gtk, self.cmenu.app_s, self)
+        self.cmenu.list_files .connect('activate', list_files_gtk, self.cmenu.app_s, self)
+        self.cmenu.sync_saves .connect('activate', sync_saves_gtk, self.cmenu.app_s, self)
+        self.cmenu.verify_game.connect('activate', verify_game_gtk, self.cmenu.app_s, self)
+        #self.cmenu.launch     .connect('activate', launch_gtk, self.cmenu.app_name, self.cmenu.app_title, self)
+        #self.cmenu.dry_launch .connect('activate', dry_launch_gtk, self.cmenu.app_name, self.cmenu.app_title, self)
+        #self.cmenu.uninstall  .connect('activate', uninstall_gtk, self.cmenu.app_name, self.cmenu.app_title, self)
+        #self.cmenu.list_files .connect('activate', list_files_gtk, self.cmenu.app_name, self.cmenu.app_title, self)
+        #self.cmenu.sync_saves .connect('activate', sync_saves_gtk, self.cmenu.app_name, self.cmenu.app_title, self)
+        #self.cmenu.verify_game.connect('activate', verify_game_gtk, self.cmenu.app_name, self.cmenu.app_title, self)
         self.cmenu.append(self.cmenu.launch)
         self.cmenu.append(self.cmenu.dry_launch)
         self.cmenu.append(self.cmenu.uninstall)
@@ -1262,8 +1272,8 @@ class main_window(Gtk.Window):
         if event.type == Gdk.EventType.BUTTON_PRESS and event.button == 3:
             model, treeiter = selection.get_selection().get_selected()
             if treeiter is not None:
-                self.cmenu.app_name = model[treeiter][0]
-                self.cmenu.app_title = model[treeiter][1]
+                self.cmenu.app_s[0] = self.cmenu.app_name = model[treeiter][0]
+                self.cmenu.app_s[1] = self.cmenu.app_title = model[treeiter][1]
                 print(self.cmenu.app_title,self.cmenu.app_name)
 
             self.cmenu.show_all()
