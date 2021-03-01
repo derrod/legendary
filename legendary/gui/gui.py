@@ -1182,10 +1182,16 @@ def list_files_gtk(menu, app_names, parent):
                                       )
     listfiles_dialog.set_title(f"List files for {app_title}")
     listfiles_dialog.set_default_size(400, 400)
-    #box_stats = listfiles_dialog.get_content_area()
-    #scrolled_window = Gtk.ScrolledWindow()
-    box_stats = Gtk.ScrolledWindow()
-    box_stats.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+    listfiles_dialog.set_resizable(True)
+    box_main = listfiles_dialog.get_content_area()
+    scrolled_window = Gtk.ScrolledWindow()
+    box_main.add(scrolled_window)
+    #box_stats = Gtk.ScrolledWindow()
+    scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+    box_stats = Gtk.VBox(spacing=0)
+    box_stats.set_hexpand(True)
+    box_stats.set_vexpand(True)
+    scrolled_window.add(box_stats)
 
     if args.hashlist:
         for fm in files:
@@ -1208,14 +1214,14 @@ def list_files_gtk(menu, app_names, parent):
     else:
         install_tags = set()
         for fm in files:
-            print(fm.filename)
+            #print(fm.filename)
             box_stats.label = Gtk.Label(label=f'{fm.filename}')
             #box_stats.label.set_max_width_chars(60)
             box_stats.label.set_line_wrap(True)
             box_stats.label.set_selectable(True)
             box_stats.label.set_margin_start(10)
-            box_stats.label.set_margin_bottom(0)
-            box_stats.label.set_margin_top(0)
+            #box_stats.label.set_margin_bottom(0)
+            #box_stats.label.set_margin_top(0)
             box_stats.label.set_margin_end(10)
             box_stats.add(box_stats.label)
             for t in fm.install_tags:
