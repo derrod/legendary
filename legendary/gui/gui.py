@@ -1181,17 +1181,23 @@ def list_files_gtk(menu, app_names, parent):
                                         text=f"List {app_title}'s files"
                                       )
     listfiles_dialog.set_title(f"List files for {app_title}")
-    listfiles_dialog.set_default_size(400, 400)
+    listfiles_dialog.set_default_size(600, 400)
     listfiles_dialog.set_resizable(True)
     box_main = listfiles_dialog.get_content_area()
     scrolled_window = Gtk.ScrolledWindow()
     box_main.add(scrolled_window)
-    #box_stats = Gtk.ScrolledWindow()
     scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-    box_stats = Gtk.VBox(spacing=0)
-    box_stats.set_hexpand(True)
-    box_stats.set_vexpand(True)
-    scrolled_window.add(box_stats)
+    scrolled_window.set_hexpand(True)
+    scrolled_window.set_vexpand(True)
+    scrolled_window.label = Gtk.Label()
+    scrolled_window.label.set_max_width_chars(60)
+    scrolled_window.label.set_line_wrap(True)
+    scrolled_window.label.set_selectable(True)
+    scrolled_window.label.set_margin_start(10)
+    scrolled_window.label.set_margin_bottom(0)
+    scrolled_window.label.set_margin_top(0)
+    scrolled_window.label.set_margin_end(10)
+    scrolled_window.add(scrolled_window.label)
 
     if args.hashlist:
         for fm in files:
@@ -1215,15 +1221,7 @@ def list_files_gtk(menu, app_names, parent):
         install_tags = set()
         for fm in files:
             #print(fm.filename)
-            box_stats.label = Gtk.Label(label=f'{fm.filename}')
-            #box_stats.label.set_max_width_chars(60)
-            box_stats.label.set_line_wrap(True)
-            box_stats.label.set_selectable(True)
-            box_stats.label.set_margin_start(10)
-            #box_stats.label.set_margin_bottom(0)
-            #box_stats.label.set_margin_top(0)
-            box_stats.label.set_margin_end(10)
-            box_stats.add(box_stats.label)
+            scrolled_window.label.set_text(scrolled_window.label.get_text()+f"\n{fm.filename}")
             for t in fm.install_tags:
                 install_tags.add(t)
         if install_tags:
