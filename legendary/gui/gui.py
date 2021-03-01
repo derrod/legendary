@@ -9,7 +9,6 @@ sys.path.insert(1, '../..')
 import webbrowser
 import time
 from multiprocessing import freeze_support, Queue as MPQueue
-from distutils.util import strtobool
 import os
 import shlex
 
@@ -19,6 +18,7 @@ from gi.repository import Gtk, GLib, Gdk
 
 import legendary.core
 import legendary.cli
+from legendary.gui.vars import args_obj
 core = legendary.core.LegendaryCore()
 cli = legendary.cli.LegendaryCLI()
 
@@ -68,48 +68,6 @@ def update_gui(main_window, dlm):
         print("finished post_dlm and update_gui")
         return False
     return True # since this is a timeout function
-
-class args_obj:
-    # install_parser
-    base_path = ''
-    game_folder = ''
-    shared_memory = ''
-    max_workers = ''
-    override_manifest = ''
-    override_old_manifest = ''
-    override_delta_manifest = ''
-    override_base_url = ''
-    force = ''
-    disable_patching = ''
-    no_install = ''
-    update_only = ''
-    dlm_debug = ''
-    platform_override = ''
-    file_prefix = ''
-    file_exclude_prefix = ''
-    install_tag = ''
-    order_opt = ''
-    dl_timeout = ''
-    save_path = ''
-    repair_mode = ''
-    repair_and_update = ''
-    ignore_space = ''
-    disable_delta = ''
-    reset_sdl = ''
-    # uninstall_parser
-    keep_files = False
-    # launch_parser
-    offline = False
-    skip_version_check = False
-    user_name_override = ''
-    language = ''
-    wrapper = os.environ.get('LGDRY_WRAPPER', None)
-    set_defaults = ''
-    reset_defaults = ''
-    wine_bin = os.environ.get('LGDRY_WINE_BINARY', None) if os.name != 'nt' else ''
-    wine_pfx = os.environ.get('LGDRY_WINE_PREFIX', None) if os.name != 'nt' else ''
-    no_wine = strtobool(os.environ.get('LGDRY_NO_WINE', 'False')) if os.name != 'nt' else True
-    executable_override = ''
 
 def log_gtk(msg):
     dialog = Gtk.Dialog(title="Legendary Log")
@@ -1130,8 +1088,9 @@ def dry_launch_gtk(menu, app_names, parent):
 #
 # uninstall
 #
-def uninstall_gtk(menu, app_name, app_title, parent):
-    parent.cmenu.destroy()
+def uninstall_gtk(menu, app_names, parent):
+    app_name = app_names[0]
+    app_title = app_names[1]
     igame = core.get_installed_game(app_name)
     if not igame:
         log_gtk(f'Game {app_name} not installed, cannot uninstall!').show_all()
@@ -1176,7 +1135,98 @@ def uninstall_gtk(menu, app_name, app_title, parent):
         print(f'Removing game failed: {e!r}, please remove {igame.install_path} manually.')
         log_gtk(f'Removing game failed: {e!r}, please remove {igame.install_path} manually.').show_all()
 
-def list_files_gtk(app_name, app_title, parent): pass
+def list_files_gtk(menu, app_names, parent):
+    args = args_obj()
+    app_name = app_names[0]
+    app_title = app_names[1]
+    if args.platform_override:
+        args.force_download = True
+
+    if not args.override_manifest and not app_name:
+        print('You must provide either a manifest url/path or app name!')
+        return
+
+    # check if we even need to log in
+    if args.override_manifest:
+        print(f'Loading manifest from "{args.override_manifest}"')
+        manifest_data, _ = core.get_uri_manifest(args.override_manifest)
+    elif core.is_installed(app_name) and not args.force_download:
+        print(f'Loading installed manifest for "{app_name}"')
+        manifest_data, _ = core.get_installed_manifest(app_name)
+    else:
+        print(f'Logging in and downloading manifest for {app_name}')
+        if not core.login():
+            print('Login failed! Cannot continue with download process.')
+            log_gtk('Login failed! Cannot continue with download process.').show_all()
+            return 1
+        game = core.get_game(app_name, update_meta=True)
+        if not game:
+            print(f'Could not fetch metadata for "{app_name}" (check spelling/account ownership)')
+            log_gtk(f'Could not fetch metadata for "{app_name}" (check spelling/account ownership)').show_all()
+            return 1
+        manifest_data, _ = core.get_cdn_manifest(game, platform_override=args.platform_override)
+
+    manifest = core.load_manifest(manifest_data)
+    files = sorted(manifest.file_manifest_list.elements,
+                   key=lambda a: a.filename.lower())
+
+    if args.install_tag:
+        files = [fm for fm in files if args.install_tag in fm.install_tags]
+
+    listfiles_dialog = Gtk.MessageDialog(
+                                        parent=parent,
+                                        destroy_with_parent=True,
+                                        message_type=Gtk.MessageType.INFO,
+                                        buttons=Gtk.ButtonsType.OK,
+                                        text=f"List {app_title}'s files"
+                                      )
+    listfiles_dialog.set_title(f"List files for {app_title}")
+    listfiles_dialog.set_default_size(400, 400)
+    #box_stats = listfiles_dialog.get_content_area()
+    #scrolled_window = Gtk.ScrolledWindow()
+    box_stats = Gtk.ScrolledWindow()
+    box_stats.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+
+    if args.hashlist:
+        for fm in files:
+            print(f'{fm.hash.hex()} *{fm.filename}')
+    elif args.csv or args.tsv:
+        writer = csv.writer(stdout, dialect='excel-tab' if args.tsv else 'excel')
+        writer.writerow(['path', 'hash', 'size', 'install_tags'])
+        writer.writerows((fm.filename, fm.hash.hex(), fm.file_size, '|'.join(fm.install_tags)) for fm in files)
+    elif args.json:
+        _files = []
+        for fm in files:
+            _files.append(dict(
+                filename=fm.filename,
+                sha_hash=fm.hash.hex(),
+                install_tags=fm.install_tags,
+                file_size=fm.file_size,
+                flags=fm.flags,
+            ))
+        print(json.dumps(_files, sort_keys=True, indent=2))
+    else:
+        install_tags = set()
+        for fm in files:
+            print(fm.filename)
+            box_stats.label = Gtk.Label(label=f'{fm.filename}')
+            #box_stats.label.set_max_width_chars(60)
+            box_stats.label.set_line_wrap(True)
+            box_stats.label.set_selectable(True)
+            box_stats.label.set_margin_start(10)
+            box_stats.label.set_margin_bottom(0)
+            box_stats.label.set_margin_top(0)
+            box_stats.label.set_margin_end(10)
+            box_stats.add(box_stats.label)
+            for t in fm.install_tags:
+                install_tags.add(t)
+        if install_tags:
+            # use the log output so this isn't included when piping file list into file
+            print(f'Install tags: {", ".join(sorted(install_tags))}')
+            log_gtk(f'Install tags: {", ".join(sorted(install_tags))}').show_all()
+    listfiles_dialog.show_all()
+    listfiles_dialog_response = listfiles_dialog.run()
+    listfiles_dialog.destroy()
 
 def sync_saves_gtk(app_name, app_title, parent): pass
 
