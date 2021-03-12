@@ -111,7 +111,6 @@ def update_avail(app_name):
     else:
         return ""
 
-# TODO: finish actual install
 def install_gtk(app_name, app_title, parent):
     install_dialog = Gtk.MessageDialog( parent=parent,
                                         destroy_with_parent=True,
