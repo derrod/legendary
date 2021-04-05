@@ -537,7 +537,7 @@ class LegendaryCLI:
 
             if exe_name is not None:
                 start = str(time.time()).split(".")[0]
-                RPC.update(large_image="legendarylogofull", large_text=app_title, state="via Legendary on " + platform.system(), details=app_title, start=start)
+                RPC.update(large_image="legendarylogo", large_text=app_title, state="via Legendary on " + platform.system(), details=app_title, start=start)
                 while True:
                     game_running = False
                     pids = psutil.pids()
