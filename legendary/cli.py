@@ -10,11 +10,17 @@ import shlex
 import subprocess
 import time
 import webbrowser
+from pypresence import Presence
+import platform
+# import threading
+import psutil
+# import asyncio
 
 from distutils.util import strtobool
 from getpass import getuser
 from logging.handlers import QueueListener
 from multiprocessing import freeze_support, Queue as MPQueue
+from multiprocessing import Process
 from sys import exit, stdout
 
 from legendary import __version__, __codename__
@@ -510,7 +516,46 @@ class LegendaryCLI:
             logger.debug(f'Working directory: {cwd}')
             if env:
                 logger.debug('Environment overrides:', env)
+
+            rpc = Process(target=self.startRPC, args=(app_name, params))
+            rpc.start()
+
             subprocess.Popen(params, cwd=cwd, env=env)
+
+    def startRPC(self, app_name, params):
+        try:
+            RPC = Presence('828711025863688192')
+            RPC.connect()
+
+            app_title = self.core.get_game(app_name).app_title
+
+            exe_name = None
+            for i in range(len(params)):
+                if params[i].endswith('.exe'):
+                    exe_name = os.path.basename(params[i])
+                    break
+
+            if exe_name is not None:
+                start = str(time.time()).split(".")[0]
+                RPC.update(large_image="legendarylogofull", large_text=app_title, state="via Legendary on " + platform.system(), details=app_title, start=start)
+                while True:
+                    game_running = False
+                    pids = psutil.pids()
+                    for i in range(len(pids)):
+                        try:
+                            p = psutil.Process(pids[i])
+                            if p.cmdline()[0].find(exe_name) != -1:
+                                # Game is running
+                                game_running = True
+                                break
+                        except Exception:
+                            pass
+                    if game_running is True:
+                        time.sleep(5)
+                    else:
+                        break
+        except Exception as e:
+            print(f'Warning: {e} on Discord RPC start')
 
     def install_game(self, args):
         if self.core.is_installed(args.app_name):
