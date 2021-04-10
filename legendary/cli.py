@@ -42,7 +42,6 @@ class LegendaryCLI:
         self.core = LegendaryCore()
         self.logger = logging.getLogger('cli')
         self.logging_queue = None
-        self.finish_rpc = False
 
     def setup_threaded_logging(self):
         self.logging_queue = MPQueue(-1)
