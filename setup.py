@@ -37,8 +37,7 @@ setup(
         'requests<3.0',
         'setuptools',
         'wheel',
-        'pypresence',
-        'psutil'
+        'pypresence'
     ],
     url='https://github.com/derrod/legendary',
     description='Free and open-source replacement for the Epic Games Launcher application',

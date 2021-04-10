@@ -12,15 +12,12 @@ import time
 import webbrowser
 from pypresence import Presence
 import platform
-# import threading
-import psutil
-# import asyncio
 
 from distutils.util import strtobool
 from getpass import getuser
 from logging.handlers import QueueListener
 from multiprocessing import freeze_support, Queue as MPQueue
-from multiprocessing import Process
+from multiprocessing import Process, Manager
 from sys import exit, stdout
 
 from legendary import __version__, __codename__
@@ -45,6 +42,7 @@ class LegendaryCLI:
         self.core = LegendaryCore()
         self.logger = logging.getLogger('cli')
         self.logging_queue = None
+        self.finish_rpc = False
 
     def setup_threaded_logging(self):
         self.logging_queue = MPQueue(-1)
@@ -517,43 +515,35 @@ class LegendaryCLI:
             if env:
                 logger.debug('Environment overrides:', env)
 
-            rpc = Process(target=self.startRPC, args=(app_name, params))
-            rpc.start()
+            manager = Manager()
+            ns = manager.Namespace()
+            ns.finish_rpc = False
 
-            subprocess.Popen(params, cwd=cwd, env=env)
+            if not args.disable_rpc:
+                rpc = Process(target=self.startRPC, args=(app_name, ns))
+                rpc.start()
 
-    def startRPC(self, app_name, params):
+            game_process = subprocess.Popen(params, cwd=cwd, env=env)
+            game_process.wait()
+
+            if not args.disable_rpc:
+                ns.finish_rpc = True
+                rpc.join()
+
+
+    def startRPC(self, app_name, ns):
         try:
             RPC = Presence('828711025863688192')
             RPC.connect()
 
             app_title = self.core.get_game(app_name).app_title
 
-            exe_name = None
-            for i in range(len(params)):
-                if params[i].endswith('.exe'):
-                    exe_name = os.path.basename(params[i])
-                    break
+            start = str(time.time()).split(".")[0]
+            RPC.update(large_image="legendarylogo", large_text=app_title, state="via Legendary on " + platform.system(), details=app_title, start=start)
 
-            if exe_name is not None:
-                start = str(time.time()).split(".")[0]
-                RPC.update(large_image="legendarylogo", large_text=app_title, state="via Legendary on " + platform.system(), details=app_title, start=start)
-                while True:
-                    game_running = False
-                    pids = psutil.pids()
-                    for i in range(len(pids)):
-                        try:
-                            p = psutil.Process(pids[i])
-                            if p.cmdline()[0].find(exe_name) != -1:
-                                # Game is running
-                                game_running = True
-                                break
-                        except Exception:
-                            pass
-                    if game_running is True:
-                        time.sleep(5)
-                    else:
-                        break
+            while not ns.finish_rpc:
+                time.sleep(1)
+
         except Exception as e:
             print(f'Warning: {e} on Discord RPC start')
 
@@ -1250,6 +1240,8 @@ def main():
                                help='Reset config settings for app and exit')
     launch_parser.add_argument('--override-exe', dest='executable_override', action='store', metavar='<exe path>',
                                help='Override executable to launch (relative path)')
+    launch_parser.add_argument('--disable-rpc', dest='disable_rpc', action='store_true',
+                               help='Disable Discord Rich Presence')
 
     if os.name != 'nt':
         launch_parser.add_argument('--wine', dest='wine_bin', action='store', metavar='<wine binary>',
