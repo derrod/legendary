@@ -514,6 +514,7 @@ class LegendaryCLI:
             if env:
                 logger.debug('Environment overrides:', env)
 
+            # Variable to tell the Discord RPC to disconnect
             manager = Manager()
             ns = manager.Namespace()
             ns.finish_rpc = False
@@ -523,8 +524,10 @@ class LegendaryCLI:
                 rpc.start()
 
             game_process = subprocess.Popen(params, cwd=cwd, env=env)
+            # Wait for game process to end
             game_process.wait()
 
+            # Tell Discord RPC to stop if it's running
             if not args.disable_rpc:
                 ns.finish_rpc = True
                 rpc.join()
@@ -532,18 +535,24 @@ class LegendaryCLI:
 
     def startRPC(self, app_name, ns):
         try:
+            # Discord app Client ID goes here
+            # A Discord app can be made at https://discord.com/developers/applications
             RPC = Presence('828711025863688192')
             RPC.connect()
 
+            # Get readable app title from app name
             app_title = self.core.get_game(app_name).app_title
 
+            # Start time of playing game
             start = str(time.time()).split(".")[0]
             RPC.update(large_image="legendarylogo", large_text=app_title, state="via Legendary on " + platform.system(), details=app_title, start=start)
 
+            # This will block forever until ns.finish_rpc is True so that the Discord RPC doesn't disconnect, but this is fine since this function is run in parallel as a separate process
             while not ns.finish_rpc:
                 time.sleep(1)
 
         except Exception as e:
+            # Catch all errors, like not being able to detect Discord, and display a warning
             print(f'Warning: {e} on Discord RPC start')
 
     def install_game(self, args):
