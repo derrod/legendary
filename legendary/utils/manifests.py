@@ -20,8 +20,19 @@ def combine_manifests(base_manifest: Manifest, delta_manifest: Manifest):
     base_manifest.file_manifest_list.count = len(base_manifest.file_manifest_list.elements)
     base_manifest.file_manifest_list._path_map = None
 
-    # add chunks from delta manifest to main manifest and again clear path caches
-    base_manifest.chunk_data_list.elements.extend(delta_manifest.chunk_data_list.elements)
+    # ensure guid map exists
+    try:
+        base_manifest.chunk_data_list.get_chunk_by_guid(0)
+    except:
+        pass
+
+    # add new chunks from delta manifest to main manifest and again clear maps and update count
+    existing_chunk_guids = base_manifest.chunk_data_list._guid_int_map.keys()
+
+    for chunk in delta_manifest.chunk_data_list.elements:
+        if chunk.guid_num not in existing_chunk_guids:
+            base_manifest.chunk_data_list.elements.append(chunk)
+
     base_manifest.chunk_data_list.count = len(base_manifest.chunk_data_list.elements)
     base_manifest.chunk_data_list._guid_map = None
     base_manifest.chunk_data_list._guid_int_map = None
