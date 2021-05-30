@@ -2,12 +2,12 @@
 
 import json
 import os
-import configparser
 import logging
 
 from pathlib import Path
 
 from legendary.models.game import *
+from legendary.utils.config import LGDConf
 from legendary.utils.lfs import clean_filename
 
 
@@ -29,7 +29,7 @@ class LGDLFS:
         # EGS metadata
         self._game_metadata = dict()
         # Config with game specific settings (e.g. start parameters, env variables)
-        self.config = configparser.ConfigParser(comment_prefixes='/', allow_no_value=True)
+        self.config = LGDConf(comment_prefixes='/', allow_no_value=True)
         self.config.optionxform = str
 
         # ensure folders exist.
@@ -65,7 +65,14 @@ class LGDLFS:
                                  f'{e!r}, please remove manually')
 
         # try loading config
-        self.config.read(os.path.join(self.path, 'config.ini'))
+        try:
+            self.config.read(os.path.join(self.path, 'config.ini'))
+        except Exception as e:
+            self.log.error(f'Unable to read configuration file, please ensure that file is valid! '
+                           f'(Error: {repr(e)})')
+            self.log.warning(f'Continuing with blank config in safe-mode...')
+            self.config.read_only = True
+
         # make sure "Legendary" section exists
         if 'Legendary' not in self.config:
             self.config['Legendary'] = dict()
@@ -261,6 +268,16 @@ class LGDLFS:
         return [InstalledGame.from_json(i) for i in self._installed.values()]
 
     def save_config(self):
+        # do not save if in read-only mode or file hasn't changed
+        if self.config.read_only or not self.config.modified:
+            return
+        # if config file has been modified externally, back-up the user-modified version before writing
+        if (modtime := int(os.stat(os.path.join(self.path, 'config.ini')).st_mtime)) != self.config.modtime:
+            new_filename = f'config.{modtime}.ini'
+            self.log.warning(f'Configuration file has been modified while legendary was running, '
+                             f'user-modified config will be renamed to "{new_filename}"...')
+            os.rename(os.path.join(self.path, 'config.ini'), os.path.join(self.path, new_filename))
+
         with open(os.path.join(self.path, 'config.ini'), 'w') as cf:
             self.config.write(cf)
 
