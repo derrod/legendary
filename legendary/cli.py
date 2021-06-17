@@ -532,7 +532,7 @@ class LegendaryCLI:
             logger.error('Login failed! Cannot continue with download process.')
             exit(1)
 
-        if args.file_prefix or args.file_exclude_prefix or args.install_tag:
+        if args.file_prefix or args.file_exclude_prefix:
             args.no_install = True
 
         if args.update_only:
@@ -588,6 +588,18 @@ class LegendaryCLI:
                     self.core.lgd.config[game.app_name] = dict()
                 self.core.lgd.config.set(game.app_name, 'install_tags', ','.join(args.install_tag))
             else:
+                args.install_tag = config_tags.split(',')
+        elif args.install_tag and not game.is_dlc and not args.no_install:
+            config_tags = ','.join(args.install_tag)
+            logger.info(f'Saving install tags for "{game.app_name}" to config: {config_tags}')
+            self.core.lgd.config.set(game.app_name, 'install_tags', config_tags)
+        elif not game.is_dlc:
+            config_tags = self.core.lgd.config.get(game.app_name, 'install_tags', fallback=None)
+            if config_tags and args.reset_sdl:
+                logger.info('Clearing install tags from config.')
+                self.core.lgd.config.remove_option(game.app_name, 'install_tags')
+            elif config_tags:
+                logger.info(f'Using install tags from config: {config_tags}')
                 args.install_tag = config_tags.split(',')
 
         logger.info('Preparing download...')

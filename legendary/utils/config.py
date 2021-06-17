@@ -23,6 +23,13 @@ class LGDConf(configparser.ConfigParser):
         self.modified = True
         super().set(*args, **kwargs)
 
+    def remove_option(self, section, option):
+        if self.read_only:
+            return False
+
+        self.modified = True
+        return super().remove_option(section, option)
+
     def __setitem__(self, key, value):
         if self.read_only:
             return
