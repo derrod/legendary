@@ -800,7 +800,16 @@ class LegendaryCLI:
                        key=lambda a: a.filename.lower())
 
         # build list of hashes
-        file_list = [(f.filename, f.sha_hash.hex()) for f in files]
+        if config_tags := self.core.lgd.config.get(args.app_name, 'install_tags', fallback=None):
+            install_tags = set(i.strip() for i in config_tags.split(','))
+            file_list = [
+                (f.filename, f.sha_hash.hex())
+                for f in files
+                if any(it in install_tags for it in f.install_tags) or not f.install_tags
+            ]
+        else:
+            file_list = [(f.filename, f.sha_hash.hex()) for f in files]
+
         total = len(file_list)
         num = 0
         failed = []
