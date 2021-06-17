@@ -21,7 +21,7 @@ from legendary.api.egs import EPCAPI
 from legendary.downloader.manager import DLManager
 from legendary.lfs.egl import EPCLFS
 from legendary.lfs.lgndry import LGDLFS
-from legendary.utils.lfs import clean_filename, delete_folder, delete_filelist
+from legendary.utils.lfs import clean_filename, delete_folder, delete_filelist, get_dir_size
 from legendary.models.downloading import AnalysisResult, ConditionCheckResult
 from legendary.models.egl import EGLManifest
 from legendary.models.exceptions import *
@@ -888,7 +888,9 @@ class LegendaryCore:
         # check if enough disk space is free (dl size is the approximate amount the installation will grow)
         min_disk_space = analysis.install_size
         if updating:
-            min_disk_space += analysis.biggest_file_size
+            current_size = get_dir_size(install.install_path)
+            delta = max(0, analysis.install_size - current_size)
+            min_disk_space = delta + analysis.biggest_file_size
 
         # todo when resuming, only check remaining files
         _, _, free = shutil.disk_usage(os.path.split(install.install_path)[0])

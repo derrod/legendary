@@ -5,6 +5,7 @@ import shutil
 import hashlib
 import logging
 
+from pathlib import Path
 from typing import List, Iterator
 
 from legendary.models.game import VerifyResult
@@ -116,3 +117,7 @@ def validate_files(base_path: str, filelist: List[tuple], hash_type='sha1') -> I
 
 def clean_filename(filename):
     return ''.join(i for i in filename if i not in '<>:"/\\|?*')
+
+
+def get_dir_size(path):
+    return sum(f.stat().st_size for f in Path(path).glob('**/*') if f.is_file())
