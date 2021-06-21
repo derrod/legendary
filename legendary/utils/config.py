@@ -1,5 +1,6 @@
 import configparser
 import os
+import time
 
 
 class LGDConf(configparser.ConfigParser):
@@ -15,6 +16,11 @@ class LGDConf(configparser.ConfigParser):
             self.modtime = int(os.stat(filename).st_mtime)
 
         return super().read(filename)
+
+    def write(self, *args, **kwargs):
+        self.modified = False
+        super().write(*args, **kwargs)
+        self.modtime = int(time.time())
 
     def set(self, *args, **kwargs):
         if self.read_only:
