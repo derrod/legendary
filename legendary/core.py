@@ -11,7 +11,6 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from locale import getdefaultlocale
 from multiprocessing import Queue
-from random import choice as randchoice
 from requests import session
 from requests.exceptions import HTTPError
 from typing import List, Dict
@@ -705,7 +704,7 @@ class LegendaryCore:
                          dl_optimizations: bool = False, dl_timeout: int = 10,
                          repair: bool = False, repair_use_latest: bool = False,
                          disable_delta: bool = False, override_delta_manifest: str = '',
-                         egl_guid: str = '') -> (DLManager, AnalysisResult, ManifestMeta):
+                         egl_guid: str = '', preferred_cdn: str = None) -> (DLManager, AnalysisResult, ManifestMeta):
         # load old manifest
         old_manifest = None
 
@@ -724,8 +723,7 @@ class LegendaryCore:
             else:
                 old_manifest = self.load_manifest(old_bytes)
 
-        base_urls = list(game.base_urls)  # copy list for manipulation
-
+        base_urls = game.base_urls
         if override_manifest:
             self.log.info(f'Overriding manifest with "{override_manifest}"')
             new_manifest_data, _base_urls = self.get_uri_manifest(override_manifest)
@@ -733,8 +731,8 @@ class LegendaryCore:
             if _base_urls:
                 base_urls = _base_urls
         else:
-            new_manifest_data, _base_urls = self.get_cdn_manifest(game, platform_override)
-            base_urls.extend(i for i in _base_urls if i not in base_urls)
+            new_manifest_data, base_urls = self.get_cdn_manifest(game, platform_override)
+            # overwrite base urls in metadata with current ones to avoid using old/dead CDNs
             game.base_urls = base_urls
             # save base urls to game metadata
             self.lgd.set_game_meta(game.app_name, game)
@@ -755,7 +753,7 @@ class LegendaryCore:
                 self.log.info(f'Overriding delta manifest with "{override_delta_manifest}"')
                 delta_manifest_data, _ = self.get_uri_manifest(override_delta_manifest)
             else:
-                delta_manifest_data = self.get_delta_manifest(randchoice(base_urls),
+                delta_manifest_data = self.get_delta_manifest(base_urls[0],
                                                               old_manifest.meta.build_id,
                                                               new_manifest.meta.build_id)
             if delta_manifest_data:
@@ -809,14 +807,22 @@ class LegendaryCore:
         else:
             resume_file = None
 
+        # Match EGS' behaviour and just use the first available URL
+        base_url = base_urls[0]
         if override_base_url:
             self.log.info(f'Overriding base URL with "{override_base_url}"')
             base_url = override_base_url
-        else:
-            # randomly select one CDN
-            base_url = randchoice(base_urls)
+        elif preferred_cdn or (preferred_cdn := self.lgd.config.get('Legendary', 'preferred_cdn', fallback=None)):
+            for url in base_urls:
+                if preferred_cdn in url:
+                    base_url = url
+                    break
+            else:
+                self.log.warning(f'Preferred CDN "{preferred_cdn}" unavailable, using default selection.')
 
         self.log.debug(f'Using base URL: {base_url}')
+        scheme, cdn_host = base_url.split('/')[0:3:2]
+        self.log.info(f'Selected CDN: {cdn_host} ({scheme.strip(":")})')
 
         if not max_shm:
             max_shm = self.lgd.config.getint('Legendary', 'max_memory', fallback=2048)
