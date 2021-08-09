@@ -704,7 +704,8 @@ class LegendaryCore:
                          dl_optimizations: bool = False, dl_timeout: int = 10,
                          repair: bool = False, repair_use_latest: bool = False,
                          disable_delta: bool = False, override_delta_manifest: str = '',
-                         egl_guid: str = '', preferred_cdn: str = None) -> (DLManager, AnalysisResult, ManifestMeta):
+                         egl_guid: str = '', preferred_cdn: str = None,
+                         disable_https: bool = False) -> (DLManager, AnalysisResult, ManifestMeta):
         # load old manifest
         old_manifest = None
 
@@ -819,6 +820,11 @@ class LegendaryCore:
                     break
             else:
                 self.log.warning(f'Preferred CDN "{preferred_cdn}" unavailable, using default selection.')
+
+        # The EGS client uses plaintext HTTP by default for the purposes of enabling simple DNS based
+        # CDN redirection to a (local) cache. In Legendary this will be a config option.
+        if disable_https or self.lgd.config.getboolean('Legendary', 'disable_https', fallback=False):
+            base_url = base_url.replace('https://', 'http://')
 
         self.log.debug(f'Using base URL: {base_url}')
         scheme, cdn_host = base_url.split('/')[0:3:2]

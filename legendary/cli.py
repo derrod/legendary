@@ -622,7 +622,8 @@ class LegendaryCLI:
                                                           repair_use_latest=args.repair_and_update,
                                                           disable_delta=args.disable_delta,
                                                           override_delta_manifest=args.override_delta_manifest,
-                                                          preferred_cdn=args.preferred_cdn)
+                                                          preferred_cdn=args.preferred_cdn,
+                                                          disable_https=args.disable_https)
 
         # game is either up to date or hasn't changed, so we have nothing to do
         if not analysis.dl_size:
@@ -1205,7 +1206,9 @@ def main():
     install_parser.add_argument('--reset-sdl', dest='reset_sdl', action='store_true',
                                 help='Reset selective downloading choices (requires repair to download new components)')
     install_parser.add_argument('--preferred-cdn', dest='preferred_cdn', action='store', metavar='<hostname>',
-                                help='Set the hostname of the preferred CDN to use when available.')
+                                help='Set the hostname of the preferred CDN to use when available')
+    install_parser.add_argument('--no-https', dest='disable_https', action='store_true',
+                                help='Download games via plaintext HTTP (like EGS), e.g. for use with a lan cache')
 
     uninstall_parser.add_argument('--keep-files', dest='keep_files', action='store_true',
                                   help='Keep files but remove game from Legendary database')
