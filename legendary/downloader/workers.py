@@ -70,12 +70,12 @@ class DLWorker(Process):
                         r = self.session.get(job.url, timeout=self.dl_timeout)
                         r.raise_for_status()
                     except Exception as e:
-                        logger.warning(f'Chunk download for {job.guid} failed: ({e!r}), retrying...')
+                        logger.warning(f'Chunk download for {job.chunk_guid} failed: ({e!r}), retrying...')
                         continue
 
                     dl_end = time.time()
                     if r.status_code != 200:
-                        logger.warning(f'Chunk download for {job.guid} failed: status {r.status_code}, retrying...')
+                        logger.warning(f'Chunk download for {job.chunk_guid} failed: status {r.status_code}, retrying...')
                         continue
                     else:
                         compressed = len(r.content)
@@ -84,16 +84,16 @@ class DLWorker(Process):
                 else:
                     raise TimeoutError('Max retries reached')
             except Exception as e:
-                logger.error(f'Job for {job.guid} failed with: {e!r}, fetching next one...')
+                logger.error(f'Job for {job.chunk_guid} failed with: {e!r}, fetching next one...')
                 # add failed job to result queue to be requeued
-                self.o_q.put(DownloaderTaskResult(success=False, chunk_guid=job.guid, shm=job.shm, url=job.url))
+                self.o_q.put(DownloaderTaskResult(success=False, chunk_guid=job.chunk_guid, shm=job.shm, url=job.url))
             except KeyboardInterrupt:
                 logger.warning('Immediate exit requested, quitting...')
                 break
 
             if not chunk:
                 logger.warning(f'Chunk somehow None?')
-                self.o_q.put(DownloaderTaskResult(success=False, chunk_guid=job.guid, shm=job.shm, url=job.url))
+                self.o_q.put(DownloaderTaskResult(success=False, chunk_guid=job.chunk_guid, shm=job.shm, url=job.url))
                 continue
 
             # decompress stuff
@@ -104,12 +104,12 @@ class DLWorker(Process):
 
                 self.shm.buf[job.shm.offset:job.shm.offset + size] = bytes(chunk.data)
                 del chunk
-                self.o_q.put(DownloaderTaskResult(success=True, chunk_guid=job.guid, shm=job.shm,
+                self.o_q.put(DownloaderTaskResult(success=True, chunk_guid=job.chunk_guid, shm=job.shm,
                                                   url=job.url, size=size, compressed_size=compressed,
                                                   time_delta=dl_end - dl_start))
             except Exception as e:
-                logger.warning(f'Job for {job.guid} failed with: {e!r}, fetching next one...')
-                self.o_q.put(DownloaderTaskResult(success=False, chunk_guid=job.guid, shm=job.shm, url=job.url))
+                logger.warning(f'Job for {job.chunk_guid} failed with: {e!r}, fetching next one...')
+                self.o_q.put(DownloaderTaskResult(success=False, chunk_guid=job.chunk_guid, shm=job.shm, url=job.url))
                 continue
             except KeyboardInterrupt:
                 logger.warning('Immediate exit requested, quitting...')
@@ -226,9 +226,9 @@ class FileWorker(Process):
                 pre_write = post_write = 0
 
                 try:
-                    if j.shm:
+                    if j.shared_memory:
                         pre_write = time.time()
-                        shm_offset = j.shm.offset + j.chunk_offset
+                        shm_offset = j.shared_memory.offset + j.chunk_offset
                         shm_end = shm_offset + j.chunk_size
                         current_file.write(self.shm.buf[shm_offset:shm_end].tobytes())
                         post_write = time.time()
@@ -251,13 +251,13 @@ class FileWorker(Process):
                     self.o_q.put(WriterTaskResult(success=False, filename=j.filename,
                                                   chunk_guid=j.chunk_guid,
                                                   release_memory=j.release_memory,
-                                                  shm=j.shm, size=j.chunk_size,
+                                                  shared_memory=j.shared_memory, size=j.chunk_size,
                                                   time_delta=post_write-pre_write))
                 else:
                     self.o_q.put(WriterTaskResult(success=True, filename=j.filename,
                                                   chunk_guid=j.chunk_guid,
                                                   release_memory=j.release_memory,
-                                                  shm=j.shm, size=j.chunk_size,
+                                                  shared_memory=j.shared_memory, size=j.chunk_size,
                                                   time_delta=post_write-pre_write))
             except Exception as e:
                 logger.warning(f'Job {j.filename} failed with: {e!r}, fetching next one...')

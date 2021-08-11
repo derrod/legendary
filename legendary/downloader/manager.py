@@ -341,14 +341,14 @@ class DLManager(Process):
             if reused:
                 self.log.debug(f' + Reusing {reused} chunks from: {current_file.filename}')
                 # open temporary file that will contain download + old file contents
-                self.tasks.append(FileTask(current_file.filename + u'.tmp', fopen=True))
+                self.tasks.append(FileTask(current_file.filename + u'.tmp', open=True))
                 self.tasks.extend(chunk_tasks)
                 self.tasks.append(FileTask(current_file.filename + u'.tmp', close=True))
                 # delete old file and rename temporary
                 self.tasks.append(FileTask(current_file.filename, delete=True, rename=True,
                                            temporary_filename=current_file.filename + u'.tmp'))
             else:
-                self.tasks.append(FileTask(current_file.filename, fopen=True))
+                self.tasks.append(FileTask(current_file.filename, open=True))
                 self.tasks.extend(chunk_tasks)
                 self.tasks.append(FileTask(current_file.filename, close=True))
 
@@ -450,7 +450,7 @@ class DLManager(Process):
                     elif task.delete:
                         self.writer_queue.put(WriterTask(task.filename, delete=True, silent=task.silent), timeout=1.0)
                     elif task.open:
-                        self.writer_queue.put(WriterTask(task.filename, fopen=True), timeout=1.0)
+                        self.writer_queue.put(WriterTask(task.filename, open=True), timeout=1.0)
                         current_file = task.filename
                     elif task.close:
                         self.writer_queue.put(WriterTask(task.filename, close=True), timeout=1.0)
@@ -500,15 +500,15 @@ class DLManager(Process):
                         task_cond.notify()
 
                     if res.success:
-                        self.log.debug(f'Download for {res.guid} succeeded, adding to in_buffer...')
-                        in_buffer[res.guid] = res
+                        self.log.debug(f'Download for {res.chunk_guid} succeeded, adding to in_buffer...')
+                        in_buffer[res.chunk_guid] = res
                         self.bytes_downloaded_since_last += res.compressed_size
                         self.bytes_decompressed_since_last += res.size
                     else:
-                        self.log.error(f'Download for {res.guid} failed, retrying...')
+                        self.log.error(f'Download for {res.chunk_guid} failed, retrying...')
                         try:
                             self.dl_worker_queue.put(DownloaderTask(
-                                url=res.url, chunk_guid=res.guid, shm=res.shm
+                                url=res.url, chunk_guid=res.chunk_guid, shm=res.shared_memory
                             ), timeout=1.0)
                             self.active_tasks += 1
                         except Exception as e:
@@ -545,14 +545,14 @@ class DLManager(Process):
                     # todo make this kill the installation process or at least skip the file and mark it as failed
                     self.log.fatal(f'Writing for {res.filename} failed!')
                 if res.release_memory:
-                    self.sms.appendleft(res.shm)
+                    self.sms.appendleft(res.shared_memory)
                     with shm_cond:
                         shm_cond.notify()
 
                 if res.chunk_guid:
                     self.bytes_written_since_last += res.size
                     # if there's no shared memory we must have read from disk.
-                    if not res.shm:
+                    if not res.shared_memory:
                         self.bytes_read_since_last += res.size
                     self.num_processed_since_last += 1
 
