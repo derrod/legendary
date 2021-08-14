@@ -1,7 +1,8 @@
 # coding: utf-8
 
+from enum import Flag, auto
 from dataclasses import dataclass
-from typing import Union
+from typing import Optional
 
 from .manifest import ManifestComparison
 
@@ -11,8 +12,8 @@ class SharedMemorySegment:
     """
     Segment of the shared memory used for one Chunk
     """
-    offset: int = 0
-    end: int = 1024 * 1024
+    offset: int
+    end: int
 
     @property
     def size(self):
@@ -24,24 +25,19 @@ class DownloaderTask:
     """
     Task submitted to the download worker
     """
-    url: Union[str, None] = None
-    chunk_guid: Union[int, None] = None
-    shm: Union[SharedMemorySegment, None] = None
-    kill: bool = False
+    url: str
+    chunk_guid: int
+    shm: SharedMemorySegment
 
 
 @dataclass
-class DownloaderTaskResult:
+class DownloaderTaskResult(DownloaderTask):
     """
     Result of DownloaderTask provided by download workers
     """
     success: bool
-    chunk_guid: int
-    shm: SharedMemorySegment
-    url: str
-    size: Union[int, None] = None
-    compressed_size: Union[int, None] = None
-    time_delta: Union[int, None] = None
+    size_downloaded: Optional[int] = None
+    size_decompressed: Optional[int] = None
 
 
 @dataclass
@@ -55,7 +51,18 @@ class ChunkTask:
     # Whether this chunk can be removed from memory/disk after having been written
     cleanup: bool = False
     # Path to the file the chunk is read from (if not from memory)
-    chunk_file: Union[str, None] = None
+    chunk_file: Optional[str] = None
+
+
+class TaskFlags(Flag):
+    NONE = 0
+    OPEN_FILE = auto()
+    CLOSE_FILE = auto()
+    DELETE_FILE = auto()
+    CREATE_EMPTY_FILE = auto()
+    RENAME_FILE = auto()
+    RELEASE_MEMORY = auto()
+    SILENT = auto()
 
 
 @dataclass
@@ -64,20 +71,9 @@ class FileTask:
     A task describing some operation on the filesystem
     """
     filename: str
-    # just create a 0-byte file
-    empty: bool = False
-    open: bool = False
-    close: bool = False
-    rename: bool = False
-    # Deletes the file, if rename is true, this will remove an existing file with the target name
-    delete: bool = False
-    silent: bool = False
+    flags: TaskFlags
     # If rename is true, this is the name of the file to be renamed
-    temporary_filename: Union[str, None] = None
-
-    @property
-    def is_reusing(self):
-        return self.temporary_filename is not None
+    old_file: Optional[str] = None
 
 
 @dataclass
@@ -86,52 +82,27 @@ class WriterTask:
     Task for FileWriter worker process, describing an operation on the filesystem
     """
     filename: str
+    flags: TaskFlags
 
     chunk_offset: int = 0
     chunk_size: int = 0
-    chunk_guid: Union[int, None] = None
+    chunk_guid: Optional[int] = None
 
-    # Just create an empty file
-    empty: bool = False
     # Whether shared memory segment shall be released back to the pool on completion
-    release_memory: bool = False
-    shared_memory: Union[SharedMemorySegment, None] = None
+    shared_memory: Optional[SharedMemorySegment] = None
 
     # File to read old chunk from, disk chunk cache or old game file
-    old_file: Union[str, None] = None
-    cache_file: Union[str, None] = None
-
-    open: bool = False
-    close: bool = False
-    delete: bool = False
-    # Do not log deletion failures
-    silent: bool = False
-
-    rename: bool = False
-    # Filename to rename from
-    old_filename: Union[str, None] = None
-
-    # Instruct worker to terminate
-    kill: bool = False
+    old_file: Optional[str] = None
+    cache_file: Optional[str] = None
 
 
 @dataclass
-class WriterTaskResult:
+class WriterTaskResult(WriterTask):
     """
     Result from the FileWriter worker
     """
-    success: bool
-    filename: Union[str, None] = None
+    success: bool = False
     size: int = 0
-    chunk_guid: Union[int, None] = None
-
-    shared_memory: Union[SharedMemorySegment, None] = None
-    release_memory: bool = False
-    closed: bool = False
-    time_delta: Union[float, None] = None
-
-    # Worker terminated, instructs results handler to also stop
-    kill: bool = False
 
 
 @dataclass
@@ -144,7 +115,7 @@ class UIUpdate:
     write_speed: float
     read_speed: float
     memory_usage: float
-    current_filename: Union[str, None] = None
+    current_filename: Optional[str] = None
 
 
 @dataclass
@@ -167,7 +138,7 @@ class AnalysisResult:
     added: int = 0
     changed: int = 0
     unchanged: int = 0
-    manifest_comparison: Union[ManifestComparison, None] = None
+    manifest_comparison: Optional[ManifestComparison] = None
 
 
 @dataclass
@@ -175,5 +146,13 @@ class ConditionCheckResult:
     """
     Result of install condition checks
     """
-    failures: Union[list, None] = None
-    warnings: Union[list, None] = None
+    failures: Optional[set] = None
+    warnings: Optional[set] = None
+
+
+class TerminateWorkerTask:
+    """
+    Universal task to signal a worker to exit
+    """
+    pass
+
