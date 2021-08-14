@@ -17,7 +17,7 @@ from typing import List, Dict
 from uuid import uuid4
 
 from legendary.api.egs import EPCAPI
-from legendary.downloader.manager import DLManager
+from legendary.downloader.mp.manager import DLManager
 from legendary.lfs.egl import EPCLFS
 from legendary.lfs.lgndry import LGDLFS
 from legendary.utils.lfs import clean_filename, delete_folder, delete_filelist, get_dir_size
