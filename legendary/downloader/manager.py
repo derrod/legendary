@@ -14,7 +14,7 @@ from queue import Empty
 from sys import exit
 from threading import Condition, Thread
 
-from legendary.downloader.workers import DLWorker, FileWorker
+from legendary.downloader.mp.workers import DLWorker, FileWorker
 from legendary.models.downloading import *
 from legendary.models.manifest import ManifestComparison, Manifest
 
@@ -151,7 +151,7 @@ class DLManager(Process):
             mc.changed -= files_to_skip
             mc.unchanged |= files_to_skip
             for fname in sorted(files_to_skip):
-                additional_deletion_tasks.append(FileTask(fname, delete=True, silent=True))
+                additional_deletion_tasks.append(FileTask(fname, flags=TaskFlags.DELETE_FILE | TaskFlags.SILENT))
 
         # if include/exclude prefix has been set: mark all files that are not to be downloaded as unchanged
         if file_exclude_filter:
@@ -297,7 +297,7 @@ class DLManager(Process):
             if current_file.filename in mc.unchanged:
                 continue
             elif not current_file.chunk_parts:
-                self.tasks.append(FileTask(current_file.filename, empty=True))
+                self.tasks.append(FileTask(current_file.filename, flags=TaskFlags.CREATE_EMPTY_FILE))
                 continue
 
             existing_chunks = re_usable.get(current_file.filename, None)
@@ -341,16 +341,16 @@ class DLManager(Process):
             if reused:
                 self.log.debug(f' + Reusing {reused} chunks from: {current_file.filename}')
                 # open temporary file that will contain download + old file contents
-                self.tasks.append(FileTask(current_file.filename + u'.tmp', open=True))
+                self.tasks.append(FileTask(current_file.filename + u'.tmp', flags=TaskFlags.OPEN_FILE))
                 self.tasks.extend(chunk_tasks)
-                self.tasks.append(FileTask(current_file.filename + u'.tmp', close=True))
+                self.tasks.append(FileTask(current_file.filename + u'.tmp', flags=TaskFlags.CLOSE_FILE))
                 # delete old file and rename temporary
-                self.tasks.append(FileTask(current_file.filename, delete=True, rename=True,
-                                           temporary_filename=current_file.filename + u'.tmp'))
+                self.tasks.append(FileTask(current_file.filename, old_file=current_file.filename + u'.tmp',
+                                           flags=TaskFlags.RENAME_FILE | TaskFlags.DELETE_FILE))
             else:
-                self.tasks.append(FileTask(current_file.filename, open=True))
+                self.tasks.append(FileTask(current_file.filename, flags=TaskFlags.OPEN_FILE))
                 self.tasks.extend(chunk_tasks)
-                self.tasks.append(FileTask(current_file.filename, close=True))
+                self.tasks.append(FileTask(current_file.filename, flags=TaskFlags.CLOSE_FILE))
 
             # check if runtime cache size has changed
             if current_cache_size > last_cache_size:
@@ -384,7 +384,7 @@ class DLManager(Process):
 
         # add jobs to remove files
         for fname in mc.removed:
-            self.tasks.append(FileTask(fname, delete=True))
+            self.tasks.append(FileTask(fname, flags=TaskFlags.DELETE_FILE))
         self.tasks.extend(additional_deletion_tasks)
 
         analysis_res.num_chunks_cache = len(dl_cache_guids)
@@ -440,20 +440,9 @@ class DLManager(Process):
         while task and self.running:
             if isinstance(task, FileTask):  # this wasn't necessarily a good idea...
                 try:
-                    if task.empty:
-                        self.writer_queue.put(WriterTask(task.filename, empty=True), timeout=1.0)
-                    elif task.rename:
-                        self.writer_queue.put(WriterTask(task.filename, rename=True,
-                                                         delete=task.delete,
-                                                         old_filename=task.temporary_filename),
-                                              timeout=1.0)
-                    elif task.delete:
-                        self.writer_queue.put(WriterTask(task.filename, delete=True, silent=task.silent), timeout=1.0)
-                    elif task.open:
-                        self.writer_queue.put(WriterTask(task.filename, open=True), timeout=1.0)
+                    self.writer_queue.put(WriterTask(**task.__dict__), timeout=1.0)
+                    if task.flags & TaskFlags.OPEN_FILE:
                         current_file = task.filename
-                    elif task.close:
-                        self.writer_queue.put(WriterTask(task.filename, close=True), timeout=1.0)
                 except Exception as e:
                     self.tasks.appendleft(task)
                     self.log.warning(f'Adding to queue failed: {e!r}')
@@ -475,8 +464,8 @@ class DLManager(Process):
                     self.writer_queue.put(WriterTask(
                         filename=current_file, shared_memory=res_shm,
                         chunk_offset=task.chunk_offset, chunk_size=task.chunk_size,
-                        chunk_guid=task.chunk_guid, release_memory=task.cleanup,
-                        old_file=task.chunk_file  # todo on-disk cache
+                        chunk_guid=task.chunk_guid, cache_file=task.chunk_file,
+                        flags=TaskFlags.RELEASE_MEMORY if task.cleanup else TaskFlags.NONE
                     ), timeout=1.0)
                 except Exception as e:
                     self.log.warning(f'Adding to queue failed: {e!r}')
@@ -502,14 +491,13 @@ class DLManager(Process):
                     if res.success:
                         self.log.debug(f'Download for {res.chunk_guid} succeeded, adding to in_buffer...')
                         in_buffer[res.chunk_guid] = res
-                        self.bytes_downloaded_since_last += res.compressed_size
-                        self.bytes_decompressed_since_last += res.size
+                        self.bytes_downloaded_since_last += res.size_downloaded
+                        self.bytes_decompressed_since_last += res.size_decompressed
                     else:
                         self.log.error(f'Download for {res.chunk_guid} failed, retrying...')
                         try:
-                            self.dl_worker_queue.put(DownloaderTask(
-                                url=res.url, chunk_guid=res.chunk_guid, shm=res.shared_memory
-                            ), timeout=1.0)
+                            # since the result is a subclass of the task we can simply resubmit the result object
+                            self.dl_worker_queue.put(res, timeout=1.0)
                             self.active_tasks += 1
                         except Exception as e:
                             self.log.warning(f'Failed adding retry task to queue! {e!r}')
@@ -526,9 +514,14 @@ class DLManager(Process):
         while self.running:
             try:
                 res = self.writer_result_q.get(timeout=1.0)
+
+                if isinstance(res, TerminateWorkerTask):
+                    self.log.debug('Got termination command in FW result handler')
+                    break
+
                 self.num_tasks_processed_since_last += 1
 
-                if res.closed and self.resume_file and res.success:
+                if res.flags & TaskFlags.CLOSE_FILE and self.resume_file and res.success:
                     if res.filename.endswith('.tmp'):
                         res.filename = res.filename[:-4]
 
@@ -537,14 +530,10 @@ class DLManager(Process):
                     with open(self.resume_file, 'ab') as rf:
                         rf.write(f'{file_hash}:{res.filename}\n'.encode('utf-8'))
 
-                if res.kill:
-                    self.log.debug('Got termination command in FW result handler')
-                    break
-
                 if not res.success:
                     # todo make this kill the installation process or at least skip the file and mark it as failed
                     self.log.fatal(f'Writing for {res.filename} failed!')
-                if res.release_memory:
+                if res.flags & TaskFlags.RELEASE_MEMORY:
                     self.sms.appendleft(res.shared_memory)
                     with shm_cond:
                         shm_cond.notify()
@@ -731,10 +720,10 @@ class DLManager(Process):
             time.sleep(self.update_interval)
 
         for i in range(self.max_workers):
-            self.dl_worker_queue.put_nowait(DownloaderTask(kill=True))
+            self.dl_worker_queue.put_nowait(TerminateWorkerTask())
 
         self.log.info('Waiting for installation to finish...')
-        self.writer_queue.put_nowait(WriterTask('', kill=True))
+        self.writer_queue.put_nowait(TerminateWorkerTask())
 
         writer_p.join(timeout=10.0)
         if writer_p.exitcode is None:

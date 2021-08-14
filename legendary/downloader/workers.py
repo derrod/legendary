@@ -11,7 +11,11 @@ from multiprocessing.shared_memory import SharedMemory
 from queue import Empty
 
 from legendary.models.chunk import Chunk
-from legendary.models.downloading import DownloaderTaskResult, WriterTaskResult
+from legendary.models.downloading import (
+    DownloaderTask, DownloaderTaskResult,
+    WriterTask, WriterTaskResult,
+    TerminateWorkerTask, TaskFlags
+)
 
 
 class DLWorker(Process):
@@ -43,7 +47,7 @@ class DLWorker(Process):
         empty = False
         while True:
             try:
-                job = self.q.get(timeout=10.0)
+                job: DownloaderTask = self.q.get(timeout=10.0)
                 empty = False
             except Empty:
                 if not empty:
@@ -51,12 +55,11 @@ class DLWorker(Process):
                 empty = True
                 continue
 
-            if job.kill:  # let worker die
-                logger.debug(f'Worker received kill signal, shutting down...')
+            if isinstance(job, TerminateWorkerTask):  # let worker die
+                logger.debug(f'Worker received termination signal, shutting down...')
                 break
 
             tries = 0
-            dl_start = dl_end = 0
             compressed = 0
             chunk = None
 
@@ -64,7 +67,6 @@ class DLWorker(Process):
                 while tries < self.max_retries:
                     # print('Downloading', job.url)
                     logger.debug(f'Downloading {job.url}')
-                    dl_start = time.time()
 
                     try:
                         r = self.session.get(job.url, timeout=self.dl_timeout)
@@ -73,7 +75,6 @@ class DLWorker(Process):
                         logger.warning(f'Chunk download for {job.chunk_guid} failed: ({e!r}), retrying...')
                         continue
 
-                    dl_end = time.time()
                     if r.status_code != 200:
                         logger.warning(f'Chunk download for {job.chunk_guid} failed: status {r.status_code}, retrying...')
                         continue
@@ -86,14 +87,14 @@ class DLWorker(Process):
             except Exception as e:
                 logger.error(f'Job for {job.chunk_guid} failed with: {e!r}, fetching next one...')
                 # add failed job to result queue to be requeued
-                self.o_q.put(DownloaderTaskResult(success=False, chunk_guid=job.chunk_guid, shm=job.shm, url=job.url))
+                self.o_q.put(DownloaderTaskResult(success=False, **job.__dict__))
             except KeyboardInterrupt:
                 logger.warning('Immediate exit requested, quitting...')
                 break
 
             if not chunk:
                 logger.warning(f'Chunk somehow None?')
-                self.o_q.put(DownloaderTaskResult(success=False, chunk_guid=job.chunk_guid, shm=job.shm, url=job.url))
+                self.o_q.put(DownloaderTaskResult(success=False, **job.__dict__))
                 continue
 
             # decompress stuff
@@ -104,12 +105,11 @@ class DLWorker(Process):
 
                 self.shm.buf[job.shm.offset:job.shm.offset + size] = bytes(chunk.data)
                 del chunk
-                self.o_q.put(DownloaderTaskResult(success=True, chunk_guid=job.chunk_guid, shm=job.shm,
-                                                  url=job.url, size=size, compressed_size=compressed,
-                                                  time_delta=dl_end - dl_start))
+                self.o_q.put(DownloaderTaskResult(success=True, size_decompressed=size,
+                                                  size_downloaded=compressed, **job.__dict__))
             except Exception as e:
                 logger.warning(f'Job for {job.chunk_guid} failed with: {e!r}, fetching next one...')
-                self.o_q.put(DownloaderTaskResult(success=False, chunk_guid=job.chunk_guid, shm=job.shm, url=job.url))
+                self.o_q.put(DownloaderTaskResult(success=False, **job.__dict__))
                 continue
             except KeyboardInterrupt:
                 logger.warning('Immediate exit requested, quitting...')
@@ -145,15 +145,17 @@ class FileWorker(Process):
         while True:
             try:
                 try:
-                    j = self.q.get(timeout=10.0)
+                    j: WriterTask = self.q.get(timeout=10.0)
                 except Empty:
                     logger.warning('Writer queue empty!')
                     continue
 
-                if j.kill:
+                if isinstance(j, TerminateWorkerTask):
                     if current_file:
                         current_file.close()
-                    self.o_q.put(WriterTaskResult(success=True, kill=True))
+                    logger.debug(f'Worker received termination signal, shutting down...')
+                    # send termination task to results halnder as well
+                    self.o_q.put(TerminateWorkerTask())
                     break
 
                 # make directories if required
@@ -163,11 +165,11 @@ class FileWorker(Process):
 
                 full_path = os.path.join(self.base_path, j.filename)
 
-                if j.empty:  # just create an empty file
+                if j.flags & TaskFlags.CREATE_EMPTY_FILE:  # just create an empty file
                     open(full_path, 'a').close()
-                    self.o_q.put(WriterTaskResult(success=True, filename=j.filename))
+                    self.o_q.put(WriterTaskResult(success=True, **j.__dict__))
                     continue
-                elif j.open:
+                elif j.flags & TaskFlags.OPEN_FILE:
                     if current_file:
                         logger.warning(f'Opening new file {j.filename} without closing previous! {last_filename}')
                         current_file.close()
@@ -175,40 +177,40 @@ class FileWorker(Process):
                     current_file = open(full_path, 'wb')
                     last_filename = j.filename
 
-                    self.o_q.put(WriterTaskResult(success=True, filename=j.filename))
+                    self.o_q.put(WriterTaskResult(success=True, **j.__dict__))
                     continue
-                elif j.close:
+                elif j.flags & TaskFlags.CLOSE_FILE:
                     if current_file:
                         current_file.close()
                         current_file = None
                     else:
                         logger.warning(f'Asking to close file that is not open: {j.filename}')
 
-                    self.o_q.put(WriterTaskResult(success=True, filename=j.filename, closed=True))
+                    self.o_q.put(WriterTaskResult(success=True, **j.__dict__))
                     continue
-                elif j.rename:
+                elif j.flags & TaskFlags.RENAME_FILE:
                     if current_file:
                         logger.warning('Trying to rename file without closing first!')
                         current_file.close()
                         current_file = None
-                    if j.delete:
+                    if j.flags & TaskFlags.DELETE_FILE:
                         try:
                             os.remove(full_path)
                         except OSError as e:
                             logger.error(f'Removing file failed: {e!r}')
-                            self.o_q.put(WriterTaskResult(success=False, filename=j.filename))
+                            self.o_q.put(WriterTaskResult(success=False, **j.__dict__))
                             continue
 
                     try:
-                        os.rename(os.path.join(self.base_path, j.old_filename), full_path)
+                        os.rename(os.path.join(self.base_path, j.old_file), full_path)
                     except OSError as e:
                         logger.error(f'Renaming file failed: {e!r}')
-                        self.o_q.put(WriterTaskResult(success=False, filename=j.filename))
+                        self.o_q.put(WriterTaskResult(success=False, **j.__dict__))
                         continue
 
-                    self.o_q.put(WriterTaskResult(success=True, filename=j.filename))
+                    self.o_q.put(WriterTaskResult(success=True, **j.__dict__))
                     continue
-                elif j.delete:
+                elif j.flags & TaskFlags.DELETE_FILE:
                     if current_file:
                         logger.warning('Trying to delete file without closing first!')
                         current_file.close()
@@ -217,51 +219,35 @@ class FileWorker(Process):
                     try:
                         os.remove(full_path)
                     except OSError as e:
-                        if not j.silent:
+                        if not j.flags & TaskFlags.SILENT:
                             logger.error(f'Removing file failed: {e!r}')
 
-                    self.o_q.put(WriterTaskResult(success=True, filename=j.filename))
+                    self.o_q.put(WriterTaskResult(success=True, **j.__dict__))
                     continue
-
-                pre_write = post_write = 0
 
                 try:
                     if j.shared_memory:
-                        pre_write = time.time()
                         shm_offset = j.shared_memory.offset + j.chunk_offset
                         shm_end = shm_offset + j.chunk_size
                         current_file.write(self.shm.buf[shm_offset:shm_end].tobytes())
-                        post_write = time.time()
                     elif j.cache_file:
-                        pre_write = time.time()
                         with open(os.path.join(self.cache_path, j.cache_file), 'rb') as f:
                             if j.chunk_offset:
                                 f.seek(j.chunk_offset)
                             current_file.write(f.read(j.chunk_size))
-                        post_write = time.time()
                     elif j.old_file:
-                        pre_write = time.time()
                         with open(os.path.join(self.base_path, j.old_file), 'rb') as f:
                             if j.chunk_offset:
                                 f.seek(j.chunk_offset)
                             current_file.write(f.read(j.chunk_size))
-                        post_write = time.time()
                 except Exception as e:
                     logger.warning(f'Something in writing a file failed: {e!r}')
-                    self.o_q.put(WriterTaskResult(success=False, filename=j.filename,
-                                                  chunk_guid=j.chunk_guid,
-                                                  release_memory=j.release_memory,
-                                                  shared_memory=j.shared_memory, size=j.chunk_size,
-                                                  time_delta=post_write-pre_write))
+                    self.o_q.put(WriterTaskResult(success=False, size=j.chunk_size, **j.__dict__))
                 else:
-                    self.o_q.put(WriterTaskResult(success=True, filename=j.filename,
-                                                  chunk_guid=j.chunk_guid,
-                                                  release_memory=j.release_memory,
-                                                  shared_memory=j.shared_memory, size=j.chunk_size,
-                                                  time_delta=post_write-pre_write))
+                    self.o_q.put(WriterTaskResult(success=True, size=j.chunk_size, **j.__dict__))
             except Exception as e:
                 logger.warning(f'Job {j.filename} failed with: {e!r}, fetching next one...')
-                self.o_q.put(WriterTaskResult(success=False, filename=j.filename, chunk_guid=j.chunk_guid))
+                self.o_q.put(WriterTaskResult(success=False, **j.__dict__))
 
                 try:
                     if current_file:
