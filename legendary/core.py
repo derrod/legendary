@@ -1,5 +1,6 @@
 # coding: utf-8
 
+import hashlib
 import json
 import logging
 import os
@@ -465,7 +466,7 @@ class LegendaryCore:
         for _dir, _, _files in os.walk(path):
             for _file in _files:
                 s = os.stat(os.path.join(_dir, _file))
-                latest = max(latest, s.st_mtime)
+                latest = max(latest, s.st_mtime, s.st_ctime)
 
         if not latest and not save:
             return SaveGameStatus.NO_SAVE, (None, None)
@@ -490,8 +491,33 @@ class LegendaryCore:
         else:
             return SaveGameStatus.REMOTE_NEWER, (dt_local, dt_remote)
 
-    def upload_save(self, app_name, save_dir, local_dt: datetime = None,
-                    disable_filtering: bool = False):
+    def upload_save(self, app_name, save_dir, local_dt: datetime = None, disable_filtering: bool = False, manifest_name: str = ''):
+        manifest_file_name = f'manifests/{manifest_name}'
+        manifest_file = self.egs.get_user_cloud_saves(app_name=app_name, filenames=[manifest_file_name])['files'][manifest_file_name]
+        r = self.egs.unauth_session.get(manifest_file['readLink'])
+        if r.status_code != 200:
+            self.log.error(f'Download failed, status code: {r.status_code}')
+        if not r.content:
+            self.log.error('Manifest is empty! Skipping...')
+
+        m = self.load_manifest(r.content)
+        ok_files = dict()
+        ok_chunks = set()
+
+        chunks = {i.guid_num: i for i in m.chunk_data_list.elements}
+
+        for manifest_file in m.file_manifest_list.elements:
+            dirs, file_name = os.path.split(manifest_file.filename)
+            fdir = os.path.join(save_dir, dirs)
+            fpath = os.path.join(fdir, file_name)
+            if (file_exist := os.path.exists(fpath)) and self.sha1_file_hash(fpath) == manifest_file.hash.hex():
+                self.log.info(f'{file_name} exists with the same hash.')
+                ok_files[fpath] = manifest_file
+                for chunk in manifest_file.chunk_parts:
+                    ok_chunks.add(chunks.get(chunk.guid_num))
+            else:
+                self.log.info(f"{file_name} {'exists with different hash.' if file_exist else 'does not exist.'}")
+
         game = self.lgd.get_game_meta(app_name)
         custom_attr = game.metadata['customAttributes']
         save_path = custom_attr.get('CloudSaveFolder', {}).get('value')
@@ -509,7 +535,7 @@ class LegendaryCore:
 
         sgh = SaveGameHelper()
         files = sgh.package_savegame(save_dir, app_name, self.egs.user.get('account_id'),
-                                     save_path, include_f, exclude_f, local_dt)
+                                     save_path, include_f, exclude_f, local_dt, ok_files, ok_chunks)
 
         if not files:
             self.log.info('No files to upload. If you believe this is incorrect run command with "--disable-filters"')
@@ -525,6 +551,15 @@ class LegendaryCore:
             self.egs.unauth_session.put(file_info['writeLink'], data=f.read())
 
         self.log.info('Finished uploading savegame.')
+
+    @staticmethod
+    def sha1_file_hash(file_path: str) -> str:
+        BUF_SIZE = 65536
+        sha1 = hashlib.sha1()
+        with open(file_path, 'rb') as f:
+            while data := f.read(BUF_SIZE):
+                sha1.update(data)
+        return sha1.hexdigest()
 
     def download_saves(self, app_name='', manifest_name='', save_dir='', clean_dir=False):
         save_path = os.path.join(self.get_default_install_dir(), '.saves')
@@ -563,9 +598,24 @@ class LegendaryCore:
 
             m = self.load_manifest(r.content)
 
-            # download chunks required for extraction
+            files_to_download, chunks_to_download = list(), set()
+
+            for manifest_file in m.file_manifest_list.elements:
+                dirs, file_name = os.path.split(manifest_file.filename)
+                fdir = os.path.join(_save_dir, dirs)
+                fpath = os.path.join(fdir, file_name)
+                if not os.path.exists(fdir):
+                    os.makedirs(fdir)
+                if (file_exist := os.path.exists(fpath)) and self.sha1_file_hash(fpath) == manifest_file.hash.hex():
+                    self.log.info(f'{file_name} exists with the same hash.')
+                else:
+                    self.log.info(f"{file_name} {'exists with different hash.' if file_exist else 'does not exist.'}")
+                    files_to_download.append([fpath, manifest_file.chunk_parts])
+                    for chunk in manifest_file.chunk_parts:
+                        chunks_to_download.add(chunk.guid_num)
+
             chunks = dict()
-            for chunk in m.chunk_data_list.elements:
+            for chunk in filter(lambda x: x.guid_num in chunks_to_download, m.chunk_data_list.elements):
                 cpath_p = fname.split('/', 3)[:3]
                 cpath_p.append(chunk.path)
                 cpath = '/'.join(cpath_p)
@@ -577,16 +627,10 @@ class LegendaryCore:
                 c = Chunk.read_buffer(r.content)
                 chunks[c.guid_num] = c.data
 
-            for fm in m.file_manifest_list.elements:
-                dirs, fname = os.path.split(fm.filename)
-                fdir = os.path.join(_save_dir, dirs)
-                fpath = os.path.join(fdir, fname)
-                if not os.path.exists(fdir):
-                    os.makedirs(fdir)
-
+            for fpath, db_chunks in files_to_download:
                 self.log.debug(f'Writing "{fpath}"...')
                 with open(fpath, 'wb') as fh:
-                    for cp in fm.chunk_parts:
+                    for cp in db_chunks:
                         fh.write(chunks[cp.guid_num][cp.offset:cp.offset+cp.size])
 
                 # set modified time to savegame creation timestamp

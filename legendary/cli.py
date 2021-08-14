@@ -408,7 +408,7 @@ class LegendaryCLI:
                         continue
 
                 logger.info('Downloading remote savegame...')
-                self.core.download_saves(igame.app_name, save_dir=igame.save_path, clean_dir=True,
+                self.core.download_saves(igame.app_name, save_dir=igame.save_path, clean_dir=False,
                                          manifest_name=latest_save[igame.app_name].manifest_name)
             elif res == SaveGameStatus.LOCAL_NEWER or args.force_upload:
                 if res == SaveGameStatus.LOCAL_NEWER:
@@ -428,7 +428,8 @@ class LegendaryCLI:
                         logger.info('Not uploading...')
                         continue
                 logger.info('Uploading local savegame...')
-                self.core.upload_save(igame.app_name, igame.save_path, dt_l, args.disable_filters)
+                self.core.upload_save(igame.app_name, igame.save_path, dt_l, args.disable_filters,
+                                      latest_save[igame.app_name].manifest_name)
 
     def launch_game(self, args, extra):
         app_name = args.app_name

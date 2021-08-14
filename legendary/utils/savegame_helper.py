@@ -55,7 +55,7 @@ class SaveGameHelper:
                          epic_id: str = '', cloud_folder: str = '',
                          include_filter: list = None,
                          exclude_filter: list = None,
-                         manifest_dt: datetime = None):
+                         manifest_dt: datetime = None, ok_files: dict = None, ok_chunks: set = None):
         """
         :param input_folder: Folder to be packaged into chunks/manifest
         :param app_name: App name for savegame being stored
@@ -104,6 +104,10 @@ class SaveGameHelper:
         cur_buffer = None
 
         for _file in sorted(files, key=str.casefold):
+            if ok_files:
+                if ok_file_manifest := ok_files.get(_file, None):
+                    m.file_manifest_list.elements.append(ok_file_manifest)
+                    continue
             s = os.stat(_file)
             f = FileManifest()
             # get relative path for manifest
@@ -145,6 +149,9 @@ class SaveGameHelper:
 
             f.hash = fhash.digest()
             m.file_manifest_list.elements.append(f)
+
+        if ok_chunks:
+            m.chunk_data_list.elements.extend(ok_chunks)
 
         # write remaining chunk if it exists
         if cur_chunk:
