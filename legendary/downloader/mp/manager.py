@@ -464,7 +464,7 @@ class DLManager(Process):
                     self.writer_queue.put(WriterTask(
                         filename=current_file, shared_memory=res_shm,
                         chunk_offset=task.chunk_offset, chunk_size=task.chunk_size,
-                        chunk_guid=task.chunk_guid, cache_file=task.chunk_file,
+                        chunk_guid=task.chunk_guid, old_file=task.chunk_file,
                         flags=TaskFlags.RELEASE_MEMORY if task.cleanup else TaskFlags.NONE
                     ), timeout=1.0)
                 except Exception as e:
