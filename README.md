@@ -8,7 +8,9 @@ Legendary is an open-source game launcher that can download and install games fr
 Its name as a tongue-in-cheek play on tiers of [item rarity in many MMORPGs](https://wow.gamepedia.com/Quality).
 
 Right now Legendary is in beta and not feature-complete. You might run into some bugs or issues.
-If you do please [create an issue on GitHub](https://github.com/derrod/legendary/issues/new) so we can fix it.
+If you do please [create an issue on GitHub](https://github.com/derrod/legendary/issues/new/choose) so we can fix it.
+
+Please read the the [config file](#config-file) and [cli usage](#usage) sections before creating an issue to avoid invalid reports.
 
 **Note:** Legendary is currently a CLI (command-line interface) application without a graphical user interface,
 it has to be run from a terminal (e.g. PowerShell)
@@ -237,7 +239,7 @@ optional arguments:
   --disable-patching    Do not attempt to patch existing installation
                         (download entire changed files)
   --download-only, --no-install
-                        Do not intall app and do not run prerequisite
+                        Do not install app and do not run prerequisite
                         installers after download
   --update-only         Only update, do not do anything if specified app is
                         not installed
@@ -266,6 +268,11 @@ optional arguments:
                         download size)
   --reset-sdl           Reset selective downloading choices (requires repair
                         to download new components)
+  --preferred-cdn <hostname>
+                        Set the hostname of the preferred CDN to use when
+                        available
+  --no-https            Download games via plaintext HTTP (like EGS), e.g. for
+                        use with a lan cache
 
 
 Command: uninstall
@@ -305,6 +312,8 @@ optional arguments:
   --set-defaults        Save parameters used to launch to config (does not
                         include env vars)
   --reset-defaults      Reset config settings for app and exit
+  --override-exe <exe path>
+                        Override executable to launch (relative path)
   --wine <wine binary>  Set WINE binary to use to launch the app
   --wine-prefix <wine pfx path>
                         Set WINE prefix to use
@@ -322,6 +331,9 @@ optional arguments:
                         Win32/Mac)
   --include-ue          Also include Unreal Engine content
                         (Engine/Marketplace) in list
+  --include-non-installable
+                        Include apps that are not installable (e.g. that have
+                        to be activated on Origin)
   --csv                 List games in CSV format
   --tsv                 List games in TSV format
   --json                List games in JSON format
@@ -503,6 +515,10 @@ locale = en-US
 egl_sync = false
 ; path to the "Manifests" folder in the EGL ProgramData directory
 egl_programdata = /home/user/Games/epic-games-store/drive_c/... 
+; Set preferred CDN host (e.g. to improve download speed)
+preferred_cdn = epicgames-download1.akamaized.net
+; disable HTTPS for downloads (e.g. to use a LanCache)
+disable_https = false
 
 ; default settings to use (currently limited to WINE executable)
 [default]
@@ -538,4 +554,6 @@ DXVK_CONFIG_FILE = /mnt/tank/games/Game/dxvk.conf
 wrapper = "/path/to/Proton 5.0/proton" run
 ; Do not run this executable with WINE (e.g. when the wrapper handles that)
 no_wine = true
+; Override the executable launched for this game, for example to bypass a launcher (e.g. Borderlands)
+override_exe = relative/path/to/file.exe
 ````
