@@ -255,6 +255,38 @@ class LegendaryCore:
 
         return _ret, _dlc
 
+    def get_non_asset_library_items(self, skip_ue=True) -> (List[Game], Dict[str, List[Game]]):
+        """
+        Gets a list of Games without assets for installation, for instance Games delivered via
+        third-party stores that do not have assets for installation
+
+        :param skip_ue: Ingore Unreal Marketplace entries
+        :return: List of Games and DLC that do not have assets
+        """
+        _ret = []
+        _dlc = defaultdict(list)
+        # get all the appnames we have to ignore
+        ignore = set(i.app_name for i in self.get_assets())
+
+        for libitem in self.egs.get_library_items():
+            if libitem['namespace'] == 'ue' and skip_ue:
+                continue
+            if libitem['appName'] in ignore:
+                continue
+
+            game = self.lgd.get_game_meta(libitem['appName'])
+            if not game:
+                eg_meta = self.egs.get_game_info(libitem['namespace'], libitem['catalogItemId'])
+                game = Game(app_name=libitem['appName'], app_version=None,
+                            app_title=eg_meta['title'], asset_info=None, metadata=eg_meta)
+
+            if game.is_dlc:
+                _dlc[game.metadata['mainGameItem']['id']].append(game)
+            elif not any(i['path'] == 'mods' for i in game.metadata.get('categories', [])):
+                _ret.append(game)
+
+        return _ret, _dlc
+
     def get_dlc_for_game(self, app_name):
         game = self.get_game(app_name)
         if not game:
@@ -347,11 +379,11 @@ class LegendaryCore:
             params.extend(shlex.split(install.launch_parameters, posix=False))
 
         params.extend([
-              '-AUTH_LOGIN=unused',
-              f'-AUTH_PASSWORD={game_token}',
-              '-AUTH_TYPE=exchangecode',
-              f'-epicapp={app_name}',
-              '-epicenv=Prod'])
+            '-AUTH_LOGIN=unused',
+            f'-AUTH_PASSWORD={game_token}',
+            '-AUTH_TYPE=exchangecode',
+            f'-epicapp={app_name}',
+            '-epicenv=Prod'])
 
         if install.requires_ot and not offline:
             self.log.info('Getting ownership token.')
@@ -368,10 +400,10 @@ class LegendaryCore:
             language_code = self.language_code
 
         params.extend([
-              '-EpicPortal',
-              f'-epicusername={user_name}',
-              f'-epicuserid={account_id}',
-              f'-epiclocale={language_code}'
+            '-EpicPortal',
+            f'-epicusername={user_name}',
+            f'-epicuserid={account_id}',
+            f'-epiclocale={language_code}'
         ])
 
         if extra_args:

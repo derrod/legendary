@@ -146,9 +146,19 @@ class LegendaryCLI:
         games, dlc_list = self.core.get_game_and_dlc_list(
             platform_override=args.platform_override, skip_ue=not args.include_ue
         )
+        # Get information for games that cannot be installed through legendary (yet), such
+        # as games that have to be activated on and launched through Origin.
+        if args.include_noasset:
+            na_games, na_dlcs = self.core.get_non_asset_library_items(skip_ue=not args.include_ue)
+            games.extend(na_games)
+        else:
+            na_dlcs = []
+
         # sort games and dlc by name
         games = sorted(games, key=lambda x: x.app_title.lower())
         for citem_id in dlc_list.keys():
+            if citem_id in na_dlcs:
+                dlc_list[citem_id].extend(na_dlcs[citem_id])
             dlc_list[citem_id] = sorted(dlc_list[citem_id], key=lambda d: d.app_title.lower())
 
         if args.csv or args.tsv:
@@ -173,8 +183,12 @@ class LegendaryCLI:
         print('\nAvailable games:')
         for game in games:
             print(f' * {game.app_title} (App name: {game.app_name} | Version: {game.app_version})')
+            if not game.app_version:
+                print('  ! This game has to be activated and installed through third-party store (not supported)')
             for dlc in dlc_list[game.asset_info.catalog_item_id]:
                 print(f'  + {dlc.app_title} (App name: {dlc.app_name} | Version: {dlc.app_version})')
+                if not dlc.app_version:
+                    print('   ! This DLC is included in the game does not have to be downloaded separately')
 
         print(f'\nTotal: {len(games)}')
 
@@ -1254,6 +1268,8 @@ def main():
                              type=str, help='Override platform that games are shown for (e.g. Win32/Mac)')
     list_parser.add_argument('--include-ue', dest='include_ue', action='store_true',
                              help='Also include Unreal Engine content (Engine/Marketplace) in list')
+    list_parser.add_argument('--include-non-installable', dest='include_noasset', action='store_true',
+                             help='Include apps that are not installable (e.g. that have to be activated on Origin)')
     list_parser.add_argument('--csv', dest='csv', action='store_true', help='List games in CSV format')
     list_parser.add_argument('--tsv', dest='tsv', action='store_true', help='List games in TSV format')
     list_parser.add_argument('--json', dest='json', action='store_true', help='List games in JSON format')
