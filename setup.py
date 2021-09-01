@@ -26,6 +26,7 @@ setup(
         'legendary',
         'legendary.api',
         'legendary.downloader',
+        'legendary.downloader.mp',
         'legendary.lfs',
         'legendary.models',
         'legendary.utils',
