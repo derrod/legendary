@@ -221,7 +221,7 @@ class LegendaryCore:
 
     def get_game_and_dlc_list(self, update_assets=True,
                               platform_override=None,
-                              skip_ue=True) -> (List[Game], Dict[str, Game]):
+                              skip_ue=True) -> (List[Game], Dict[str, List[Game]]):
         _ret = []
         _dlc = defaultdict(list)
 
@@ -461,7 +461,7 @@ class LegendaryCore:
                 '{appdata}': os.path.expandvars('%APPDATA%'),
                 '{userdir}': os.path.expandvars('%userprofile%/documents'),
                 # '{userprofile}': os.path.expandvars('%userprofile%'),  # possibly wrong
-                '{usersavedgames}':  os.path.expandvars('%userprofile%/Saved Games')
+                '{usersavedgames}': os.path.expandvars('%userprofile%/Saved Games')
             })
         else:
             # attempt to get WINE prefix from config
@@ -619,7 +619,7 @@ class LegendaryCore:
                 self.log.debug(f'Writing "{fpath}"...')
                 with open(fpath, 'wb') as fh:
                     for cp in fm.chunk_parts:
-                        fh.write(chunks[cp.guid_num][cp.offset:cp.offset+cp.size])
+                        fh.write(chunks[cp.guid_num][cp.offset:cp.offset + cp.size])
 
                 # set modified time to savegame creation timestamp
                 m_date = datetime.strptime(f_parts[4], '%Y.%m.%d-%H.%M.%S.manifest')
@@ -807,10 +807,10 @@ class LegendaryCore:
         else:
             if not game_folder:
                 if game.is_dlc:
-                    game_folder = base_game.metadata.get('customAttributes', {}).\
+                    game_folder = base_game.metadata.get('customAttributes', {}). \
                         get('FolderName', {}).get('value', base_game.app_name)
                 else:
-                    game_folder = game.metadata.get('customAttributes', {}).\
+                    game_folder = game.metadata.get('customAttributes', {}). \
                         get('FolderName', {}).get('value', game.app_name)
 
             if not base_path:
@@ -1058,8 +1058,8 @@ class LegendaryCore:
             # If there's no in-progress installation assume the game doesn't need to be verified
             if mf and not os.path.exists(os.path.join(app_path, '.egstore', 'bps')):
                 needs_verify = False
-                if os.path.exists(os.path.join(app_path, '.egstore',  'Pending')):
-                    if os.listdir(os.path.join(app_path, '.egstore',  'Pending')):
+                if os.path.exists(os.path.join(app_path, '.egstore', 'Pending')):
+                    if os.listdir(os.path.join(app_path, '.egstore', 'Pending')):
                         needs_verify = True
 
                 if not needs_verify:
@@ -1183,13 +1183,13 @@ class LegendaryCore:
             os.makedirs(egstore_folder)
 
         # copy manifest and create mancpn file in .egstore folder
-        with open(os.path.join(egstore_folder, f'{egl_game.installation_guid}.manifest',), 'wb') as mf:
+        with open(os.path.join(egstore_folder, f'{egl_game.installation_guid}.manifest', ), 'wb') as mf:
             mf.write(manifest_data)
 
         mancpn = dict(FormatVersion=0, AppName=app_name,
                       CatalogItemId=lgd_game.asset_info.catalog_item_id,
                       CatalogNamespace=lgd_game.asset_info.namespace)
-        with open(os.path.join(egstore_folder, f'{egl_game.installation_guid}.mancpn',), 'w') as mcpnf:
+        with open(os.path.join(egstore_folder, f'{egl_game.installation_guid}.mancpn', ), 'w') as mcpnf:
             json.dump(mancpn, mcpnf, indent=4, sort_keys=True)
 
         # And finally, write the file for EGL
