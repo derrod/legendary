@@ -321,8 +321,9 @@ optional arguments:
 
 
 Command: list-games
-usage: legendary list-games [-h] [--platform <Platform>] [--include-ue] [--csv]
-                            [--tsv] [--json]
+usage: legendary list-games [-h] [--platform <Platform>] [--include-ue]
+                            [--include-non-installable] [--csv] [--tsv]
+                            [--json]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -519,6 +520,8 @@ egl_programdata = /home/user/Games/epic-games-store/drive_c/...
 preferred_cdn = epicgames-download1.akamaized.net
 ; disable HTTPS for downloads (e.g. to use a LanCache)
 disable_https = false
+; disables checking for updates
+enable_update_check = true
 
 ; default settings to use (currently limited to WINE executable)
 [default]
