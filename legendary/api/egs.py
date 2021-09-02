@@ -14,6 +14,7 @@ class EPCAPI:
     # required for the oauth request
     _user_basic = '34a02cf8f4414e29b15921876da36f9a'
     _pw_basic = 'daafbccc737745039dffe53d94fc76cf'
+    _label = 'Live-EternalKnight'
 
     _oauth_host = 'account-public-service-prod03.ol.epicgames.com'
     _launcher_host = 'launcher-public-service-prod06.ol.epicgames.com'
@@ -106,6 +107,13 @@ class EPCAPI:
         r = self.session.get(f'https://{self._launcher_host}/launcher/api/public/assets/v2/platform'
                              f'/{platform}/namespace/{namespace}/catalogItem/{catalog_item_id}/app'
                              f'/{app_name}/label/{label}')
+        r.raise_for_status()
+        return r.json()
+
+    def get_launcher_manifests(self, platform='Windows', label=None):
+        r = self.session.get(f'https://{self._launcher_host}/launcher/api/public/assets/v2/platform/'
+                             f'{platform}/launcher',
+                             params=dict(label=label if label else self._label))
         r.raise_for_status()
         return r.json()
 
