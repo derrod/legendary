@@ -22,12 +22,16 @@ class LGDConf(configparser.ConfigParser):
         super().write(*args, **kwargs)
         self.modtime = int(time.time())
 
-    def set(self, *args, **kwargs):
+    def set(self, section, option, value=None):
         if self.read_only:
             return
 
+        # ensure config section exists
+        if not self.has_section(section):
+            self.add_section(section)
+
         self.modified = True
-        super().set(*args, **kwargs)
+        super().set(section, option, value)
 
     def remove_option(self, section, option):
         if self.read_only:

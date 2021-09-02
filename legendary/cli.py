@@ -598,8 +598,6 @@ class LegendaryCLI:
             config_tags = self.core.lgd.config.get(game.app_name, 'install_tags', fallback=None)
             if not self.core.is_installed(game.app_name) or config_tags is None or args.reset_sdl:
                 args.install_tag = sdl_prompt(sdl_name, game.app_title)
-                if game.app_name not in self.core.lgd.config:
-                    self.core.lgd.config[game.app_name] = dict()
                 self.core.lgd.config.set(game.app_name, 'install_tags', ','.join(args.install_tag))
             else:
                 args.install_tag = config_tags.split(',')

@@ -1152,8 +1152,6 @@ class LegendaryCore:
 
         # transfer install tag choices to config
         if lgd_igame.install_tags:
-            if app_name not in self.lgd.config:
-                self.lgd.config[app_name] = dict()
             self.lgd.config.set(app_name, 'install_tags', ','.join(lgd_igame.install_tags))
 
         # mark game as installed
