@@ -38,6 +38,21 @@ class EPCAPI:
         self.language_code = lc
         self.country_code = cc
 
+    def update_egs_params(self, egs_params):
+        # update user-agent
+        if version := egs_params['version']:
+            self._user_agent = f'UELauncher/{version} Windows/10.0.19041.1.256.64bit'
+            self.session.headers['User-Agent'] = self._user_agent
+            self.unauth_session.headers['User-Agent'] = self._user_agent
+        # update label
+        if label := egs_params['label']:
+            self._label = label
+        # update client credentials
+        if 'client_id' in egs_params and 'client_secret' in egs_params:
+            self._user_basic = egs_params['client_id']
+            self._pw_basic = egs_params['client_secret']
+            self._oauth_basic = HTTPBasicAuth(self._user_basic, self._pw_basic)
+
     def resume_session(self, session):
         self.session.headers['Authorization'] = f'bearer {session["access_token"]}'
         r = self.session.get(f'https://{self._oauth_host}/account/api/oauth/verify')
