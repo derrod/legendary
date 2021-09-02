@@ -16,7 +16,9 @@ from requests.exceptions import HTTPError
 from typing import List, Dict
 from uuid import uuid4
 
+from legendary import __version__
 from legendary.api.egs import EPCAPI
+from legendary.api.lgd import LGDAPI
 from legendary.downloader.mp.manager import DLManager
 from legendary.lfs.egl import EPCLFS
 from legendary.lfs.lgndry import LGDLFS
@@ -50,6 +52,7 @@ class LegendaryCore:
         self.egs = EPCAPI()
         self.lgd = LGDLFS()
         self.egl = EPCLFS()
+        self.lgdapi = LGDAPI()
 
         # on non-Windows load the programdata path from config
         if os.name != 'nt':
@@ -74,6 +77,8 @@ class LegendaryCore:
                 self.log.warning(f'Getting locale failed: {e!r}, falling back to using en-US.')
         else:
             self.log.warning(f'Could not determine locale, falling back to en-US')
+
+        self.update_available = False
 
     def auth(self, username, password):
         """
@@ -153,6 +158,15 @@ class LegendaryCore:
         if not self.lgd.userdata:
             raise ValueError('No saved credentials')
 
+        # run update check
+        if self.update_check_enabled():
+            try:
+                self.check_for_updates()
+            except Exception as e:
+                self.log.warning(f'Checking for Legendary updates failed: {e!r}')
+        else:
+            self.apply_lgd_config()
+
         if self.lgd.userdata['expires_at']:
             dt_exp = datetime.fromisoformat(self.lgd.userdata['expires_at'][:-1])
             dt_now = datetime.utcnow()
@@ -184,6 +198,40 @@ class LegendaryCore:
 
         self.lgd.userdata = userdata
         return True
+
+    def update_check_enabled(self):
+        return self.lgd.config.getboolean('Legendary', 'enable_update_check',
+                                          fallback=os.name == 'nt')
+
+    def check_for_updates(self, force=False):
+        def version_tuple(v):
+            return tuple(map(int, (v.split('.'))))
+
+        cached = self.lgd.get_cached_version()
+        version_info = cached['data']
+        if force or not version_info or (datetime.now().timestamp() - cached['last_update']) > 24*3600:
+            version_info = self.lgdapi.get_version_information()
+            self.lgd.set_cached_version(version_info)
+
+        web_version = version_info['release_info']['version']
+        self.update_available = version_tuple(web_version) > version_tuple(__version__)
+        self.apply_lgd_config(version_info)
+
+    def apply_lgd_config(self, version_info=None):
+        """Applies configuration options returned by update API"""
+        if not version_info:
+            version_info = self.lgd.get_cached_version()['data']
+            # if cached data is invalid
+            if not version_info:
+                self.log.debug('No cached legendary config to apply.')
+                return
+
+        if 'egl_config' in version_info:
+            self.egs.update_egs_params(version_info['egl_config'])
+        # todo update sid auth/downloader UA and game overrides
+
+    def get_update_info(self):
+        return self.lgd.get_cached_version()['data'].get('release_info')
 
     def get_assets(self, update_assets=False, platform_override=None) -> List[GameAsset]:
         # do not save and always fetch list when platform is overridden

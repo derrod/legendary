@@ -5,6 +5,7 @@ import os
 import logging
 
 from pathlib import Path
+from time import time
 
 from legendary.models.game import *
 from legendary.utils.config import LGDConf
@@ -28,6 +29,8 @@ class LGDLFS:
         self._assets = None
         # EGS metadata
         self._game_metadata = dict()
+        # Legendary update check info
+        self._update_info = None
         # Config with game specific settings (e.g. start parameters, env variables)
         self.config = LGDConf(comment_prefixes='/', allow_no_value=True)
         self.config.optionxform = str
@@ -285,3 +288,18 @@ class LGDLFS:
 
     def get_dir_size(self):
         return sum(f.stat().st_size for f in Path(self.path).glob('**/*') if f.is_file())
+
+    def get_cached_version(self):
+        try:
+            self._update_info = json.load(open(os.path.join(self.path, 'version.json')))
+            return self._update_info
+        except Exception as e:
+            self.log.debug(f'Failed to load cached update data: {e!r}')
+            return dict(last_update=0, data=None)
+
+    def set_cached_version(self, version_data):
+        if not version_data:
+            return
+        self._update_info = dict(last_update=time(), data=version_data)
+        json.dump(self._update_info, open(os.path.join(self.path, 'version.json'), 'w'),
+                  indent=2, sort_keys=True)

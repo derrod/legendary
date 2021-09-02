@@ -1065,6 +1065,8 @@ class LegendaryCLI:
                     exit(1)
             except ValueError:
                 pass
+            # if automatic checks are off force an update here
+            self.core.check_for_updates(force=True)
 
         if not self.core.lgd.userdata:
             user_name = '<not logged in>'
@@ -1089,6 +1091,16 @@ class LegendaryCLI:
         print(f'Games installed: {games_installed}')
         print(f'EGL Sync enabled: {self.core.egl_sync_enabled}')
         print(f'Config directory: {self.core.lgd.path}')
+        print(f'\nLegendary version: {__version__} - "{__codename__}"')
+        print(f'Update available: {"yes" if self.core.update_available else "no"}')
+        if self.core.update_available:
+            if update_info := self.core.get_update_info():
+                print(f'- New version: {update_info["version"]} - "{update_info["name"]}"')
+                print(f'- Release summary:\n{update_info["summary"]}\n- Release URL: {update_info["gh_url"]}')
+                if update_info['critical']:
+                    print('! This update is recommended as it fixes major issues.')
+            # prevent update message on close
+            self.core.update_available = False
 
     def cleanup(self, args):
         before = self.core.lgd.get_dir_size()
@@ -1412,6 +1424,15 @@ def main():
             cli.cleanup(args)
     except KeyboardInterrupt:
         logger.info('Command was aborted via KeyboardInterrupt, cleaning up...')
+
+    # show note if update is available
+    if cli.core.update_available:
+        if update_info := cli.core.get_update_info():
+            print(f'\nLegendary update available!')
+            print(f'- New version: {update_info["version"]} - "{update_info["name"]}"')
+            print(f'- Release summary:\n{update_info["summary"]}\n- Release URL: {update_info["gh_url"]}')
+            if update_info['critical']:
+                print('! This update is recommended as it fixes major issues.')
 
     cli.core.exit()
     ql.stop()
