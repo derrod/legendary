@@ -272,13 +272,15 @@ class LGDLFS:
         if self.config.read_only or not self.config.modified:
             return
         # if config file has been modified externally, back-up the user-modified version before writing
-        if (modtime := int(os.stat(os.path.join(self.path, 'config.ini')).st_mtime)) != self.config.modtime:
-            new_filename = f'config.{modtime}.ini'
-            self.log.warning(f'Configuration file has been modified while legendary was running, '
-                             f'user-modified config will be renamed to "{new_filename}"...')
-            os.rename(os.path.join(self.path, 'config.ini'), os.path.join(self.path, new_filename))
+        config_path = os.path.join(self.path, 'config.ini')
+        if os.path.exists(config_path):
+            if (modtime := int(os.stat(config_path).st_mtime)) != self.config.modtime:
+                new_filename = f'config.{modtime}.ini'
+                self.log.warning(f'Configuration file has been modified while legendary was running, '
+                                 f'user-modified config will be renamed to "{new_filename}"...')
+                os.rename(os.path.join(self.path, 'config.ini'), os.path.join(self.path, new_filename))
 
-        with open(os.path.join(self.path, 'config.ini'), 'w') as cf:
+        with open(config_path, 'w') as cf:
             self.config.write(cf)
 
     def get_dir_size(self):
