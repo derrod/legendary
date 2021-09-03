@@ -25,6 +25,7 @@ from legendary.utils.cli import get_boolean_choice, sdl_prompt
 from legendary.utils.custom_parser import AliasedSubParsersAction
 from legendary.utils.lfs import validate_files
 from legendary.utils.selective_dl import get_sdl_appname
+from legendary.utils.wine_helpers import read_registry, get_shell_folders
 
 # todo custom formatter for cli logger (clean info, highlighted error/warning)
 logging.basicConfig(
@@ -69,34 +70,33 @@ class LegendaryCLI:
         if args.import_egs_auth:
             # get appdata path on Linux
             if not self.core.egl.appdata_path:
-                wine_pfx_users = None
-                lutris_wine_users = os.path.expanduser('~/Games/epic-games-store/drive_c/users')
-                if os.path.exists(lutris_wine_users):
-                    logger.info(f'Found Lutris EGL WINE prefix at "{lutris_wine_users}"')
+                egl_wine_pfx = None
+                lutris_wine_pfx = os.path.expanduser('~/Games/epic-games-store')
+                if os.path.exists(lutris_wine_pfx):
+                    logger.info(f'Found Lutris EGL WINE prefix at "{lutris_wine_pfx}"')
                     if args.yes or get_boolean_choice('Do you want to use the Lutris install?'):
-                        wine_pfx_users = lutris_wine_users
+                        egl_wine_pfx = lutris_wine_pfx
 
-                if not wine_pfx_users:
+                if not egl_wine_pfx:
                     logger.info('Please enter the path to the Wine prefix that has EGL installed')
                     wine_pfx = input('Path [empty input to quit]: ').strip()
                     if not wine_pfx:
                         print('Empty input, quitting...')
                         exit(0)
-                    if not os.path.exists(wine_pfx):
+                    if not os.path.exists(wine_pfx) and os.path.isdir(wine_pfx):
                         print('Path is invalid (does not exist)!')
                         exit(1)
-                    wine_pfx_users = os.path.join(wine_pfx, 'drive_c/users')
 
-                # todo instead of getuser() this should read from the user.reg in the WINE prefix
-                appdata_dir = os.path.join(wine_pfx_users, getuser(),
-                                           'Local Settings/Application Data/EpicGamesLauncher',
-                                           'Saved/Config/Windows')
-                if not os.path.exists(appdata_dir):
-                    logger.error(f'Wine prefix does not have EGL appdata path at "{appdata_dir}"')
+                wine_folders = get_shell_folders(read_registry(egl_wine_pfx), egl_wine_pfx)
+                egl_appdata = os.path.realpath(os.path.join(wine_folders['Local AppData'],
+                                                            'EpicGamesLauncher', 'Saved',
+                                                            'Config', 'Windows'))
+                if not os.path.exists(egl_appdata):
+                    logger.error(f'Wine prefix does not have EGL appdata path at "{egl_appdata}"')
                     exit(0)
                 else:
-                    logger.info(f'Using EGL appdata path at "{appdata_dir}"')
-                    self.core.egl.appdata_path = appdata_dir
+                    logger.info(f'Using EGL appdata path at "{egl_appdata}"')
+                    self.core.egl.appdata_path = egl_appdata
 
             logger.info('Importing login session from the Epic Launcher...')
             try:
