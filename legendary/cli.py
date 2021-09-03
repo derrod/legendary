@@ -12,7 +12,6 @@ import time
 import webbrowser
 
 from distutils.util import strtobool
-from getpass import getuser
 from logging.handlers import QueueListener
 from multiprocessing import freeze_support, Queue as MPQueue
 from sys import exit, stdout
@@ -69,14 +68,14 @@ class LegendaryCLI:
         if args.import_egs_auth:
             # get appdata path on Linux
             if not self.core.egl.appdata_path:
-                wine_pfx_users = None
-                lutris_wine_users = os.path.expanduser('~/Games/epic-games-store/drive_c/users')
-                if os.path.exists(lutris_wine_users):
-                    logger.info(f'Found Lutris EGL WINE prefix at "{lutris_wine_users}"')
+                wine_pfx = None
+                lutris_winepfx = os.path.expanduser('~/Games/epic-games-store')
+                if os.path.exists(lutris_winepfx):
+                    logger.info(f'Found Lutris EGL WINE prefix at "{lutris_winepfx}"')
                     if args.yes or get_boolean_choice('Do you want to use the Lutris install?'):
-                        wine_pfx_users = lutris_wine_users
+                        wine_pfx = lutris_winepfx
 
-                if not wine_pfx_users:
+                if not wine_pfx:
                     logger.info('Please enter the path to the Wine prefix that has EGL installed')
                     wine_pfx = input('Path [empty input to quit]: ').strip()
                     if not wine_pfx:
@@ -85,18 +84,36 @@ class LegendaryCLI:
                     if not os.path.exists(wine_pfx):
                         print('Path is invalid (does not exist)!')
                         exit(1)
-                    wine_pfx_users = os.path.join(wine_pfx, 'drive_c/users')
 
-                # todo instead of getuser() this should read from the user.reg in the WINE prefix
-                appdata_dir = os.path.join(wine_pfx_users, getuser(),
-                                           'Local Settings/Application Data/EpicGamesLauncher',
-                                           'Saved/Config/Windows')
-                if not os.path.exists(appdata_dir):
-                    logger.error(f'Wine prefix does not have EGL appdata path at "{appdata_dir}"')
+                if not os.path.exists(os.path.join(wine_pfx, 'user.reg')):
+                    print('Path does not contain a valid Wineprefix!')
+                    exit(1)
+
+                local_appdata_path = None
+                with open(os.path.join(wine_pfx, 'user.reg')) as f:
+                    for line in f:
+                        if line.startswith('[Volatile Environment]'):
+                            break
+                    for line in f:
+                        if line.startswith('"LOCALAPPDATA"'):
+                            formatted_path = line.split('=')[1].rstrip('\n').strip('"')
+                            # replace -> convert from WindowsPath to regular Linux path, [3:] -> remove "C:/"
+                            formatted_path = formatted_path.replace('\\\\', '/')[3:]
+                            local_appdata_path = os.path.join(wine_pfx, 'drive_c', formatted_path)
+                            break
+
+                if not local_appdata_path:
+                    logger.warning('Could not find LocalAppData path in \'user.reg\', falling back to guessing it')
+                    local_appdata_path = os.path.join(wine_pfx, 'drive_c/users',
+                                                      os.environ.get('USER'), 'AppData/Local')
+
+                egl_appdata = os.path.join(local_appdata_path, 'EpicGamesLauncher', 'Saved', 'Config', 'Windows')
+                if not os.path.exists(egl_appdata):
+                    logger.error(f'Wine prefix does not have EGL appdata path at "{egl_appdata}"')
                     exit(0)
                 else:
-                    logger.info(f'Using EGL appdata path at "{appdata_dir}"')
-                    self.core.egl.appdata_path = appdata_dir
+                    logger.info(f'Using EGL appdata path at "{egl_appdata}"')
+                    self.core.egl.appdata_path = egl_appdata
 
             logger.info('Importing login session from the Epic Launcher...')
             try:
