@@ -17,3 +17,10 @@ def is_opt_enabled(app_name, version):
         if version in versions or not versions:
             return True
     return False
+
+
+def update_workarounds(api_data):
+    if 'reorder_optimization' in api_data:
+        _optimize_default.clear()
+        _optimize_default.update(api_data['reorder_optimization'])
+

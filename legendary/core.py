@@ -31,7 +31,7 @@ from legendary.models.game import *
 from legendary.models.json_manifest import JSONManifest
 from legendary.models.manifest import Manifest, ManifestMeta
 from legendary.models.chunk import Chunk
-from legendary.utils.game_workarounds import is_opt_enabled
+from legendary.utils.game_workarounds import is_opt_enabled, update_workarounds
 from legendary.utils.savegame_helper import SaveGameHelper
 from legendary.utils.manifests import combine_manifests
 from legendary.utils.wine_helpers import read_registry, get_shell_folders
@@ -47,6 +47,7 @@ class LegendaryCore:
     the downloader, lfs, and api components to make writing CLI/GUI
     code easier and cleaner and avoid duplication.
     """
+    _egl_version = '11.0.1-14907503+++Portal+Release-Live'
 
     def __init__(self):
         self.log = logging.getLogger('Core')
@@ -106,7 +107,7 @@ class LegendaryCore:
             'X-Requested-With': 'XMLHttpRequest',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
                           'AppleWebKit/537.36 (KHTML, like Gecko) '
-                          'EpicGamesLauncher/11.0.1-14907503+++Portal+Release-Live '
+                          f'EpicGamesLauncher/{self._egl_version} '
                           'UnrealEngine/4.23.0-14907503+++Portal+Release-Live '
                           'Chrome/84.0.4147.38 Safari/537.36'
         })
@@ -236,7 +237,9 @@ class LegendaryCore:
 
         if 'egl_config' in version_info:
             self.egs.update_egs_params(version_info['egl_config'])
-        # todo update sid auth/downloader UA and game overrides
+            self._egl_version = version_info['egl_config'].get('version', self._egl_version)
+        if 'game_overrides' in version_info:
+            update_workarounds(version_info['game_overrides'])
 
     def get_update_info(self):
         return self.lgd.get_cached_version()['data'].get('release_info')
