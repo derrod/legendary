@@ -87,10 +87,16 @@ class LegendaryCLI:
                         print('Path is invalid (does not exist)!')
                         exit(1)
 
-                wine_folders = get_shell_folders(read_registry(egl_wine_pfx), egl_wine_pfx)
-                egl_appdata = os.path.realpath(os.path.join(wine_folders['Local AppData'],
-                                                            'EpicGamesLauncher', 'Saved',
-                                                            'Config', 'Windows'))
+                try:
+                    wine_folders = get_shell_folders(read_registry(egl_wine_pfx), egl_wine_pfx)
+                    egl_appdata = os.path.realpath(os.path.join(wine_folders['Local AppData'],
+                                                                'EpicGamesLauncher', 'Saved',
+                                                                'Config', 'Windows'))
+                except Exception as e:
+                    logger.error(f'Got exception when trying to read WINE registry: {e!r}')
+                    logger.error('Make sure you are specifying a valid wine prefix.')
+                    exit(1)
+
                 if not os.path.exists(egl_appdata):
                     logger.error(f'Wine prefix does not have EGL appdata path at "{egl_appdata}"')
                     exit(0)
