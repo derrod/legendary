@@ -15,6 +15,7 @@ from requests import session
 from requests.exceptions import HTTPError
 from typing import List, Dict
 from uuid import uuid4
+from urllib.parse import urlencode
 
 from legendary import __version__
 from legendary.api.egs import EPCAPI
@@ -482,6 +483,27 @@ class LegendaryCore:
                 env['WINEPREFIX'] = wine_pfx
 
         return params, working_dir, env
+
+    def get_origin_uri(self, app_name: str, offline: bool = False) -> str:
+        if offline:
+            token = '0'
+        else:
+            token = self.egs.get_game_token()['code']
+
+        user_name = self.lgd.userdata['displayName']
+        account_id = self.lgd.userdata['account_id']
+        parameters = [
+            ('AUTH_PASSWORD', token),
+            ('AUTH_TYPE', 'exchangecode'),
+            ('epicusername', user_name),
+            ('epicuserid', account_id),
+            ('epiclocale', self.language_code),
+            ('theme', 'sws'),
+            ('platform', 'epic'),
+            ('Hotfix', 'go')
+        ]
+
+        return f'link2ea://launchgame/{app_name}?{urlencode(parameters)}'
 
     def get_save_games(self, app_name: str = ''):
         savegames = self.egs.get_user_cloud_saves(app_name, manifests=not not app_name)

@@ -12,7 +12,6 @@ import time
 import webbrowser
 
 from distutils.util import strtobool
-from getpass import getuser
 from logging.handlers import QueueListener
 from multiprocessing import freeze_support, Queue as MPQueue
 from sys import exit, stdout
@@ -194,7 +193,13 @@ class LegendaryCLI:
         for game in games:
             print(f' * {game.app_title} (App name: {game.app_name} | Version: {game.app_version})')
             if not game.app_version:
-                print('  ! This game has to be activated and installed through third-party store (not supported)')
+                _custom_attribs = game.metadata.get('customAttributes', {})
+                _store = _custom_attribs.get('ThirdPartyManagedApp', {}).get('value', 'Unknown')
+                if os.name == 'nt' and _store == 'Origin':
+                    print(f'  - This game has to be activated, installed, and launched via Origin, use '
+                          f'"legendary launch --origin {game.app_name}" to activate and/or run the game.')
+                else:
+                    print(f'  ! This game has to be installed through third-party store ({_store}, not supported)')
             for dlc in dlc_list[game.asset_info.catalog_item_id]:
                 print(f'  + {dlc.app_title} (App name: {dlc.app_name} | Version: {dlc.app_version})')
                 if not dlc.app_version:
@@ -456,6 +461,9 @@ class LegendaryCLI:
 
     def launch_game(self, args, extra):
         app_name = args.app_name
+        if args.origin:
+            return self.launch_origin(args)
+
         igame = self.core.get_installed_game(app_name)
         if not igame:
             logger.error(f'Game {app_name} is not currently installed!')
@@ -535,6 +543,18 @@ class LegendaryCLI:
             if env:
                 logger.debug('Environment overrides:', env)
             subprocess.Popen(params, cwd=cwd, env=env)
+
+    def launch_origin(self, args):
+        # login is not required to launch the game, but linking does require it.
+        if not args.offline:
+            logger.info('Logging in...')
+            if not self.core.login():
+                logger.error('Login failed, cannot continue!')
+                exit(1)
+
+        origin_uri = self.core.get_origin_uri(args.app_name, args.offline)
+        logger.debug(f'Opening Origin URI: {origin_uri}')
+        webbrowser.open(origin_uri)
 
     def install_game(self, args):
         if self.core.is_installed(args.app_name):
@@ -1277,12 +1297,16 @@ def main():
         launch_parser.add_argument('--no-wine', dest='no_wine', action='store_true',
                                    default=strtobool(os.environ.get('LGDRY_NO_WINE', 'False')),
                                    help='Do not run game with WINE (e.g. if a wrapper is used)')
+        launch_parser.add_argument('--origin', dest='origin', help=argparse.SUPPRESS,
+                                   action='store_true', default=False)
     else:
         # hidden arguments to not break this on Windows
         launch_parser.add_argument('--wine', help=argparse.SUPPRESS, dest='wine_bin')
         launch_parser.add_argument('--wine-prefix', help=argparse.SUPPRESS, dest='wine_pfx')
         launch_parser.add_argument('--no-wine', dest='no_wine', help=argparse.SUPPRESS,
                                    action='store_true', default=True)
+        launch_parser.add_argument('--origin', dest='origin', action='store_true',
+                                   help='Launch Origin to activate or run the game.')
 
     list_parser.add_argument('--platform', dest='platform_override', action='store', metavar='<Platform>',
                              type=str, help='Override platform that games are shown for (e.g. Win32/Mac)')
