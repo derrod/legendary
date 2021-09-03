@@ -113,8 +113,8 @@ class LegendaryCLI:
                 else:
                     logger.warning('Login session from EGS seems to no longer be valid.')
                     exit(1)
-            except ValueError:
-                logger.error('No EGS login session found, please login manually.')
+            except Exception as e:
+                logger.error(f'No EGS login session found, please login manually. (Exception: {e!r})')
                 exit(1)
 
         exchange_token = ''
