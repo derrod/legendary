@@ -117,6 +117,10 @@ class LegendaryCLI:
                 logger.error(f'No EGS login session found, please login manually. (Exception: {e!r})')
                 exit(1)
 
+        # Force an update check and notice in case there are API changes
+        self.core.check_for_updates(force=True)
+        self.core.force_show_update = True
+        
         exchange_token = ''
         if not args.auth_code and not args.session_id:
             # unfortunately the captcha stuff makes a complete CLI login flow kinda impossible right now...
