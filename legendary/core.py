@@ -79,6 +79,7 @@ class LegendaryCore:
             self.log.warning(f'Could not determine locale, falling back to en-US')
 
         self.update_available = False
+        self.force_show_update = False
 
     def auth(self, username, password):
         """
@@ -201,8 +202,13 @@ class LegendaryCore:
         return True
 
     def update_check_enabled(self):
-        return self.lgd.config.getboolean('Legendary', 'enable_update_check',
-                                          fallback=os.name == 'nt')
+        return not self.lgd.config.getboolean('Legendary', 'disable_update_check', fallback=False)
+
+    def update_notice_enabled(self):
+        if self.force_show_update:
+            return True
+        return not self.lgd.config.getboolean('Legendary', 'disable_update_notice',
+                                              fallback=os.name != 'nt')
 
     def check_for_updates(self, force=False):
         def version_tuple(v):

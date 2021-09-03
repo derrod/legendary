@@ -1432,7 +1432,7 @@ def main():
         logger.info('Command was aborted via KeyboardInterrupt, cleaning up...')
 
     # show note if update is available
-    if cli.core.update_available:
+    if cli.core.update_available and cli.core.update_notice_enabled():
         if update_info := cli.core.get_update_info():
             print(f'\nLegendary update available!')
             print(f'- New version: {update_info["version"]} - "{update_info["name"]}"')
