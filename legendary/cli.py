@@ -1435,8 +1435,17 @@ def main():
     except KeyboardInterrupt:
         logger.info('Command was aborted via KeyboardInterrupt, cleaning up...')
 
+    # Disable the update message if JSON/TSV/CSV outputs are used
+    disable_update_message = False
+    if hasattr(args, 'json'):
+        disable_update_message = args.json
+    if not disable_update_message and hasattr(args, 'tsv'):
+        disable_update_message = args.tsv
+    if not disable_update_message and hasattr(args, 'csv'):
+        disable_update_message = args.csv
+
     # show note if update is available
-    if cli.core.update_available and cli.core.update_notice_enabled():
+    if not disable_update_message and cli.core.update_available and cli.core.update_notice_enabled():
         if update_info := cli.core.get_update_info():
             print(f'\nLegendary update available!')
             print(f'- New version: {update_info["version"]} - "{update_info["name"]}"')
