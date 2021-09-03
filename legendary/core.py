@@ -108,6 +108,7 @@ class LegendaryCore:
                           'UnrealEngine/4.23.0-14907503+++Portal+Release-Live '
                           'Chrome/84.0.4147.38 Safari/537.36'
         })
+        s.cookies['EPIC_COUNTRY'] = self.country_code.upper()
 
         # get first set of cookies (EPIC_BEARER_TOKEN etc.)
         _ = s.get('https://www.epicgames.com/id/api/set-sid', params=dict(sid=sid))
