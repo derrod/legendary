@@ -77,7 +77,15 @@ class LGDLFS:
 
         # make sure "Legendary" section exists
         if 'Legendary' not in self.config:
-            self.config['Legendary'] = dict()
+            self.config.add_section('Legendary')
+
+        # Add opt-out options with explainers
+        if not self.config.has_option('Legendary', 'disable_update_check'):
+            self.config.set('Legendary', '; Disables the automatic update check')
+            self.config.set('Legendary', 'disable_update_check', 'false')
+        if not self.config.has_option('Legendary', 'disable_update_notice'):
+            self.config.set('Legendary', '; Disables the notice about an available update on exit')
+            self.config.set('Legendary', 'disable_update_notice', 'false' if os.name == 'nt' else 'true')
 
         try:
             self._installed = json.load(open(os.path.join(self.path, 'installed.json')))
