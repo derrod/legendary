@@ -297,12 +297,16 @@ class LGDLFS:
         return sum(f.stat().st_size for f in Path(self.path).glob('**/*') if f.is_file())
 
     def get_cached_version(self):
+        if self._update_info:
+            return self._update_info
+
         try:
             self._update_info = json.load(open(os.path.join(self.path, 'version.json')))
-            return self._update_info
         except Exception as e:
             self.log.debug(f'Failed to load cached update data: {e!r}')
-            return dict(last_update=0, data=None)
+            self._update_info = dict(last_update=0, data=None)
+
+        return self._update_info
 
     def set_cached_version(self, version_data):
         if not version_data:
