@@ -120,7 +120,7 @@ class LegendaryCLI:
         # Force an update check and notice in case there are API changes
         self.core.check_for_updates(force=True)
         self.core.force_show_update = True
-        
+
         exchange_token = ''
         if not args.auth_code and not args.session_id:
             # unfortunately the captcha stuff makes a complete CLI login flow kinda impossible right now...
@@ -1443,6 +1443,9 @@ def main():
             print(f'- Release summary:\n{update_info["summary"]}\n- Release URL: {update_info["gh_url"]}')
             if update_info['critical']:
                 print('! This update is recommended as it fixes major issues.')
+            if os.name != 'nt':
+                print('If you installed legendary via a package manager it may '
+                      'take some time for the update to become available.')
 
     cli.core.exit()
     ql.stop()
