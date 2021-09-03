@@ -33,7 +33,6 @@ class LGDLFS:
         self._update_info = None
         # Config with game specific settings (e.g. start parameters, env variables)
         self.config = LGDConf(comment_prefixes='/', allow_no_value=True)
-        self.config.optionxform = str
 
         # ensure folders exist.
         for f in ['', 'manifests', 'metadata', 'tmp']:

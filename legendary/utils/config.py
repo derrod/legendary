@@ -9,6 +9,7 @@ class LGDConf(configparser.ConfigParser):
         self.read_only = False
         self.modtime = None
         super().__init__(*args, **kwargs)
+        self.optionxform = str
 
     def read(self, filename):
         # if config file exists, save modification time
