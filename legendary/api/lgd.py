@@ -1,13 +1,15 @@
 # !/usr/bin/env python
 # coding: utf-8
 
-import legendary
-import requests
 import logging
+import requests
+
+from platform import system
+from legendary import __version__
 
 
 class LGDAPI:
-    _user_agent = f'Legendary/{legendary.__version__}'
+    _user_agent = f'Legendary/{__version__} ({system()})'
     _api_host = 'legendary.rodney.io'
 
     def __init__(self):
