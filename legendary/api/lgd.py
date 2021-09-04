@@ -10,7 +10,7 @@ from legendary import __version__
 
 class LGDAPI:
     _user_agent = f'Legendary/{__version__} ({system()})'
-    _api_host = 'legendary.rodney.io'
+    _api_host = 'api.legendary.gl'
 
     def __init__(self):
         self.session = requests.session()
