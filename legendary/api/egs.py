@@ -21,6 +21,7 @@ class EPCAPI:
     _catalog_host = 'catalog-public-service-prod06.ol.epicgames.com'
     _ecommerce_host = 'ecommerceintegration-public-service-ecomprod02.ol.epicgames.com'
     _datastorage_host = 'datastorage-public-service-liveegs.live.use1a.on.epicgames.com'
+    _library_host = 'library-service.live.use1a.on.epicgames.com'
 
     def __init__(self, lc='en', cc='US'):
         self.session = requests.session()
@@ -121,6 +122,24 @@ class EPCAPI:
                                          country=self.country_code, locale=self.language_code))
         r.raise_for_status()
         return r.json().get(catalog_item_id, None)
+
+    def get_library_items(self, include_metadata=True):
+        records = []
+        r = self.session.get(f'https://{self._library_host}/library/api/public/items',
+                             params=dict(includeMetadata=include_metadata))
+        r.raise_for_status()
+        j = r.json()
+        records.extend(j['records'])
+
+        # Fetch remaining library entries as long as there is a cursor
+        while cursor := j['responseMetadata'].get('nextCursor', None):
+            r = self.session.get(f'https://{self._library_host}/library/api/public/items',
+                                 params=dict(includeMetadata=include_metadata, cursor=cursor))
+            r.raise_for_status()
+            j = r.json()
+            records.extend(j['records'])
+
+        return records
 
     def get_user_cloud_saves(self, app_name='', manifests=False, filenames=None):
         if app_name and manifests:

@@ -14,18 +14,18 @@ from multiprocessing import Queue
 from random import choice as randchoice
 from requests import session
 from requests.exceptions import HTTPError
-from typing import List, Dict
+from typing import List, Dict, Callable
 from uuid import uuid4
 
 from legendary.api.egs import EPCAPI
 from legendary.downloader.manager import DLManager
 from legendary.lfs.egl import EPCLFS
 from legendary.lfs.lgndry import LGDLFS
-from legendary.utils.lfs import clean_filename, delete_folder, delete_filelist
+from legendary.utils.lfs import clean_filename, delete_folder, delete_filelist, validate_files
 from legendary.models.downloading import AnalysisResult, ConditionCheckResult
 from legendary.models.egl import EGLManifest
-from legendary.models.exceptions import *
-from legendary.models.game import *
+from legendary.models.exceptions import InvalidCredentialsError
+from legendary.models.game import GameAsset, Game, InstalledGame, SaveGameFile, SaveGameStatus, VerifyResult
 from legendary.models.json_manifest import JSONManifest
 from legendary.models.manifest import Manifest, ManifestMeta
 from legendary.models.chunk import Chunk
@@ -33,6 +33,7 @@ from legendary.utils.game_workarounds import is_opt_enabled
 from legendary.utils.savegame_helper import SaveGameHelper
 from legendary.utils.manifests import combine_manifests
 from legendary.utils.wine_helpers import read_registry, get_shell_folders
+from legendary.utils.selective_dl import get_sdl_appname
 
 
 # ToDo: instead of true/false return values for success/failure actually raise an exception that the CLI/GUI
@@ -187,7 +188,7 @@ class LegendaryCore:
         return True
 
     def get_assets(self, update_assets=False, platform_override=None) -> List[GameAsset]:
-        # do not save and always fetch list when platform is overriden
+        # do not save and always fetch list when platform is overridden
         if platform_override:
             return [GameAsset.from_egs_json(a) for a in
                     self.egs.get_game_assets(platform=platform_override)]
@@ -296,7 +297,8 @@ class LegendaryCore:
                               user: str = None, extra_args: list = None,
                               wine_bin: str = None, wine_pfx: str = None,
                               language: str = None, wrapper: str = None,
-                              disable_wine: bool = False) -> (list, str, dict):
+                              disable_wine: bool = False,
+                              executable_override: str = None) -> (list, str, dict):
         install = self.lgd.get_installed_game(app_name)
         game = self.lgd.get_game_meta(app_name)
 
@@ -312,8 +314,15 @@ class LegendaryCore:
         if user:
             user_name = user
 
-        game_exe = os.path.join(install.install_path,
-                                install.executable.replace('\\', '/').lstrip('/'))
+        if executable_override or (executable_override := self.lgd.config.get(app_name, 'override_exe', fallback=None)):
+            game_exe = os.path.join(install.install_path,
+                                    executable_override.replace('\\', '/'))
+            if not os.path.exists(game_exe):
+                raise ValueError(f'Executable path is invalid: {game_exe}')
+        else:
+            game_exe = os.path.join(install.install_path,
+                                    install.executable.replace('\\', '/').lstrip('/'))
+
         working_dir = os.path.split(game_exe)[0]
 
         params = []
@@ -687,7 +696,60 @@ class LegendaryCore:
         else:
             return None
 
-    def prepare_download(self, game: Game, base_game: Game = None, base_path: str = '',
+    def verify_game(self, app_name: str, callback: Callable[[int, int], None]=print):
+        if not self.is_installed(app_name):
+            self.log.error(f'Game "{app_name}" is not installed')
+            return
+
+        self.log.info(f'Loading installed manifest for "{app_name}"')
+        igame = self.get_installed_game(app_name)
+        manifest_data, _ = self.get_installed_manifest(app_name)
+        manifest = self.load_manifest(manifest_data)
+
+        files = sorted(manifest.file_manifest_list.elements,
+                       key=lambda a: a.filename.lower())
+
+        # build list of hashes
+        file_list = [(f.filename, f.sha_hash.hex()) for f in files]
+        total = len(file_list)
+        num = 0
+        failed = []
+        missing = []
+
+        self.log.info(f'Verifying "{igame.title}" version "{manifest.meta.build_version}"')
+        repair_file = []
+        for result, path, result_hash in validate_files(igame.install_path, file_list):
+            if callback:
+                num += 1
+                callback(num, total)
+
+            if result == VerifyResult.HASH_MATCH:
+                repair_file.append(f'{result_hash}:{path}')
+                continue
+            elif result == VerifyResult.HASH_MISMATCH:
+                self.log.error(f'File does not match hash: "{path}"')
+                repair_file.append(f'{result_hash}:{path}')
+                failed.append(path)
+            elif result == VerifyResult.FILE_MISSING:
+                self.log.error(f'File is missing: "{path}"')
+                missing.append(path)
+            else:
+                self.log.error(f'Other failure (see log), treating file as missing: "{path}"')
+                missing.append(path)
+
+        # always write repair file, even if all match
+        if repair_file:
+            repair_filename = os.path.join(self.lgd.get_tmp_path(), f'{app_name}.repair')
+            with open(repair_filename, 'w') as f:
+                f.write('\n'.join(repair_file))
+            self.log.debug(f'Written repair file to "{repair_filename}"')
+
+        if not missing and not failed:
+            self.log.info('Verification finished successfully.')
+        else:
+            raise RuntimeError(f'Verification failed, {len(failed)} file(s) corrupted, {len(missing)} file(s) are missing.')
+
+    def prepare_download(self, app_name: str, base_path: str = '', no_install: bool = False,
                          status_q: Queue = None, max_shm: int = 0, max_workers: int = 0,
                          force: bool = False, disable_patching: bool = False,
                          game_folder: str = '', override_manifest: str = '',
@@ -696,8 +758,70 @@ class LegendaryCore:
                          file_exclude_filter: list = None, file_install_tag: list = None,
                          dl_optimizations: bool = False, dl_timeout: int = 10,
                          repair: bool = False, repair_use_latest: bool = False,
+                         ignore_space_req: bool = False,
                          disable_delta: bool = False, override_delta_manifest: str = '',
-                         egl_guid: str = '') -> (DLManager, AnalysisResult, ManifestMeta):
+                         egl_guid: str = '', reset_sdl: bool = False,
+                         sdl_prompt: Callable[[str, str], List[str]] = list) -> (DLManager, AnalysisResult, Game, InstalledGame, bool, str):
+        if self.is_installed(app_name):
+            igame = self.get_installed_game(app_name)
+            if igame.needs_verification and not repair:
+                self.log.info('Game needs to be verified before updating, switching to repair mode...')
+                repair = True
+
+        repair_file = ''
+        if repair:
+            repair = True
+            no_install = repair_use_latest is False
+            repair_file = os.path.join(self.lgd.get_tmp_path(), f'{app_name}.repair')
+
+        if not self.login():
+            raise RuntimeError('Login failed! Cannot continue with download process.')
+
+        if file_prefix_filter or file_exclude_filter or file_install_tag:
+            no_install = True
+
+        if platform_override:
+            no_install = True
+
+        game = self.get_game(app_name, update_meta=True)
+
+        if not game:
+            raise RuntimeError(f'Could not find "{app_name}" in list of available games,'
+                         f'did you type the name correctly?')
+
+        if game.is_dlc:
+            self.log.info('Install candidate is DLC')
+            app_name = game.metadata['mainGameItem']['releaseInfo'][0]['appId']
+            base_game = self.get_game(app_name)
+            # check if base_game is actually installed
+            if not self.is_installed(app_name):
+                # download mode doesn't care about whether or not something's installed
+                if not no_install:
+                    raise RuntimeError(f'Base game "{app_name}" is not installed!')
+        else:
+            base_game = None
+
+        if repair:
+            if not self.is_installed(game.app_name):
+                raise RuntimeError(f'Game "{game.app_title}" ({game.app_name}) is not installed!')
+
+            if not os.path.exists(repair_file):
+                self.log.info('Verifing game...')
+                self.verify_game(app_name)
+            else:
+                self.log.info(f'Using existing repair file: {repair_file}')
+
+        # Workaround for Cyberpunk 2077 preload
+        if not file_install_tag and not game.is_dlc and ((sdl_name := get_sdl_appname(game.app_name)) is not None):
+            config_tags = self.lgd.config.get(game.app_name, 'install_tags', fallback=None)
+            if not self.is_installed(game.app_name) or config_tags is None or reset_sdl:
+                file_install_tag = sdl_prompt(sdl_name, game.app_title)
+                if game.app_name not in self.lgd.config:
+                    self.lgd.config[game.app_name] = dict()
+                self.lgd.config.set(game.app_name, 'install_tags', ','.join(file_install_tag))
+            else:
+                file_install_tag = config_tags.split(',')
+
         # load old manifest
         old_manifest = None
 
@@ -849,7 +973,44 @@ class LegendaryCore:
                               is_dlc=base_game is not None, install_size=anlres.install_size,
                               egl_guid=egl_guid, install_tags=file_install_tag)
 
-        return dlm, anlres, igame
+        # game is either up to date or hasn't changed, so we have nothing to do
+        if not anlres.dl_size:
+            old_igame = self.get_installed_game(game.app_name)
+            self.log.info('Download size is 0, the game is either already up to date or has not changed. Exiting...')
+            if old_igame and repair and os.path.exists(repair_file):
+                if old_igame.needs_verification:
+                    old_igame.needs_verification = False
+                    self.install_game(old_igame)
+
+                self.log.debug('Removing repair file.')
+                os.remove(repair_file)
+
+            # check if install tags have changed, if they did; try deleting files that are no longer required.
+            if old_igame and old_igame.install_tags != igame.install_tags:
+                old_igame.install_tags = igame.install_tags
+                self.log.info('Deleting now untagged files.')
+                self.uninstall_tag(old_igame)
+                self.install_game(old_igame)
+
+            raise RuntimeError('Nothing to do.')
+
+        res = self.check_installation_conditions(analysis=anlres, install=igame, game=game,
+                                                      updating=self.is_installed(app_name),
+                                                      ignore_space_req=ignore_space_req)
+
+        if res.warnings or res.failures:
+            self.log.info('Installation requirements check returned the following results:')
+
+        if res.warnings:
+            for warn in sorted(res.warnings):
+                self.log.warning(warn)
+
+        if res.failures:
+            for msg in sorted(res.failures):
+                self.log.fatal(msg)
+            raise RuntimeError('Installation cannot proceed, exiting.')
+
+        return dlm, anlres, game, igame, repair, repair_file
 
     @staticmethod
     def check_installation_conditions(analysis: AnalysisResult,
@@ -916,6 +1077,23 @@ class LegendaryCore:
                                  f'this is currently unsupported and the game may not work.')
 
         return results
+
+    def clean_post_install(self, game: Game, igame: InstalledGame, repair: bool = False, repair_file: str = ''):
+        old_igame = self.get_installed_game(game.app_name)
+        if old_igame and repair and os.path.exists(repair_file):
+            if old_igame.needs_verification:
+                old_igame.needs_verification = False
+                self.install_game(old_igame)
+
+            self.log.debug('Removing repair file.')
+            os.remove(repair_file)
+
+        # check if install tags have changed, if they did; try deleting files that are no longer required.
+        if old_igame and old_igame.install_tags != igame.install_tags:
+            old_igame.install_tags = igame.install_tags
+            self.log.info('Deleting now untagged files.')
+            self.uninstall_tag(old_igame)
+            self.install_game(old_igame)
 
     def get_default_install_dir(self):
         return os.path.expanduser(self.lgd.config.get('Legendary', 'install_dir', fallback='~/legendary'))
@@ -999,7 +1177,7 @@ class LegendaryCore:
             if mf and os.path.exists(os.path.join(app_path, '.egstore', mf)):
                 manifest_data = open(os.path.join(app_path, '.egstore', mf), 'rb').read()
             else:
-                self.log.warning('.egstore folder exists but manifest file is missing, contiuing as regular import...')
+                self.log.warning('.egstore folder exists but manifest file is missing, continuing as regular import...')
 
             # If there's no in-progress installation assume the game doesn't need to be verified
             if mf and not os.path.exists(os.path.join(app_path, '.egstore', 'bps')):
@@ -1216,4 +1394,3 @@ class LegendaryCore:
         Do cleanup, config saving, and exit.
         """
         self.lgd.save_config()
-

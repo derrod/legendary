@@ -157,15 +157,18 @@ class JSONFML(FML):
             _fm.chunk_parts = []
             _fm.install_tags = _fmj.pop('InstallTags', list())
 
+            _offset = 0
             for _cpj in _fmj.pop('FileChunkParts'):
                 _cp = ChunkPart()
                 _cp.guid = guid_from_json(_cpj.pop('Guid'))
                 _cp.offset = blob_to_num(_cpj.pop('Offset'))
                 _cp.size = blob_to_num(_cpj.pop('Size'))
+                _cp.file_offset = _offset
                 _fm.file_size += _cp.size
                 if _cpj:
                     print(f'Non-read ChunkPart keys: {_cpj.keys()}')
                 _fm.chunk_parts.append(_cp)
+                _offset += _cp.size
 
             if _fmj:
                 print(f'Non-read FileManifest keys: {_fmj.keys()}')
