@@ -9,6 +9,7 @@ from time import time
 
 from legendary.models.game import *
 from legendary.utils.config import LGDConf
+from legendary.utils.env import is_windows_or_pyi
 from legendary.utils.lfs import clean_filename
 
 
@@ -85,7 +86,7 @@ class LGDLFS:
             self.config.set('Legendary', 'disable_update_check', 'false')
         if not self.config.has_option('Legendary', 'disable_update_notice'):
             self.config.set('Legendary', '; Disables the notice about an available update on exit')
-            self.config.set('Legendary', 'disable_update_notice', 'false' if os.name == 'nt' else 'true')
+            self.config.set('Legendary', 'disable_update_notice', 'false' if is_windows_or_pyi() else 'true')
 
         try:
             self._installed = json.load(open(os.path.join(self.path, 'installed.json')))
