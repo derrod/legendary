@@ -22,3 +22,9 @@ class LGDAPI:
                              timeout=10.0)
         r.raise_for_status()
         return r.json()
+
+    def get_sdl_config(self, app_name):
+        r = self.session.get(f'https://{self._api_host}/v1/sdl/{app_name}.json',
+                             timeout=10.0)
+        r.raise_for_status()
+        return r.json()
