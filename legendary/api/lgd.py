@@ -18,7 +18,7 @@ class LGDAPI:
         self.session.headers['User-Agent'] = self._user_agent
 
     def get_version_information(self):
-        r = self.session.get(f'https://{self._api_host}/version.json',
+        r = self.session.get(f'https://{self._api_host}/v1/version.json',
                              timeout=10.0)
         r.raise_for_status()
         return r.json()
