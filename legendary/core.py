@@ -34,6 +34,7 @@ from legendary.models.chunk import Chunk
 from legendary.utils.env import is_windows_or_pyi
 from legendary.utils.game_workarounds import is_opt_enabled, update_workarounds
 from legendary.utils.savegame_helper import SaveGameHelper
+from legendary.utils.selective_dl import games as sdl_games
 from legendary.utils.manifests import combine_manifests
 from legendary.utils.wine_helpers import read_registry, get_shell_folders
 
@@ -239,11 +240,38 @@ class LegendaryCore:
         if 'egl_config' in version_info:
             self.egs.update_egs_params(version_info['egl_config'])
             self._egl_version = version_info['egl_config'].get('version', self._egl_version)
-        if 'game_overrides' in version_info:
-            update_workarounds(version_info['game_overrides'])
+        if game_overrides := version_info.get('game_overrides'):
+            update_workarounds(game_overrides)
+            if sdl_config := game_overrides.get('sdl_config'):
+                # add placeholder for games to fetch from API that aren't hardcoded
+                for app_name in sdl_config.keys():
+                    if app_name not in sdl_games:
+                        sdl_games[app_name] = None
 
     def get_update_info(self):
         return self.lgd.get_cached_version()['data'].get('release_info')
+
+    def get_sdl_data(self, app_name):
+        if app_name not in sdl_games:
+            return None
+        # load hardcoded data as fallback
+        sdl_data = sdl_games[app_name]
+        # get cached data
+        cached = self.lgd.get_cached_sdl_data(app_name)
+        # check if newer version is available and/or download if necessary
+        version_info = self.lgd.get_cached_version()['data']
+        latest = version_info.get('game_overrides', {}).get('sdl_config', {}).get(app_name)
+        if (not cached and latest) or (cached and latest and latest > cached['version']):
+            try:
+                sdl_data = self.lgdapi.get_sdl_config(app_name)
+                self.log.debug(f'Downloaded SDL data for "{app_name}", version: {latest}')
+                self.lgd.set_cached_sdl_data(app_name, latest, sdl_data)
+            except Exception as e:
+                self.log.warning(f'Downloading SDL data failed with {e!r}')
+        elif cached:
+            sdl_data = cached['data']
+        # return data if available
+        return sdl_data
 
     def get_assets(self, update_assets=False, platform_override=None) -> List[GameAsset]:
         # do not save and always fetch list when platform is overridden

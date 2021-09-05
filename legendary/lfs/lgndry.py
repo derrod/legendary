@@ -315,3 +315,17 @@ class LGDLFS:
         self._update_info = dict(last_update=time(), data=version_data)
         json.dump(self._update_info, open(os.path.join(self.path, 'version.json'), 'w'),
                   indent=2, sort_keys=True)
+
+    def get_cached_sdl_data(self, app_name):
+        try:
+            return json.load(open(os.path.join(self.path, 'tmp', f'{app_name}.json')))
+        except Exception as e:
+            self.log.debug(f'Failed to load cached update data: {e!r}')
+            return None
+
+    def set_cached_sdl_data(self, app_name, sdl_version, sdl_data):
+        if not app_name or not sdl_data:
+            return
+        json.dump(dict(version=sdl_version, data=sdl_data),
+                  open(os.path.join(self.path, 'tmp', f'{app_name}.json'), 'w'),
+                  indent=2, sort_keys=True)

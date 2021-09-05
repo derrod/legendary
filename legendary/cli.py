@@ -627,8 +627,12 @@ class LegendaryCLI:
         if not args.install_tag and not game.is_dlc and ((sdl_name := get_sdl_appname(game.app_name)) is not None):
             config_tags = self.core.lgd.config.get(game.app_name, 'install_tags', fallback=None)
             if not self.core.is_installed(game.app_name) or config_tags is None or args.reset_sdl:
-                args.install_tag = sdl_prompt(sdl_name, game.app_title)
-                self.core.lgd.config.set(game.app_name, 'install_tags', ','.join(args.install_tag))
+                sdl_data = self.core.get_sdl_data(sdl_name)
+                if sdl_data:
+                    args.install_tag = sdl_prompt(sdl_data, game.app_title)
+                    self.core.lgd.config.set(game.app_name, 'install_tags', ','.join(args.install_tag))
+                else:
+                    logger.error(f'Unable to get SDL data for {sdl_name}')
             else:
                 args.install_tag = config_tags.split(',')
         elif args.install_tag and not game.is_dlc and not args.no_install:
