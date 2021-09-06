@@ -1102,19 +1102,7 @@ class LegendaryCore:
                                                  updating=self.is_installed(app_name),
                                                  ignore_space_req=ignore_space_req)
 
-        if res.warnings or res.failures:
-            self.log.info('Installation requirements check returned the following results:')
-
-        if res.warnings:
-            for warn in sorted(res.warnings):
-                self.log.warning(warn)
-
-        if res.failures:
-            for msg in sorted(res.failures):
-                self.log.fatal(msg)
-            raise RuntimeError('Installation cannot proceed, exiting.')
-
-        return dlm, anlres, game, igame, repair, repair_file
+        return dlm, anlres, game, igame, repair, repair_file, res
 
     def verify_game(self, app_name: str, callback: Callable[[int, int], None] = print):
         if not self.is_installed(app_name):

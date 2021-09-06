@@ -590,7 +590,7 @@ class LegendaryCLI:
         # todo use status queue to print progress from CLI
         # This has become a little ridiculous hasn't it?
         try:
-            dlm, analysis, game, igame, repair, repair_file = self.core.prepare_download(
+            dlm, analysis, game, igame, repair, repair_file, res = self.core.prepare_download(
                 app_name=args.app_name,
                 base_path=args.base_path,
                 force=args.force,
@@ -620,6 +620,19 @@ class LegendaryCLI:
             logger.fatal(e)
             exit(1)
         # game is either up to date or hasn't changed, so we have nothing to do
+
+        if res.warnings or res.failures:
+            self.logger.info('Installation requirements check returned the following results:')
+
+        if res.warnings:
+            for warn in sorted(res.warnings):
+                self.logger.warning(warn)
+
+        if res.failures:
+            for msg in sorted(res.failures):
+                self.logger.fatal(msg)
+            exit(1)
+
         if not analysis.dl_size:
             old_igame = self.core.get_installed_game(game.app_name)
             logger.info('Download size is 0, the game is either already up to date or has not changed. Exiting...')
