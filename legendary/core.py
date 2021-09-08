@@ -411,6 +411,24 @@ class LegendaryCore:
     def _get_installed_game(self, app_name) -> InstalledGame:
         return self.lgd.get_installed_game(app_name)
 
+    def get_app_environment(self, app_name, wine_pfx=None) -> dict:
+        # get environment overrides from config
+        env = os.environ.copy()
+        if 'default.env' in self.lgd.config:
+            env.update({k: v for k, v in self.lgd.config[f'default.env'].items() if v and not k.startswith(';')})
+        if f'{app_name}.env' in self.lgd.config:
+            env.update({k: v for k, v in self.lgd.config[f'{app_name}.env'].items() if v and not k.startswith(';')})
+
+        # override wine prefix if necessary
+        if wine_pfx:
+            env['WINEPREFIX'] = wine_pfx
+        elif 'WINEPREFIX' not in env:
+            # only use config variable if not already set in environment
+            if wine_pfx := self.lgd.config.get(app_name, 'wine_prefix', fallback=None):
+                env['WINEPREFIX'] = wine_pfx
+
+        return env
+
     def get_launch_parameters(self, app_name: str, offline: bool = False,
                               user: str = None, extra_args: list = None,
                               wine_bin: str = None, wine_pfx: str = None,
@@ -500,20 +518,7 @@ class LegendaryCore:
         if config_args := self.lgd.config.get(app_name, 'start_params', fallback=None):
             params.extend(shlex.split(config_args.strip()))
 
-        # get environment overrides from config
-        env = os.environ.copy()
-        if 'default.env' in self.lgd.config:
-            env.update({k: v for k, v in self.lgd.config[f'default.env'].items() if v and not k.startswith(';')})
-        if f'{app_name}.env' in self.lgd.config:
-            env.update({k: v for k, v in self.lgd.config[f'{app_name}.env'].items() if v and not k.startswith(';')})
-
-        if wine_pfx:
-            env['WINEPREFIX'] = wine_pfx
-        elif 'WINEPREFIX' not in env:
-            # only use config variable if not already set in environment
-            if wine_pfx := self.lgd.config.get(app_name, 'wine_prefix', fallback=None):
-                env['WINEPREFIX'] = wine_pfx
-
+        env = self.get_app_environment(app_name, wine_pfx=wine_pfx)
         return params, working_dir, env
 
     def get_origin_uri(self, app_name: str, offline: bool = False) -> str:
