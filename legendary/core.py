@@ -1079,22 +1079,8 @@ class LegendaryCore:
 
         # game is either up to date or hasn't changed, so we have nothing to do
         if not anlres.dl_size:
-            old_igame = self.get_installed_game(game.app_name)
             self.log.info('Download size is 0, the game is either already up to date or has not changed. Exiting...')
-            if old_igame and repair and os.path.exists(repair_file):
-                if old_igame.needs_verification:
-                    old_igame.needs_verification = False
-                    self.install_game(old_igame)
-
-                self.log.debug('Removing repair file.')
-                os.remove(repair_file)
-
-            # check if install tags have changed, if they did; try deleting files that are no longer required.
-            if old_igame and old_igame.install_tags != igame.install_tags:
-                old_igame.install_tags = igame.install_tags
-                self.log.info('Deleting now untagged files.')
-                self.uninstall_tag(old_igame)
-                self.install_game(old_igame)
+            self.clean_post_install(game, igame, repair, repair_file)
 
             raise RuntimeError('Nothing to do.')
 

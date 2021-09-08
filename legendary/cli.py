@@ -587,7 +587,6 @@ class LegendaryCLI:
         status_queue = MPQueue()
 
         logger.info('Preparing download...')
-        # todo use status queue to print progress from CLI
         # This has become a little ridiculous hasn't it?
         try:
             dlm, analysis, game, igame, repair, repair_file, res = self.core.prepare_download(
@@ -659,10 +658,6 @@ class LegendaryCLI:
                     f'(Compression savings: {compression:.01f}%)')
         logger.info(f'Reusable size: {analysis.reuse_size / 1024 / 1024:.02f} MiB (chunks) / '
                     f'{analysis.unchanged / 1024 / 1024:.02f} MiB (unchanged / skipped)')
-
-        res = self.core.check_installation_conditions(analysis=analysis, install=igame, game=game,
-                                                      updating=self.core.is_installed(args.app_name),
-                                                      ignore_space_req=args.ignore_space)
 
         if not args.yes:
             if not get_boolean_choice(f'Do you wish to install "{igame.title}"?'):
@@ -754,6 +749,8 @@ class LegendaryCLI:
             self.core.verify_game(app_name=args.app_name, callback=self.output_progress)
         except Exception as e:
             logger.error(e)
+        if print_command:
+            logger.info(f'Run "legendary repair {args.app_name}" to repair your game installation.')
 
     def _handle_postinstall(self, postinstall, igame, yes=False):
         print('This game lists the following prequisites to be installed:')
