@@ -314,6 +314,7 @@ optional arguments:
   --reset-defaults      Reset config settings for app and exit
   --override-exe <exe path>
                         Override executable to launch (relative path)
+  --origin              Launch Origin to activate or run the game.
   --wine <wine binary>  Set WINE binary to use to launch the app
   --wine-prefix <wine pfx path>
                         Set WINE prefix to use
@@ -341,8 +342,8 @@ optional arguments:
 
 
 Command: list-installed
-usage: legendary list-installed [-h] [--check-updates] [--csv] [--tsv] [--json]
-                                [--show-dirs]
+usage: legendary list-installed [-h] [--check-updates] [--csv] [--tsv]
+                                [--json] [--show-dirs]
 
 optional arguments:
   -h, --help       show this help message and exit
