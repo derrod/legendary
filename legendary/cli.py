@@ -196,7 +196,7 @@ class LegendaryCLI:
             if not game.app_version:
                 _custom_attribs = game.metadata.get('customAttributes', {})
                 _store = _custom_attribs.get('ThirdPartyManagedApp', {}).get('value', 'Unknown')
-                if os.name == 'nt' and _store == 'Origin':
+                if _store == 'Origin':
                     print(f'  - This game has to be activated, installed, and launched via Origin, use '
                           f'"legendary launch --origin {game.app_name}" to activate and/or run the game.')
                 else:
@@ -555,7 +555,22 @@ class LegendaryCLI:
 
         origin_uri = self.core.get_origin_uri(args.app_name, args.offline)
         logger.debug(f'Opening Origin URI: {origin_uri}')
-        webbrowser.open(origin_uri)
+        if os.name == 'nt':
+            return webbrowser.open(origin_uri)
+
+        # on linux, require users to specify at least the wine binary and prefix in config or command line
+        wine_pfx, wine_binary = args.wine_pfx, args.wine_bin
+        if not wine_pfx:
+            wine_pfx = self.core.lgd.config.get(args.app_name, 'wine_prefix', fallback=None)
+        if not wine_binary:
+            wine_binary = self.core.lgd.config.get(args.app_name, 'wine_executable', fallback=args.wine_bin)
+        env = self.core.get_app_environment(args.app_name, wine_pfx=wine_pfx)
+
+        if not wine_binary or not env.get('WINEPREFIX'):
+            logger.error(f'In order to launch Origin correctly you must specify the wine binary and prefix '
+                         f'to use in the configuration file or command line. See the README for details.')
+            return
+        subprocess.Popen([wine_binary, origin_uri], env=env)
 
     def install_game(self, args):
         if self.core.is_installed(args.app_name):
@@ -1291,6 +1306,8 @@ def main():
                                help='Reset config settings for app and exit')
     launch_parser.add_argument('--override-exe', dest='executable_override', action='store', metavar='<exe path>',
                                help='Override executable to launch (relative path)')
+    launch_parser.add_argument('--origin', dest='origin', action='store_true',
+                               help='Launch Origin to activate or run the game.')
 
     if os.name != 'nt':
         launch_parser.add_argument('--wine', dest='wine_bin', action='store', metavar='<wine binary>',
@@ -1302,16 +1319,12 @@ def main():
         launch_parser.add_argument('--no-wine', dest='no_wine', action='store_true',
                                    default=strtobool(os.environ.get('LGDRY_NO_WINE', 'False')),
                                    help='Do not run game with WINE (e.g. if a wrapper is used)')
-        launch_parser.add_argument('--origin', dest='origin', help=argparse.SUPPRESS,
-                                   action='store_true', default=False)
     else:
         # hidden arguments to not break this on Windows
         launch_parser.add_argument('--wine', help=argparse.SUPPRESS, dest='wine_bin')
         launch_parser.add_argument('--wine-prefix', help=argparse.SUPPRESS, dest='wine_pfx')
         launch_parser.add_argument('--no-wine', dest='no_wine', help=argparse.SUPPRESS,
                                    action='store_true', default=True)
-        launch_parser.add_argument('--origin', dest='origin', action='store_true',
-                                   help='Launch Origin to activate or run the game.')
 
     list_parser.add_argument('--platform', dest='platform_override', action='store', metavar='<Platform>',
                              type=str, help='Override platform that games are shown for (e.g. Win32/Mac)')
