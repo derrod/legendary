@@ -1,4 +1,4 @@
 """Legendary!"""
 
-__version__ = '0.20.9'
-__codename__ = 'Water Hazard'
+__version__ = '0.20.10'
+__codename__ = 'Black Mesa East'
