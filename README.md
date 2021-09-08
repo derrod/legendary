@@ -521,8 +521,10 @@ egl_programdata = /home/user/Games/epic-games-store/drive_c/...
 preferred_cdn = epicgames-download1.akamaized.net
 ; disable HTTPS for downloads (e.g. to use a LanCache)
 disable_https = false
-; disables checking for updates
-enable_update_check = true
+; Disables the automatic update check
+disable_update_check = false
+; Disables the notice about an available update on exit
+disable_update_notice = false
 
 ; default settings to use (currently limited to WINE executable)
 [default]
