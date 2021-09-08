@@ -466,7 +466,7 @@ class LegendaryCore:
         if wrapper or (wrapper := self.lgd.config.get(app_name, 'wrapper',
                                                       fallback=self.lgd.config.get('default', 'wrapper',
                                                                                    fallback=None))):
-            params.extend(shlex.split(wrapper))
+            params.extend(shlex.split(shlex.quote(wrapper)))
 
         if os.name != 'nt' and not disable_wine:
             if not wine_bin:
@@ -482,7 +482,7 @@ class LegendaryCore:
         params.append(game_exe)
 
         if install.launch_parameters:
-            params.extend(shlex.split(install.launch_parameters, posix=False))
+            params.extend(shlex.split(shlex.quote(install.launch_parameters), posix=False))
 
         params.extend([
             '-AUTH_LOGIN=unused',
@@ -516,7 +516,7 @@ class LegendaryCore:
             params.extend(extra_args)
 
         if config_args := self.lgd.config.get(app_name, 'start_params', fallback=None):
-            params.extend(shlex.split(config_args.strip()))
+            params.extend(shlex.split(shlex.quote(config_args.strip())))
 
         env = self.get_app_environment(app_name, wine_pfx=wine_pfx)
         return params, working_dir, env
