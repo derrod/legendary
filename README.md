@@ -2,13 +2,13 @@
 ## A free and open-source Epic Games Launcher alternative
 ![Logo](https://repository-images.githubusercontent.com/249938026/80b18f80-96c7-11ea-9183-0a8c96e7cada)
 
-[![Discord](https://discordapp.com/api/guilds/695233346627698689/widget.png?style=shield)](https://discord.gg/UJKBwPw) [![Twitter Follow](https://img.shields.io/twitter/follow/legendary_gl?label=Follow%20us%20for%20updates%21&style=social)](https://twitter.com/legendary_gl)
+[![Discord](https://discordapp.com/api/guilds/695233346627698689/widget.png?style=shield)](https://legendary.gl/discord) [![Twitter Follow](https://img.shields.io/twitter/follow/legendary_gl?label=Follow%20us%20for%20updates%21&style=social)](https://twitter.com/legendary_gl)
 
 Legendary is an open-source game launcher that can download and install games from the Epic Games platform on Linux and Windows.
 Its name as a tongue-in-cheek play on tiers of [item rarity in many MMORPGs](https://wow.gamepedia.com/Quality).
 
 Right now Legendary is in beta and not feature-complete. You might run into some bugs or issues.
-If you do please [create an issue on GitHub](https://github.com/derrod/legendary/issues/new/choose) so we can fix it.
+If you do please [tell us on our Discord](https://legendary.gl/discord) or [create an issue on GitHub](https://github.com/derrod/legendary/issues/new/choose) so we can fix it!
 
 Please read the the [config file](#config-file) and [cli usage](#usage) sections before creating an issue to avoid invalid reports.
 
