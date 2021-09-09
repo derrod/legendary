@@ -482,7 +482,11 @@ class LegendaryCore:
         params.append(game_exe)
 
         if install.launch_parameters:
-            params.extend(shlex.split(install.launch_parameters, posix=False))
+            try:
+                params.extend(shlex.split(install.launch_parameters, posix=False))
+            except ValueError as e:
+                self.log.warning(f'Parsing predefined launch parameters failed with: {e!r}, '
+                                 f'input: {install.launch_parameters}')
 
         params.extend([
             '-AUTH_LOGIN=unused',
