@@ -268,7 +268,8 @@ class LegendaryCLI:
             elif game.app_name in versions and versions[game.app_name] != game.version:
                 print(f'  -> Update available! Installed: {game.version}, Latest: {versions[game.app_name]}')
             for dlc in installed_dlcs[game.app_name]:
-                print(f'  + {dlc.title} (App name: {dlc.app_name} | Version: {dlc.version})')
+                print(f'  + {dlc.title} (App name: {dlc.app_name} | Version: {dlc.version}) | '
+                      f'{dlc.install_size / (1024*1024*1024):.02f} GiB)')
                 if dlc.app_name in versions and versions[dlc.app_name] != dlc.version:
                     print(f'   -> Update available! Installed: {dlc.version}, Latest: {versions[dlc.app_name]}')
 
