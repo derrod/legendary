@@ -387,15 +387,18 @@ class LegendaryCore:
         _, dlcs = self.get_game_and_dlc_list(update_assets=False)
         return dlcs[game.asset_info.catalog_item_id]
 
-    def get_installed_list(self) -> List[InstalledGame]:
+    def get_installed_list(self, include_dlc=False) -> List[InstalledGame]:
         if self.egl_sync_enabled:
             self.log.debug('Running EGL sync...')
             self.egl_sync()
 
-        return self._get_installed_list()
+        return self._get_installed_list(include_dlc)
 
-    def _get_installed_list(self) -> List[InstalledGame]:
-        return [g for g in self.lgd.get_installed_list() if not g.is_dlc]
+    def _get_installed_list(self, include_dlc=False) -> List[InstalledGame]:
+        if include_dlc:
+            return self.lgd.get_installed_list()
+        else:
+            return [g for g in self.lgd.get_installed_list() if not g.is_dlc]
 
     def get_installed_dlc_list(self) -> List[InstalledGame]:
         return [g for g in self.lgd.get_installed_list() if g.is_dlc]

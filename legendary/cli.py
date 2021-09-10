@@ -11,6 +11,7 @@ import subprocess
 import time
 import webbrowser
 
+from collections import defaultdict
 from distutils.util import strtobool
 from logging.handlers import QueueListener
 from multiprocessing import freeze_support, Queue as MPQueue
@@ -216,7 +217,7 @@ class LegendaryCLI:
             else:
                 self.core.get_assets(True)
 
-        games = sorted(self.core.get_installed_list(),
+        games = sorted(self.core.get_installed_list(include_dlc=True),
                        key=lambda x: x.title.lower())
 
         versions = dict()
@@ -241,6 +242,15 @@ class LegendaryCLI:
             print(json.dumps([vars(g) for g in games], indent=2, sort_keys=True))
             return
 
+        installed_dlcs = defaultdict(list)
+        for game in games.copy():
+            if not game.is_dlc:
+                continue
+            games.remove(game)
+            dlc = self.core.get_game(game.app_name)
+            main_app_name = dlc.metadata['mainGameItem']['releaseInfo'][0]['appId']
+            installed_dlcs[main_app_name].append(game)
+
         print('\nInstalled games:')
         for game in games:
             if game.install_size == 0:
@@ -257,6 +267,10 @@ class LegendaryCLI:
                 print(f'  ! Game does no longer appear to be installed (directory "{game.install_path}" missing)!')
             elif game.app_name in versions and versions[game.app_name] != game.version:
                 print(f'  -> Update available! Installed: {game.version}, Latest: {versions[game.app_name]}')
+            for dlc in installed_dlcs[game.app_name]:
+                print(f'  + {dlc.title} (App name: {dlc.app_name} | Version: {dlc.version})')
+                if dlc.app_name in versions and versions[dlc.app_name] != dlc.version:
+                    print(f'   -> Update available! Installed: {dlc.version}, Latest: {versions[dlc.app_name]}')
 
         print(f'\nTotal: {len(games)}')
 
