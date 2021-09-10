@@ -192,7 +192,7 @@ class LegendaryCLI:
 
         print('\nAvailable games:')
         for game in games:
-            print(f' * {game.app_title} (App name: {game.app_name} | Version: {game.app_version})')
+            print(f' * {game.app_title.strip()} (App name: {game.app_name} | Version: {game.app_version})')
             if not game.app_version:
                 _custom_attribs = game.metadata.get('customAttributes', {})
                 _store = _custom_attribs.get('ThirdPartyManagedApp', {}).get('value', 'Unknown')
