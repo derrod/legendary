@@ -367,6 +367,7 @@ class LegendaryCore:
                 eg_meta = self.egs.get_game_info(libitem['namespace'], libitem['catalogItemId'])
                 game = Game(app_name=libitem['appName'], app_version=None,
                             app_title=eg_meta['title'], asset_info=None, metadata=eg_meta)
+                self.lgd.set_game_meta(game.app_name, game)
 
             if game.is_dlc:
                 _dlc[game.metadata['mainGameItem']['id']].append(game)
