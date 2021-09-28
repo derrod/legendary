@@ -518,12 +518,12 @@ class LegendaryCLI:
                     logger.error('Game is out of date, please update or launch with update check skipping!')
                     exit(1)
 
-        params, cwd, env = self.core.get_launch_parameters(app_name=app_name, offline=args.offline,
-                                                           extra_args=extra, user=args.user_name_override,
-                                                           wine_bin=args.wine_bin, wine_pfx=args.wine_pfx,
-                                                           language=args.language, wrapper=args.wrapper,
-                                                           disable_wine=args.no_wine,
-                                                           executable_override=args.executable_override)
+        params = self.core.get_launch_parameters(app_name=app_name, offline=args.offline,
+                                                 extra_args=extra, user=args.user_name_override,
+                                                 wine_bin=args.wine_bin, wine_pfx=args.wine_pfx,
+                                                 language=args.language, wrapper=args.wrapper,
+                                                 disable_wine=args.no_wine,
+                                                 executable_override=args.executable_override)
 
         if args.set_defaults:
             self.core.lgd.config[app_name] = dict()
@@ -546,19 +546,37 @@ class LegendaryCLI:
             if args.wrapper:
                 self.core.lgd.config[app_name]['wrapper'] = args.wrapper
 
+        if args.json:
+            print(json.dumps(vars(params)))
+            return
+
+        full_params = list()
+        full_params.extend(params.launch_command)
+        full_params.append(os.path.join(params.game_directory, params.game_executable))
+        full_params.extend(params.game_parameters)
+        full_params.extend(params.egl_parameters)
+        full_params.extend(params.user_parameters)
+
+        env_overrides = []
+        if params.environment:
+            for env_var, env_value in params.environment.items():
+                if env_var in os.environ:
+                    continue
+                env_overrides.append((env_var, env_value))
+
         if args.dry_run:
             logger.info(f'Not Launching {app_name} (dry run)')
-            logger.info(f'Launch parameters: {shlex.join(params)}')
-            logger.info(f'Working directory: {cwd}')
-            if env:
-                logger.info('Environment overrides:', env)
+            logger.info(f'Launch parameters: {shlex.join(full_params)}')
+            logger.info(f'Working directory: {params.working_directory}')
+            if env_overrides:
+                logger.info('Environment overrides: {}'.format(', '.join(f'{k}={v}' for k, v in env_overrides)))
         else:
             logger.info(f'Launching {app_name}...')
-            logger.debug(f'Launch parameters: {shlex.join(params)}')
-            logger.debug(f'Working directory: {cwd}')
-            if env:
-                logger.debug('Environment overrides:', env)
-            subprocess.Popen(params, cwd=cwd, env=env)
+            logger.debug(f'Launch parameters: {shlex.join(full_params)}')
+            logger.debug(f'Working directory: {params.working_directory}')
+            if env_overrides:
+                logger.debug('Environment overrides: {}'.format(', '.join(f'{k}={v}' for k, v in env_overrides)))
+            subprocess.Popen(full_params, cwd=params.working_directory, env=params.environment)
 
     def launch_origin(self, args):
         # login is not required to launch the game, but linking does require it.
@@ -1325,6 +1343,8 @@ def main():
                                help='Override executable to launch (relative path)')
     launch_parser.add_argument('--origin', dest='origin', action='store_true',
                                help='Launch Origin to activate or run the game.')
+    launch_parser.add_argument('--json', dest='json', action='store_true',
+                               help='Print launch information as JSON and exit')
 
     if os.name != 'nt':
         launch_parser.add_argument('--wine', dest='wine_bin', action='store', metavar='<wine binary>',

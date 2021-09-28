@@ -438,9 +438,47 @@ class LegendaryCore:
                               wine_bin: str = None, wine_pfx: str = None,
                               language: str = None, wrapper: str = None,
                               disable_wine: bool = False,
-                              executable_override: str = None) -> (list, str, dict):
+                              executable_override: str = None) -> LaunchParameters:
         install = self.lgd.get_installed_game(app_name)
         game = self.lgd.get_game_meta(app_name)
+
+        if executable_override or (executable_override := self.lgd.config.get(app_name, 'override_exe', fallback=None)):
+            game_exe = executable_override.replace('\\', '/')
+            exe_path = os.path.join(install.install_path, game_exe)
+            if not os.path.exists(exe_path):
+                raise ValueError(f'Executable path is invalid: {exe_path}')
+        else:
+            game_exe = install.executable.replace('\\', '/').lstrip('/')
+            exe_path = os.path.join(install.install_path, game_exe)
+
+        working_dir = os.path.split(exe_path)[0]
+
+        params = LaunchParameters(game_executable=game_exe, game_directory=install.install_path,
+                                  working_directory=working_dir,
+                                  environment=self.get_app_environment(app_name, wine_pfx=wine_pfx))
+
+        if wrapper or (wrapper := self.lgd.config.get(app_name, 'wrapper',
+                                                      fallback=self.lgd.config.get('default', 'wrapper',
+                                                                                   fallback=None))):
+            params.launch_command.extend(shlex.split(wrapper))
+
+        if os.name != 'nt' and not disable_wine:
+            if not wine_bin:
+                # check if there's a default override
+                wine_bin = self.lgd.config.get('default', 'wine_executable', fallback='wine')
+                # check if there's a game specific override
+                wine_bin = self.lgd.config.get(app_name, 'wine_executable', fallback=wine_bin)
+
+            if not self.lgd.config.getboolean(app_name, 'no_wine',
+                                              fallback=self.lgd.config.get('default', 'no_wine', fallback=False)):
+                params.launch_command.append(wine_bin)
+
+        if install.launch_parameters:
+            try:
+                params.game_parameters.extend(shlex.split(install.launch_parameters, posix=False))
+            except ValueError as e:
+                self.log.warning(f'Parsing predefined launch parameters failed with: {e!r}, '
+                                 f'input: {install.launch_parameters}')
 
         game_token = ''
         if not offline:
@@ -454,45 +492,7 @@ class LegendaryCore:
         if user:
             user_name = user
 
-        if executable_override or (executable_override := self.lgd.config.get(app_name, 'override_exe', fallback=None)):
-            game_exe = os.path.join(install.install_path,
-                                    executable_override.replace('\\', '/'))
-            if not os.path.exists(game_exe):
-                raise ValueError(f'Executable path is invalid: {game_exe}')
-        else:
-            game_exe = os.path.join(install.install_path,
-                                    install.executable.replace('\\', '/').lstrip('/'))
-
-        working_dir = os.path.split(game_exe)[0]
-
-        params = []
-
-        if wrapper or (wrapper := self.lgd.config.get(app_name, 'wrapper',
-                                                      fallback=self.lgd.config.get('default', 'wrapper',
-                                                                                   fallback=None))):
-            params.extend(shlex.split(wrapper))
-
-        if os.name != 'nt' and not disable_wine:
-            if not wine_bin:
-                # check if there's a default override
-                wine_bin = self.lgd.config.get('default', 'wine_executable', fallback='wine')
-                # check if there's a game specific override
-                wine_bin = self.lgd.config.get(app_name, 'wine_executable', fallback=wine_bin)
-
-            if not self.lgd.config.getboolean(app_name, 'no_wine',
-                                              fallback=self.lgd.config.get('default', 'no_wine', fallback=False)):
-                params.append(wine_bin)
-
-        params.append(game_exe)
-
-        if install.launch_parameters:
-            try:
-                params.extend(shlex.split(install.launch_parameters, posix=False))
-            except ValueError as e:
-                self.log.warning(f'Parsing predefined launch parameters failed with: {e!r}, '
-                                 f'input: {install.launch_parameters}')
-
-        params.extend([
+        params.egl_parameters.extend([
             '-AUTH_LOGIN=unused',
             f'-AUTH_PASSWORD={game_token}',
             '-AUTH_TYPE=exchangecode',
@@ -507,13 +507,13 @@ class LegendaryCore:
                                     f'{game.asset_info.namespace}{game.asset_info.catalog_item_id}.ovt')
             with open(ovt_path, 'wb') as f:
                 f.write(ovt)
-            params.append(f'-epicovt={ovt_path}')
+            params.egl_parameters.append(f'-epicovt={ovt_path}')
 
         language_code = self.lgd.config.get(app_name, 'language', fallback=language)
         if not language_code:  # fall back to system or config language
             language_code = self.language_code
 
-        params.extend([
+        params.egl_parameters.extend([
             '-EpicPortal',
             f'-epicusername={user_name}',
             f'-epicuserid={account_id}',
@@ -521,13 +521,12 @@ class LegendaryCore:
         ])
 
         if extra_args:
-            params.extend(extra_args)
+            params.user_parameters.extend(extra_args)
 
         if config_args := self.lgd.config.get(app_name, 'start_params', fallback=None):
-            params.extend(shlex.split(config_args.strip()))
+            params.user_parameters.extend(shlex.split(config_args.strip()))
 
-        env = self.get_app_environment(app_name, wine_pfx=wine_pfx)
-        return params, working_dir, env
+        return params
 
     def get_origin_uri(self, app_name: str, offline: bool = False) -> str:
         if offline:

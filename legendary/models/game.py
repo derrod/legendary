@@ -1,7 +1,7 @@
 # coding: utf-8
 
+from dataclasses import dataclass, field
 from enum import Enum
-
 
 class GameAsset:
     def __init__(self):
@@ -144,3 +144,20 @@ class VerifyResult(Enum):
     HASH_MISMATCH = 1
     FILE_MISSING = 2
     OTHER_ERROR = 3
+
+
+@dataclass
+class LaunchParameters:
+    # game-supplied parameters
+    game_parameters: list = field(default_factory=list)
+    game_executable: str = ''
+    game_directory: str = ''
+    # EGL parameters (auth, ovt, etc.)
+    egl_parameters: list = field(default_factory=list)
+    # command line before executable (WINE, gamemode, etc.)
+    launch_command: list = field(default_factory=list)
+    # working directory for launched process
+    working_directory: str = ''
+    # user and environment supplied options
+    user_parameters: list = field(default_factory=list)
+    environment: dict = field(default_factory=dict)
