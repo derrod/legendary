@@ -585,6 +585,10 @@ class LegendaryCLI:
                 exit(1)
 
         origin_uri = self.core.get_origin_uri(args.app_name, args.offline)
+        if args.json:
+            print(json.dumps(dict(uri=origin_uri)))
+            return
+
         logger.debug(f'Opening Origin URI: {origin_uri}')
         if os.name == 'nt':
             return webbrowser.open(origin_uri)
