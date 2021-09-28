@@ -37,8 +37,8 @@ logger = logging.getLogger('cli')
 
 
 class LegendaryCLI:
-    def __init__(self):
-        self.core = LegendaryCore()
+    def __init__(self, override_config=None):
+        self.core = LegendaryCore(override_config)
         self.logger = logging.getLogger('cli')
         self.logging_queue = None
 
@@ -1195,6 +1195,8 @@ def main():
     parser.add_argument('-v', '--debug', dest='debug', action='store_true', help='Set loglevel to debug')
     parser.add_argument('-y', '--yes', dest='yes', action='store_true', help='Default to yes for all prompts')
     parser.add_argument('-V', '--version', dest='version', action='store_true', help='Print version and exit')
+    parser.add_argument('-c', '--config-file', dest='config_file', action='store', metavar='<path/name>',
+                        help='Specify custom config file or name for the config file in the default directory.')
 
     # all the commands
     subparsers = parser.add_subparsers(title='Commands', dest='subparser_name')
@@ -1441,7 +1443,7 @@ def main():
             print(subparser.format_help())
         return
 
-    cli = LegendaryCLI()
+    cli = LegendaryCLI(override_config=args.config_file)
     ql = cli.setup_threaded_logging()
 
     config_ll = cli.core.lgd.config.get('Legendary', 'log_level', fallback='info')

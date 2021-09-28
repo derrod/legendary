@@ -14,7 +14,7 @@ from legendary.utils.lfs import clean_filename
 
 
 class LGDLFS:
-    def __init__(self):
+    def __init__(self, config_file=None):
         self.log = logging.getLogger('LGDLFS')
 
         if config_path := os.environ.get('XDG_CONFIG_HOME'):
@@ -34,6 +34,17 @@ class LGDLFS:
         self._update_info = None
         # Config with game specific settings (e.g. start parameters, env variables)
         self.config = LGDConf(comment_prefixes='/', allow_no_value=True)
+
+        if config_file:
+            # if user specified a valid relative/absolute path use that,
+            # otherwise create file in legendary config directory
+            if os.path.exists(config_file):
+                self.config_path = os.path.abspath(config_file)
+            else:
+                self.config_path = os.path.join(self.path, clean_filename(config_file))
+            self.log.info(f'Using non-default config file "{self.config_path}"')
+        else:
+            self.config_path = os.path.join(self.path, 'config.ini')
 
         # ensure folders exist.
         for f in ['', 'manifests', 'metadata', 'tmp']:
@@ -69,7 +80,7 @@ class LGDLFS:
 
         # try loading config
         try:
-            self.config.read(os.path.join(self.path, 'config.ini'))
+            self.config.read(self.config_path)
         except Exception as e:
             self.log.error(f'Unable to read configuration file, please ensure that file is valid! '
                            f'(Error: {repr(e)})')
@@ -283,15 +294,14 @@ class LGDLFS:
         if self.config.read_only or not self.config.modified:
             return
         # if config file has been modified externally, back-up the user-modified version before writing
-        config_path = os.path.join(self.path, 'config.ini')
-        if os.path.exists(config_path):
-            if (modtime := int(os.stat(config_path).st_mtime)) != self.config.modtime:
+        if os.path.exists(self.config_path):
+            if (modtime := int(os.stat(self.config_path).st_mtime)) != self.config.modtime:
                 new_filename = f'config.{modtime}.ini'
                 self.log.warning(f'Configuration file has been modified while legendary was running, '
                                  f'user-modified config will be renamed to "{new_filename}"...')
-                os.rename(os.path.join(self.path, 'config.ini'), os.path.join(self.path, new_filename))
+                os.rename(self.config_path, os.path.join(os.path.dirname(self.config_path), new_filename))
 
-        with open(config_path, 'w') as cf:
+        with open(self.config_path, 'w') as cf:
             self.config.write(cf)
 
     def get_dir_size(self):
