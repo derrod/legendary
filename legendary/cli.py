@@ -583,6 +583,18 @@ class LegendaryCLI:
             subprocess.Popen(full_params, cwd=params.working_directory, env=full_env)
 
     def _launch_origin(self, args):
+        game = self.core.get_game(app_name=args.app_name)
+        if not game:
+            logger.error(f'Unknown game "{args.app_name}", run "legendary list-games --include-non-installable" '
+                         f'to fetch data for Origin titles before using this command.')
+            return
+
+        _custom_attribs = game.metadata.get('customAttributes', {})
+        _store = _custom_attribs.get('ThirdPartyManagedApp', {}).get('value', None)
+        if not _store or _store != 'Origin':
+            logger.error(f'The specified game is not an Origin title.')
+            return
+
         # login is not required to launch the game, but linking does require it.
         if not args.offline:
             logger.info('Logging in...')
@@ -595,8 +607,8 @@ class LegendaryCLI:
             print(json.dumps(dict(uri=origin_uri)))
             return
 
-        logger.debug(f'Opening Origin URI: {origin_uri}')
         if os.name == 'nt':
+            logger.debug(f'Opening Origin URI: {origin_uri}')
             return webbrowser.open(origin_uri)
 
         # on linux, require users to specify at least the wine binary and prefix in config or command line
@@ -613,6 +625,7 @@ class LegendaryCLI:
             return
 
         command.append(origin_uri)
+        logger.debug(f'Opening Origin URI with command: {shlex.join(command)}')
         subprocess.Popen(command, env=full_env)
 
     def install_game(self, args):
