@@ -1276,7 +1276,7 @@ class LegendaryCLI:
                 owned_entitlements = {i['entitlementName'] for i in entitlements}
                 owned_app_names = {g.app_name for g in self.core.get_assets()}
                 owned_dlc = []
-                for dlc in game.metadata['dlcItemList']:
+                for dlc in game.metadata.get('dlcItemList', []):
                     installable = dlc.get('releaseInfo', None)
                     if dlc['entitlementName'] in owned_entitlements:
                         owned_dlc.append((installable, None, dlc['title']))
@@ -1308,7 +1308,7 @@ class LegendaryCLI:
                 print('- Requires ownership verification token (DRM):', igame.requires_ot)
 
                 installed_dlc = []
-                for dlc in game.metadata['dlcItemList']:
+                for dlc in game.metadata.get('dlcItemList', []):
                     if not dlc.get('releaseInfo', None):
                         continue
                     app_name = dlc['releaseInfo'][0]['appId']
@@ -1323,8 +1323,10 @@ class LegendaryCLI:
                         ))
 
         if manifest_data:
+            manifest_size = len(manifest_data)
             manifest = self.core.load_manifest(manifest_data)
             print('\nManifest Information:')
+            print('- Size: {:.01f} KiB'.format(manifest_size / 1024))
             print('- Manifest type:', 'JSON' if hasattr(manifest, 'json_data') else 'Binary')
             print('- Manifest version:', manifest.version)
             print('- Manifest feature level:', manifest.meta.feature_level)
