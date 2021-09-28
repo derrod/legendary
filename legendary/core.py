@@ -433,6 +433,26 @@ class LegendaryCore:
 
         return env
 
+    def get_app_launch_command(self, app_name, wrapper=None, wine_binary=None, disable_wine=False):
+        _cmd = []
+        if wrapper or (wrapper := self.lgd.config.get(app_name, 'wrapper',
+                                                      fallback=self.lgd.config.get('default', 'wrapper',
+                                                                                   fallback=None))):
+            _cmd.extend(shlex.split(wrapper))
+
+        if os.name != 'nt' and not disable_wine:
+            if not wine_binary:
+                # check if there's a default override
+                wine_binary = self.lgd.config.get('default', 'wine_executable', fallback='wine')
+                # check if there's a game specific override
+                wine_binary = self.lgd.config.get(app_name, 'wine_executable', fallback=wine_binary)
+
+            if not self.lgd.config.getboolean(app_name, 'no_wine',
+                                              fallback=self.lgd.config.get('default', 'no_wine', fallback=False)):
+                _cmd.append(wine_binary)
+
+        return _cmd
+
     def get_launch_parameters(self, app_name: str, offline: bool = False,
                               user: str = None, extra_args: list = None,
                               wine_bin: str = None, wine_pfx: str = None,
@@ -453,25 +473,11 @@ class LegendaryCore:
 
         working_dir = os.path.split(exe_path)[0]
 
-        params = LaunchParameters(game_executable=game_exe, game_directory=install.install_path,
-                                  working_directory=working_dir,
-                                  environment=self.get_app_environment(app_name, wine_pfx=wine_pfx))
-
-        if wrapper or (wrapper := self.lgd.config.get(app_name, 'wrapper',
-                                                      fallback=self.lgd.config.get('default', 'wrapper',
-                                                                                   fallback=None))):
-            params.launch_command.extend(shlex.split(wrapper))
-
-        if os.name != 'nt' and not disable_wine:
-            if not wine_bin:
-                # check if there's a default override
-                wine_bin = self.lgd.config.get('default', 'wine_executable', fallback='wine')
-                # check if there's a game specific override
-                wine_bin = self.lgd.config.get(app_name, 'wine_executable', fallback=wine_bin)
-
-            if not self.lgd.config.getboolean(app_name, 'no_wine',
-                                              fallback=self.lgd.config.get('default', 'no_wine', fallback=False)):
-                params.launch_command.append(wine_bin)
+        params = LaunchParameters(
+            game_executable=game_exe, game_directory=install.install_path, working_directory=working_dir,
+            launch_command=self.get_app_launch_command(app_name, wrapper, wine_bin, disable_wine),
+            environment=self.get_app_environment(app_name, wine_pfx=wine_pfx)
+        )
 
         if install.launch_parameters:
             try:
