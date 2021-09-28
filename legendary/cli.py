@@ -830,7 +830,7 @@ class LegendaryCLI:
                     print('Manually installing DLCs works the same; just use the DLC app name instead.')
 
                     install_dlcs = True
-                    if not args.yes:
+                    if not args.yes and not args.with_dlcs:
                         if not get_boolean_choice(f'Do you wish to automatically install DLCs?'):
                             install_dlcs = False
 
@@ -1484,6 +1484,8 @@ def main():
                                 help='Set the hostname of the preferred CDN to use when available')
     install_parser.add_argument('--no-https', dest='disable_https', action='store_true',
                                 help='Download games via plaintext HTTP (like EGS), e.g. for use with a lan cache')
+    install_parser.add_argument('--with-dlcs', dest='with_dlcs', action='store_true',
+                                help='Automatically install all DLCs with the base game')
 
     uninstall_parser.add_argument('--keep-files', dest='keep_files', action='store_true',
                                   help='Keep files but remove game from Legendary database')
