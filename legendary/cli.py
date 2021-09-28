@@ -556,27 +556,25 @@ class LegendaryCLI:
         full_params.extend(params.game_parameters)
         full_params.extend(params.egl_parameters)
         full_params.extend(params.user_parameters)
-
-        env_overrides = []
-        if params.environment:
-            for env_var, env_value in params.environment.items():
-                if env_var in os.environ:
-                    continue
-                env_overrides.append((env_var, env_value))
+        # Copying existing env vars is required on Windows, probably a good idea on Linux
+        full_env = os.environ.copy()
+        full_env.update(params.environment)
 
         if args.dry_run:
             logger.info(f'Not Launching {app_name} (dry run)')
             logger.info(f'Launch parameters: {shlex.join(full_params)}')
             logger.info(f'Working directory: {params.working_directory}')
-            if env_overrides:
-                logger.info('Environment overrides: {}'.format(', '.join(f'{k}={v}' for k, v in env_overrides)))
+            if params.environment:
+                logger.info('Environment overrides: {}'.format(', '.join(
+                    f'{k}={v}' for k, v in params.environment.items())))
         else:
             logger.info(f'Launching {app_name}...')
             logger.debug(f'Launch parameters: {shlex.join(full_params)}')
             logger.debug(f'Working directory: {params.working_directory}')
-            if env_overrides:
-                logger.debug('Environment overrides: {}'.format(', '.join(f'{k}={v}' for k, v in env_overrides)))
-            subprocess.Popen(full_params, cwd=params.working_directory, env=params.environment)
+            if params.environment:
+                logger.info('Environment overrides: {}'.format(', '.join(
+                    f'{k}={v}' for k, v in params.environment.items())))
+            subprocess.Popen(full_params, cwd=params.working_directory, env=full_env)
 
     def launch_origin(self, args):
         # login is not required to launch the game, but linking does require it.

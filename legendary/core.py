@@ -417,7 +417,7 @@ class LegendaryCore:
 
     def get_app_environment(self, app_name, wine_pfx=None) -> dict:
         # get environment overrides from config
-        env = os.environ.copy()
+        env = dict()
         if 'default.env' in self.lgd.config:
             env.update({k: v for k, v in self.lgd.config[f'default.env'].items() if v and not k.startswith(';')})
         if f'{app_name}.env' in self.lgd.config:
@@ -426,7 +426,7 @@ class LegendaryCore:
         # override wine prefix if necessary
         if wine_pfx:
             env['WINEPREFIX'] = wine_pfx
-        elif 'WINEPREFIX' not in env:
+        elif 'WINEPREFIX' not in os.environ:
             # only use config variable if not already set in environment
             if wine_pfx := self.lgd.config.get(app_name, 'wine_prefix', fallback=None):
                 env['WINEPREFIX'] = wine_pfx
