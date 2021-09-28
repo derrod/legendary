@@ -153,9 +153,15 @@ class LegendaryCLI:
         if not self.core.login():
             logger.error('Login failed, cannot continue!')
             exit(1)
-        logger.info('Getting game list... (this may take a while)')
+
+        if args.force_refresh:
+            logger.info('Refreshing game list, this may take a while...')
+        else:
+            logger.info('Getting game list... (this may take a while)')
+
         games, dlc_list = self.core.get_game_and_dlc_list(
-            platform_override=args.platform_override, skip_ue=not args.include_ue
+            platform_override=args.platform_override, skip_ue=not args.include_ue,
+            force_refresh=args.force_refresh
         )
         # Get information for games that cannot be installed through legendary (yet), such
         # as games that have to be activated on and launched through Origin.
@@ -1376,6 +1382,8 @@ def main():
     list_parser.add_argument('--csv', dest='csv', action='store_true', help='List games in CSV format')
     list_parser.add_argument('--tsv', dest='tsv', action='store_true', help='List games in TSV format')
     list_parser.add_argument('--json', dest='json', action='store_true', help='List games in JSON format')
+    list_parser.add_argument('--force-refresh', dest='force_refresh', action='store_true',
+                             help='Force a refresh of all game metadata')
 
     list_installed_parser.add_argument('--check-updates', dest='check_updates', action='store_true',
                                        help='Check for updates for installed games')

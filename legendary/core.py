@@ -307,9 +307,8 @@ class LegendaryCore:
     def get_game_list(self, update_assets=True) -> List[Game]:
         return self.get_game_and_dlc_list(update_assets=update_assets)[0]
 
-    def get_game_and_dlc_list(self, update_assets=True,
-                              platform_override=None,
-                              skip_ue=True) -> (List[Game], Dict[str, List[Game]]):
+    def get_game_and_dlc_list(self, update_assets=True, platform_override=None,
+                              force_refresh=False, skip_ue=True) -> (List[Game], Dict[str, List[Game]]):
         _ret = []
         _dlc = defaultdict(list)
 
@@ -319,7 +318,7 @@ class LegendaryCore:
                 continue
 
             game = self.lgd.get_game_meta(ga.app_name)
-            if update_assets and (not game or
+            if update_assets and (not game or force_refresh or
                                   (game and game.app_version != ga.build_version and not platform_override)):
                 if game and game.app_version != ga.build_version and not platform_override:
                     self.log.info(f'Updating meta for {game.app_name} due to build version mismatch')
@@ -343,11 +342,13 @@ class LegendaryCore:
 
         return _ret, _dlc
 
-    def get_non_asset_library_items(self, skip_ue=True) -> (List[Game], Dict[str, List[Game]]):
+    def get_non_asset_library_items(self, force_refresh=False,
+                                    skip_ue=True) -> (List[Game], Dict[str, List[Game]]):
         """
         Gets a list of Games without assets for installation, for instance Games delivered via
         third-party stores that do not have assets for installation
 
+        :param force_refresh: Force a metadata refresh
         :param skip_ue: Ingore Unreal Marketplace entries
         :return: List of Games and DLC that do not have assets
         """
@@ -363,7 +364,7 @@ class LegendaryCore:
                 continue
 
             game = self.lgd.get_game_meta(libitem['appName'])
-            if not game:
+            if not game or force_refresh:
                 eg_meta = self.egs.get_game_info(libitem['namespace'], libitem['catalogItemId'])
                 game = Game(app_name=libitem['appName'], app_version=None,
                             app_title=eg_meta['title'], asset_info=None, metadata=eg_meta)
