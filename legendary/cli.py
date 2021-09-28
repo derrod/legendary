@@ -478,7 +478,7 @@ class LegendaryCLI:
     def launch_game(self, args, extra):
         app_name = args.app_name
         if args.origin:
-            return self.launch_origin(args)
+            return self._launch_origin(args)
 
         igame = self.core.get_installed_game(app_name)
         if not igame:
@@ -576,7 +576,7 @@ class LegendaryCLI:
                     f'{k}={v}' for k, v in params.environment.items())))
             subprocess.Popen(full_params, cwd=params.working_directory, env=full_env)
 
-    def launch_origin(self, args):
+    def _launch_origin(self, args):
         # login is not required to launch the game, but linking does require it.
         if not args.offline:
             logger.info('Logging in...')
@@ -594,18 +594,20 @@ class LegendaryCLI:
             return webbrowser.open(origin_uri)
 
         # on linux, require users to specify at least the wine binary and prefix in config or command line
-        wine_pfx, wine_binary = args.wine_pfx, args.wine_bin
-        if not wine_pfx:
-            wine_pfx = self.core.lgd.config.get(args.app_name, 'wine_prefix', fallback=None)
-        if not wine_binary:
-            wine_binary = self.core.lgd.config.get(args.app_name, 'wine_executable', fallback=args.wine_bin)
-        env = self.core.get_app_environment(args.app_name, wine_pfx=wine_pfx)
+        command = self.core.get_app_launch_command(args.app_name, wrapper=args.wrapper,
+                                                   wine_binary=args.wine_bin,
+                                                   disable_wine=args.no_wine)
+        env = self.core.get_app_environment(args.app_name, wine_pfx=args.wine_pfx)
+        full_env = os.environ.copy()
+        full_env.update(env)
 
-        if not wine_binary or not env.get('WINEPREFIX'):
-            logger.error(f'In order to launch Origin correctly you must specify the wine binary and prefix '
-                         f'to use in the configuration file or command line. See the README for details.')
+        if not command:
+            logger.error(f'In order to launch Origin correctly you must specify a prefix and wine binary or '
+                         f'wrapper in the configuration file or command line. See the README for details.')
             return
-        subprocess.Popen([wine_binary, origin_uri], env=env)
+
+        command.append(origin_uri)
+        subprocess.Popen(command, env=full_env)
 
     def install_game(self, args):
         if self.core.is_installed(args.app_name):
