@@ -932,7 +932,7 @@ class LegendaryCLI:
         # always write repair file, even if all match
         if repair_file:
             repair_filename = os.path.join(self.core.lgd.get_tmp_path(), f'{args.app_name}.repair')
-            with open(repair_filename, 'w') as f:
+            with open(repair_filename, 'w', encoding='utf-8') as f:
                 f.write('\n'.join(repair_file))
             logger.debug(f'Written repair file to "{repair_filename}"')
 

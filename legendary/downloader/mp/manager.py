@@ -113,7 +113,7 @@ class DLManager(Process):
                 mismatch = 0
                 completed_files = set()
 
-                for line in open(self.resume_file).readlines():
+                for line in open(self.resume_file, encoding='utf-8').readlines():
                     file_hash, _, filename = line.strip().partition(':')
                     _p = os.path.join(self.dl_dir, filename)
                     if not os.path.exists(_p):
@@ -527,8 +527,8 @@ class DLManager(Process):
 
                     file_hash = self.hash_map[res.filename]
                     # write last completed file to super simple resume file
-                    with open(self.resume_file, 'ab') as rf:
-                        rf.write(f'{file_hash}:{res.filename}\n'.encode('utf-8'))
+                    with open(self.resume_file, 'a', encoding='utf-8') as rf:
+                        rf.write(f'{file_hash}:{res.filename}\n')
 
                 if not res.success:
                     # todo make this kill the installation process or at least skip the file and mark it as failed
