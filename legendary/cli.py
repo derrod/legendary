@@ -1208,6 +1208,146 @@ class LegendaryCLI:
             # prevent update message on close
             self.core.update_available = False
 
+    def info(self, args):
+        name_or_path = args.app_name_or_manifest
+        app_name = manifest_uri = None
+        if os.path.exists(name_or_path) or name_or_path.startswith('http'):
+            manifest_uri = name_or_path
+        else:
+            app_name = name_or_path
+
+        if not args.offline and not manifest_uri:
+            try:
+                if not self.core.login():
+                    logger.error('Log in failed!')
+                    exit(1)
+            except ValueError:
+                pass
+
+        game = self.core.get_game(app_name, update_meta=not args.offline)
+        manifest_data = None
+        entitlements = None
+        # load installed manifest or URI
+        if args.offline or manifest_uri:
+            if app_name and self.core.is_installed(app_name):
+                manifest_data, _ = self.core.get_installed_manifest(app_name)
+            elif manifest_uri and manifest_uri.startswith('http'):
+                r = self.core.egs.unauth_session.get(manifest_uri)
+                r.raise_for_status()
+                manifest_data = r.content
+            elif manifest_uri and os.path.exists(manifest_uri):
+                with open(manifest_uri, 'rb') as f:
+                    manifest_data = f.read()
+            else:
+                logger.info('Game not installed and offline mode enabled, cannot load manifest.')
+        elif game:
+            # get latest metadata and manifest
+            egl_meta = self.core.egs.get_game_info(game.asset_info.namespace,
+                                                   game.asset_info.catalog_item_id)
+            game.metadata = egl_meta
+            manifest_data, _ = self.core.get_cdn_manifest(game)
+            entitlements = self.core.egs.get_user_entitlements()
+
+        if game:
+            print('\nGame Information:')
+            print('- Title:', game.app_title)
+            print('- Latest version:', game.app_version)
+            print('- Cloud saves supported:', game.supports_cloud_saves)
+            if game.supports_cloud_saves:
+                print('- Cloud save folder:', game.metadata['customAttributes']['CloudSaveFolder']['value'])
+            print('- Is DLC:', game.is_dlc)
+            # Find custom launch options, if available
+            launch_options = []
+            i = 1
+            while f'extraLaunchOption_{i:03d}_Name' in game.metadata['customAttributes']:
+                launch_options.append((
+                    game.metadata['customAttributes'][f'extraLaunchOption_{i:03d}_Name']['value'],
+                    game.metadata['customAttributes'][f'extraLaunchOption_{i:03d}_Args']['value']
+                ))
+                i += 1
+
+            if launch_options:
+                print('- Extra launch options:')
+                for opt_name, opt_cmd in sorted(launch_options):
+                    print(f' + Name: "{opt_name}", Parameters: {opt_cmd}')
+
+            # list all owned DLC based on entitlements
+            if entitlements and not game.is_dlc:
+                owned_entitlements = {i['entitlementName'] for i in entitlements}
+                owned_app_names = {g.app_name for g in self.core.get_assets()}
+                owned_dlc = []
+                for dlc in game.metadata['dlcItemList']:
+                    installable = dlc.get('releaseInfo', None)
+                    if dlc['entitlementName'] in owned_entitlements:
+                        owned_dlc.append((installable, None, dlc['title']))
+                    elif installable:
+                        app_name = dlc['releaseInfo'][0]['appId']
+                        if app_name in owned_app_names:
+                            owned_dlc.append((installable, app_name, dlc['title']))
+
+                if owned_dlc:
+                    print('- Owned DLC:')
+                    for installable, app_name, title in owned_dlc:
+                        if installable:
+                            print(f' + App name: {app_name}, Title: "{title}"')
+                        else:
+                            print(f' + Title: "{title}" (no installation required)')
+
+            igame = self.core.get_installed_game(app_name)
+            if igame:
+                print('\nInstallation information:')
+                print(f'- Version:', igame.version)
+                print(f'- File size: {igame.install_size / 1024 / 1024 / 1024:.02f} GiB')
+                print('- Path:', igame.install_path)
+                print('- Save data path:', igame.save_path or '(None)')
+                print('- EGL sync GUID:', igame.egl_guid or '(None)')
+                if igame.install_tags:
+                    print('- Tags:', ', '.join(igame.install_tags))
+                else:
+                    print('- Tags: N/A')
+                print('- Requires ownership verification token (DRM):', igame.requires_ot)
+
+                installed_dlc = []
+                for dlc in game.metadata['dlcItemList']:
+                    if not dlc.get('releaseInfo', None):
+                        continue
+                    app_name = dlc['releaseInfo'][0]['appId']
+                    if igame := self.core.get_installed_game(app_name):
+                        installed_dlc.append(igame)
+
+                if installed_dlc:
+                    print('- Installed DLC')
+                    for igame in installed_dlc:
+                        print(' + App name: {}, Title: "{}", Size: {:.02f} GiB'.format(
+                            igame.app_name, igame.title, igame.install_size / 1024 / 1024 / 1024
+                        ))
+
+        if manifest_data:
+            manifest = self.core.load_manifest(manifest_data)
+            print('\nManifest Information:')
+            print('- Manifest type:', 'JSON' if hasattr(manifest, 'json_data') else 'Binary')
+            print('- Manifest version:', manifest.version)
+            print('- Manifest feature level:', manifest.meta.feature_level)
+            print('- Manifest app name:', manifest.meta.app_name)
+            print('- Launch EXE:', manifest.meta.launch_exe or 'N/A')
+            print('- Launch Command:', manifest.meta.launch_command or '(None)')
+            print('- Build version:', manifest.meta.build_version)
+            print('- Build ID:', manifest.meta.build_id)
+            if manifest.meta.prereq_ids:
+                print('- Prerequisites:')
+                print(' + Prerequisite IDs:', ', '.join(manifest.meta.prereq_ids))
+                print(' + Prerequisite name:', manifest.meta.prereq_name)
+                print(' + Prerequisite path:', manifest.meta.prereq_path)
+                print(' + Prerequisite args:', manifest.meta.prereq_args or '(None)')
+            else:
+                print('- Prerequisites: (None)')
+            print('- Files:', manifest.file_manifest_list.count)
+            total_size = sum(fm.file_size for fm in manifest.file_manifest_list.elements)
+            print(' + Total: {:.02f} GiB (uncompressed)'.format(total_size / 1024 / 1024 / 1024))
+            print('- Chunks:', manifest.chunk_data_list.count)
+            total_size = sum(c.file_size for c in manifest.chunk_data_list.elements)
+            print(' + Total: {:.02f} GiB (compressed)'.format(total_size / 1024 / 1024 / 1024))
+
     def cleanup(self, args):
         before = self.core.lgd.get_dir_size()
         # delete metadata
@@ -1260,6 +1400,7 @@ def main():
     egl_sync_parser = subparsers.add_parser('egl-sync', help='Setup or run Epic Games Launcher sync')
     status_parser = subparsers.add_parser('status', help='Show legendary status information')
     clean_parser = subparsers.add_parser('cleanup', help='Remove old temporary, metadata, and manifest files')
+    info_parser = subparsers.add_parser('info', help='Prints info about specified app name or manifest')
 
     install_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
     uninstall_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
@@ -1276,6 +1417,8 @@ def main():
     import_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
     import_parser.add_argument('app_path', help='Path where the game is installed',
                                metavar='<Installation directory>')
+    info_parser.add_argument('app_name_or_manifest', help='App name or manifest path/URI',
+                             metavar='<App Name/Manifest URI>')
 
     auth_parser.add_argument('--import', dest='import_egs_auth', action='store_true',
                              help='Import Epic Games Launcher authentication data (logs out of EGL)')
@@ -1466,6 +1609,9 @@ def main():
     clean_parser.add_argument('--keep-manifests', dest='keep_manifests', action='store_true',
                               help='Do not delete old manifests')
 
+    info_parser.add_argument('--offline', dest='offline', action='store_true',
+                             help='Only print info available offline')
+
     args, extra = parser.parse_known_args()
 
     if args.version:
@@ -1475,7 +1621,8 @@ def main():
     if args.subparser_name not in ('auth', 'list-games', 'list-installed', 'list-files',
                                    'launch', 'download', 'uninstall', 'install', 'update',
                                    'repair', 'list-saves', 'download-saves', 'sync-saves',
-                                   'verify-game', 'import-game', 'egl-sync', 'status', 'cleanup'):
+                                   'verify-game', 'import-game', 'egl-sync', 'status',
+                                   'info', 'cleanup'):
         print(parser.format_help())
 
         # Print the main help *and* the help for all of the subcommands. Thanks stackoverflow!
@@ -1534,6 +1681,8 @@ def main():
             cli.egs_sync(args)
         elif args.subparser_name == 'status':
             cli.status(args)
+        elif args.subparser_name == 'info':
+            cli.info(args)
         elif args.subparser_name == 'cleanup':
             cli.cleanup(args)
     except KeyboardInterrupt:
