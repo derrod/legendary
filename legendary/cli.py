@@ -695,13 +695,35 @@ class LegendaryCLI:
             else:
                 logger.info(f'Using existing repair file: {repair_file}')
 
-        # Workaround for Cyberpunk 2077 preload
-        if not args.install_tag and not game.is_dlc and ((sdl_name := get_sdl_appname(game.app_name)) is not None):
-            config_tags = self.core.lgd.config.get(game.app_name, 'install_tags', fallback=None)
+        # check if SDL should be disabled
+        sdl_enabled = not args.install_tag and not game.is_dlc
+        config_tags = self.core.lgd.config.get(game.app_name, 'install_tags', fallback=None)
+        config_disable_sdl = self.core.lgd.config.getboolean(game.app_name, 'disable_sdl', fallback=False)
+        # remove config flag if SDL is reset
+        if config_disable_sdl and args.reset_sdl and not args.disable_sdl:
+            self.core.lgd.config.remove_option(game.app_name, 'disable_sdl')
+        # if config flag is not yet set, set it and remove previous install tags
+        elif not config_disable_sdl and args.disable_sdl:
+            logger.info('Clearing install tags from config and disabling SDL for title.')
+            if config_tags:
+                self.core.lgd.config.remove_option(game.app_name, 'install_tags')
+                config_tags = None
+            self.core.lgd.config.set(game.app_name, 'disable_sdl', True)
+            sdl_enabled = False
+        # just disable SDL, but keep config tags that have been manually specified
+        elif config_disable_sdl or args.disable_sdl:
+            sdl_enabled = False
+
+        if sdl_enabled and ((sdl_name := get_sdl_appname(game.app_name)) is not None):
             if not self.core.is_installed(game.app_name) or config_tags is None or args.reset_sdl:
                 sdl_data = self.core.get_sdl_data(sdl_name)
                 if sdl_data:
-                    args.install_tag = sdl_prompt(sdl_data, game.app_title)
+                    if args.skip_sdl:
+                        args.install_tag = ['']
+                        if '__required' in sdl_data:
+                            args.install_tag.extend(sdl_data['__required']['tags'])
+                    else:
+                        args.install_tag = sdl_prompt(sdl_data, game.app_title)
                     self.core.lgd.config.set(game.app_name, 'install_tags', ','.join(args.install_tag))
                 else:
                     logger.error(f'Unable to get SDL data for {sdl_name}')
@@ -712,7 +734,6 @@ class LegendaryCLI:
             logger.info(f'Saving install tags for "{game.app_name}" to config: {config_tags}')
             self.core.lgd.config.set(game.app_name, 'install_tags', config_tags)
         elif not game.is_dlc:
-            config_tags = self.core.lgd.config.get(game.app_name, 'install_tags', fallback=None)
             if config_tags and args.reset_sdl:
                 logger.info('Clearing install tags from config.')
                 self.core.lgd.config.remove_option(game.app_name, 'install_tags')
@@ -1482,6 +1503,10 @@ def main():
                                 help='Do not use delta manifests when updating (may increase download size)')
     install_parser.add_argument('--reset-sdl', dest='reset_sdl', action='store_true',
                                 help='Reset selective downloading choices (requires repair to download new components)')
+    install_parser.add_argument('--skip-sdl', dest='skip_sdl', action='store_true',
+                                help='Skip SDL prompt and continue with defaults (only required game data)')
+    install_parser.add_argument('--disable-sdl', dest='disable_sdl', action='store_true',
+                                help='Disable selective downloading for title, reset existing configuration (if any)')
     install_parser.add_argument('--preferred-cdn', dest='preferred_cdn', action='store', metavar='<hostname>',
                                 help='Set the hostname of the preferred CDN to use when available')
     install_parser.add_argument('--no-https', dest='disable_https', action='store_true',
