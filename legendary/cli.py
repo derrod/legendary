@@ -1388,6 +1388,74 @@ class LegendaryCLI:
             total_size = sum(c.file_size for c in manifest.chunk_data_list.elements)
             print(' + Total: {:.02f} GiB (compressed)'.format(total_size / 1024 / 1024 / 1024))
 
+    def alias(self, args):
+        if args.action not in ('add', 'rename', 'remove', 'list'):
+            logger.error(f'Invalid action "{args.action}"!')
+            return
+
+        if args.action == 'add':
+            alias = args.alias
+            app_name = args.app_or_alias
+            game = self.core.get_game(app_name)
+            if not game:
+                logger.error(f'Invalid app name: "{app_name}"')
+                return
+            self.core.lgd.config.set('Legendary.aliases', alias, app_name)
+            logger.info(f'Added alias "{alias}" to "{app_name}" (Title: "{game.app_title}")')
+        elif args.action == 'rename':
+            old_alias = args.app_or_alias
+            new_alias = args.alias
+            app_name = self.core.lgd.config.get('Legendary.aliases', old_alias, fallback=None)
+            if not app_name:
+                logger.error(f'Invalid old alias: "{app_name}"')
+                return
+            self.core.lgd.config.set('Legendary.aliases', new_alias, app_name)
+            self.core.lgd.config.remove_option('Legendary.aliases', old_alias)
+            logger.info(f'Renamed alias "{old_alias}" to "{new_alias}"')
+        elif args.action == 'remove':
+            alias = args.app_or_alias
+            if not self.core.lgd.config.has_option('Legendary.aliases', alias):
+                logger.error(f'Alias does not exist: "{args.alias}"')
+                return
+            self.core.lgd.config.remove_option('Legendary.aliases', alias)
+            logger.info(f'Removed alias "{alias}"')
+        elif args.action == 'list':
+            if args.app_or_alias:
+                self.core.update_aliases(force=True)
+                app_name = self._resolve_aliases(args.app_or_alias)
+                game = self.core.get_game(app_name)
+                if not game:
+                    logger.error(f'Invalid app name: "{app_name}"')
+                    return
+                print(f'\nAliases for "{game.app_title}" ({app_name}):')
+                # Use-defined
+                if self.core.lgd.config.has_section('Legendary.aliases'):
+                    aliases = [alias for (alias, app_name) in self.core.lgd.config['Legendary.aliases'].items()
+                               if app_name == game.app_name]
+                    if aliases:
+                        print('- User-defined aliases:')
+                        for alias in sorted(aliases):
+                            print(f'  + {alias}')
+                    else:
+                        print('- User-defined aliases: (None)')
+                # Automatically generated
+                aliases = [alias for (alias, app_name) in self.core.lgd.aliases.items()
+                           if app_name == game.app_name]
+                if aliases:
+                    print('- Automatic aliases:')
+                    for alias in sorted(aliases):
+                        print(f'  + {alias}')
+                else:
+                    print('- Automatic aliases: (None)')
+            else:
+                if not self.core.lgd.config.has_section('Legendary.aliases'):
+                    logger.error('No aliases in config!')
+                    return
+
+                print('User-defined aliases:')
+                for alias, app_name in self.core.lgd.config['Legendary.aliases'].items():
+                    print(f' - {alias} => {app_name}')
+
     def cleanup(self, args):
         before = self.core.lgd.get_dir_size()
         # delete metadata
@@ -1439,8 +1507,9 @@ def main():
     import_parser = subparsers.add_parser('import-game', help='Import an already installed game')
     egl_sync_parser = subparsers.add_parser('egl-sync', help='Setup or run Epic Games Launcher sync')
     status_parser = subparsers.add_parser('status', help='Show legendary status information')
-    clean_parser = subparsers.add_parser('cleanup', help='Remove old temporary, metadata, and manifest files')
     info_parser = subparsers.add_parser('info', help='Prints info about specified app name or manifest')
+    alias_parser = subparsers.add_parser('alias', help='Manage aliases')
+    clean_parser = subparsers.add_parser('cleanup', help='Remove old temporary, metadata, and manifest files')
 
     install_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
     uninstall_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
@@ -1459,6 +1528,14 @@ def main():
                                metavar='<Installation directory>')
     info_parser.add_argument('app_name_or_manifest', help='App name or manifest path/URI',
                              metavar='<App Name/Manifest URI>')
+
+    alias_parser.add_argument('action', help='Action: Add, rename, remove, or list alias(es)',
+                             metavar='<add|rename|remove|list>')
+    alias_parser.add_argument('app_or_alias', help='App name when using "add" or "list" action, '
+                                                   'existing alias when using "rename" or "remove" action',
+                             metavar='App name/Old alias', nargs='?')
+    alias_parser.add_argument('alias', help='New alias when using "add" action',
+                             metavar='New alias', nargs='?')
 
     auth_parser.add_argument('--import', dest='import_egs_auth', action='store_true',
                              help='Import Epic Games Launcher authentication data (logs out of EGL)')
@@ -1668,7 +1745,7 @@ def main():
                                    'launch', 'download', 'uninstall', 'install', 'update',
                                    'repair', 'list-saves', 'download-saves', 'sync-saves',
                                    'verify-game', 'import-game', 'egl-sync', 'status',
-                                   'info', 'cleanup'):
+                                   'info', 'alias', 'cleanup'):
         print(parser.format_help())
 
         # Print the main help *and* the help for all of the subcommands. Thanks stackoverflow!
@@ -1729,6 +1806,8 @@ def main():
             cli.status(args)
         elif args.subparser_name == 'info':
             cli.info(args)
+        elif args.subparser_name == 'alias':
+            cli.alias(args)
         elif args.subparser_name == 'cleanup':
             cli.cleanup(args)
     except KeyboardInterrupt:
