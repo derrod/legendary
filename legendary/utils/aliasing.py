@@ -50,6 +50,7 @@ def generate_aliases(game_name, game_folder=None, split_words=True):
     game_parts = [p for p in game_parts if p]
 
     _aliases = [
+        game_name.lower().strip(),
         ' '.join(game_parts),
         ''.join(game_parts),
         ''.join(roman.get(p, p) for p in game_parts),
