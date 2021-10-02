@@ -4,7 +4,7 @@ from string import ascii_lowercase, digits
 # - name lowercase (without TM etc.)
 # - same, but without spaces
 # - same, but roman numerals are replaced
-# if name has >= 3 parts:
+# if name has >= 2 parts:
 # - initials
 # - initials, but roman numerals are intact
 # - initials, but roman numerals are replaced with number
@@ -12,10 +12,11 @@ from string import ascii_lowercase, digits
 # - run previous recursively with everything before ":"
 # if single 'f' in long word:
 # - split word (this is mainly for cases like Battlfront -> BF)
+# the first word longer than 1 character that isn't "the", "for", or "of" will also be added
 
 allowed_characters = ascii_lowercase+digits
 roman = {
-    # 'i': '1',
+    'i': '1',
     'ii': '2',
     'iii': '3',
     'iv': '4',
@@ -55,7 +56,7 @@ def generate_aliases(game_name, game_folder=None, split_words=True):
     ]
 
     # single word abbreviation
-    first_word = next(i for i in game_parts if i not in ('for', 'the'))
+    first_word = next(i for i in game_parts if i not in ('for', 'the', 'of'))
     if len(first_word) > 1:
         _aliases.append(first_word)
     # remove subtitle from game
@@ -65,7 +66,7 @@ def generate_aliases(game_name, game_folder=None, split_words=True):
     if game_folder:
         _aliases.extend(generate_aliases(game_folder, split_words=False))
     # include initialisms
-    if len(game_parts) > 2:
+    if len(game_parts) > 1:
         _aliases.append(''.join(p[0] for p in game_parts))
         _aliases.append(''.join(p[0] if p not in roman else p for p in game_parts))
         _aliases.append(''.join(roman.get(p, p[0]) for p in game_parts))
@@ -81,9 +82,10 @@ def generate_aliases(game_name, game_folder=None, split_words=True):
             else:
                 new_game_parts.append(word)
 
-        _aliases.append(''.join(p[0] for p in new_game_parts))
-        _aliases.append(''.join(p[0] if p not in roman else p for p in new_game_parts))
-        _aliases.append(''.join(roman.get(p, p[0]) for p in new_game_parts))
+        if len(new_game_parts) > 1:
+            _aliases.append(''.join(p[0] for p in new_game_parts))
+            _aliases.append(''.join(p[0] if p not in roman else p for p in new_game_parts))
+            _aliases.append(''.join(roman.get(p, p[0]) for p in new_game_parts))
 
     # return sorted unqiues
     return sorted(set(_aliases))
