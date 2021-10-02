@@ -51,6 +51,10 @@ class LegendaryCLI:
         ql.start()
         return ql
 
+    def _resolve_aliases(self, app_name):
+        # resolve alias (if any) to real app name
+        return self.core.lgd.config.get('Legendary.aliases', app_name, fallback=app_name)
+
     def auth(self, args):
         if args.auth_delete:
             self.core.lgd.invalidate_userdata()
@@ -288,6 +292,8 @@ class LegendaryCLI:
         if not args.override_manifest and not args.app_name:
             print('You must provide either a manifest url/path or app name!')
             return
+        elif args.app_name:
+            args.app_name = self._resolve_aliases(args.app_name)
 
         # check if we even need to log in
         if args.override_manifest:
@@ -351,7 +357,7 @@ class LegendaryCLI:
         _ = self.core.get_game_and_dlc_list(update_assets=True)
         # then get the saves
         logger.info('Getting list of saves...')
-        saves = self.core.get_save_games(args.app_name)
+        saves = self.core.get_save_games(self._resolve_aliases(args.app_name))
         last_app = ''
         print('Save games:')
         for save in sorted(saves, key=lambda a: a.app_name + a.manifest_name):
@@ -366,7 +372,7 @@ class LegendaryCLI:
             logger.error('Login failed! Cannot continue with download process.')
             exit(1)
         logger.info(f'Downloading saves to "{self.core.get_default_install_dir()}"')
-        self.core.download_saves(args.app_name)
+        self.core.download_saves(self._resolve_aliases(args.app_name))
 
     def sync_saves(self, args):
         if not self.core.login():
@@ -375,6 +381,7 @@ class LegendaryCLI:
 
         igames = self.core.get_installed_list()
         if args.app_name:
+            args.app_name = self._resolve_aliases(args.app_name)
             igame = self.core.get_installed_game(args.app_name)
             if not igame:
                 logger.fatal(f'Game not installed: {args.app_name}')
@@ -482,7 +489,7 @@ class LegendaryCLI:
                 self.core.upload_save(igame.app_name, igame.save_path, dt_l, args.disable_filters)
 
     def launch_game(self, args, extra):
-        app_name = args.app_name
+        app_name = self._resolve_aliases(args.app_name)
         if args.origin:
             return self._launch_origin(args)
 
@@ -629,6 +636,7 @@ class LegendaryCLI:
         subprocess.Popen(command, env=full_env)
 
     def install_game(self, args):
+        args.app_name = self._resolve_aliases(args.app_name)
         if self.core.is_installed(args.app_name):
             igame = self.core.get_installed_game(args.app_name)
             if igame.needs_verification and not args.repair_mode:
@@ -662,7 +670,7 @@ class LegendaryCLI:
         game = self.core.get_game(args.app_name, update_meta=True)
 
         if not game:
-            logger.error(f'Could not find "{args.app_name}" in list of available games,'
+            logger.error(f'Could not find "{args.app_name}" in list of available games, '
                          f'did you type the name correctly?')
             exit(1)
 
@@ -912,6 +920,7 @@ class LegendaryCLI:
             logger.info('Automatic installation not available on Linux.')
 
     def uninstall_game(self, args):
+        args.app_name = self._resolve_aliases(args.app_name)
         igame = self.core.get_installed_game(args.app_name)
         if not igame:
             logger.error(f'Game {args.app_name} not installed, cannot uninstall!')
@@ -940,6 +949,7 @@ class LegendaryCLI:
             logger.warning(f'Removing game failed: {e!r}, please remove {igame.install_path} manually.')
 
     def verify_game(self, args, print_command=True):
+        args.app_name = self._resolve_aliases(args.app_name)
         if not self.core.is_installed(args.app_name):
             logger.error(f'Game "{args.app_name}" is not installed')
             return
@@ -1008,6 +1018,7 @@ class LegendaryCLI:
     def import_game(self, args):
         # make sure path is absolute
         args.app_path = os.path.abspath(args.app_path)
+        args.app_name = self._resolve_aliases(args.app_name)
 
         if not os.path.exists(args.app_path):
             logger.error(f'Specified path "{args.app_path}" does not exist!')
@@ -1235,7 +1246,7 @@ class LegendaryCLI:
         if os.path.exists(name_or_path) or name_or_path.startswith('http'):
             manifest_uri = name_or_path
         else:
-            app_name = name_or_path
+            app_name = self._resolve_aliases(name_or_path)
 
         if not args.offline and not manifest_uri:
             try:
