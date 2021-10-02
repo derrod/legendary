@@ -51,9 +51,15 @@ class LegendaryCLI:
         ql.start()
         return ql
 
-    def _resolve_aliases(self, app_name):
+    def _resolve_aliases(self, name):
+        # make sure aliases exist if not yet created
+        self.core.update_aliases(force=False)
+        name = name.strip()
         # resolve alias (if any) to real app name
-        return self.core.lgd.config.get('Legendary.aliases', app_name, fallback=app_name)
+        return self.core.lgd.config.get(
+            section='Legendary.aliases', option=name,
+            fallback=self.core.lgd.aliases.get(name.lower(), name)
+        )
 
     def auth(self, args):
         if args.auth_delete:

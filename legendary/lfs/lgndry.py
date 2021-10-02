@@ -4,10 +4,12 @@ import json
 import os
 import logging
 
+from collections import defaultdict
 from pathlib import Path
 from time import time
 
 from legendary.models.game import *
+from legendary.utils.aliasing import generate_aliases
 from legendary.utils.config import LGDConf
 from legendary.utils.env import is_windows_or_pyi
 from legendary.utils.lfs import clean_filename
@@ -111,6 +113,17 @@ class LGDLFS:
                 self._game_metadata[_meta['app_name']] = _meta
             except Exception as e:
                 self.log.debug(f'Loading game meta file "{gm_file}" failed: {e!r}')
+
+        # load auto-aliases if enabled
+        self.aliases = dict()
+        if not self.config.getboolean('Legendary', 'disable_auto_aliasing', fallback=False):
+            try:
+                _j = json.load(open(os.path.join(self.path, 'aliases.json')))
+                for app_name, aliases in _j.items():
+                    for alias in aliases:
+                        self.aliases[alias] = app_name
+            except Exception as e:
+                self.log.debug(f'Loading aliases failed with {e!r}')
 
     @property
     def userdata(self):
@@ -339,3 +352,38 @@ class LGDLFS:
         json.dump(dict(version=sdl_version, data=sdl_data),
                   open(os.path.join(self.path, 'tmp', f'{app_name}.json'), 'w'),
                   indent=2, sort_keys=True)
+
+    def generate_aliases(self):
+        self.log.debug('Generating list of aliases...')
+
+        aliases = set()
+        collisions = set()
+        alias_map = defaultdict(set)
+
+        for app_name in self._game_metadata.keys():
+            game = self.get_game_meta(app_name)
+            if game.is_dlc:
+                continue
+            game_folder = game.metadata.get('customAttributes', {}).get('FolderName', {}).get('value', None)
+            _aliases = generate_aliases(game.app_title, game_folder)
+            for alias in _aliases:
+                if alias not in aliases:
+                    aliases.add(alias)
+                    alias_map[game.app_name].add(alias)
+                else:
+                    collisions.add(alias)
+
+        # remove colliding aliases from map and add aliases to lookup table
+        for app_name, aliases in alias_map.items():
+            alias_map[app_name] -= collisions
+            for alias in alias_map[app_name]:
+                self.aliases[alias] = app_name
+
+        def serialise_sets(obj):
+            """Turn sets into sorted lists for storage"""
+            if isinstance(obj, set):
+                return sorted(obj)
+            return obj
+
+        json.dump(alias_map, open(os.path.join(self.path, 'aliases.json'), 'w', newline='\n'),
+                  indent=2, sort_keys=True, default=serialise_sets)

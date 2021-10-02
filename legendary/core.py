@@ -273,6 +273,11 @@ class LegendaryCore:
         # return data if available
         return sdl_data
 
+    def update_aliases(self, force=False):
+        _aliases_enabled = not self.lgd.config.getboolean('Legendary', 'disable_auto_aliasing', fallback=False)
+        if _aliases_enabled and (force or not self.lgd.aliases):
+            self.lgd.generate_aliases()
+
     def get_assets(self, update_assets=False, platform_override=None) -> List[GameAsset]:
         # do not save and always fetch list when platform is overridden
         if platform_override:
@@ -311,6 +316,7 @@ class LegendaryCore:
                               force_refresh=False, skip_ue=True) -> (List[Game], Dict[str, List[Game]]):
         _ret = []
         _dlc = defaultdict(list)
+        meta_updated = False
 
         for ga in self.get_assets(update_assets=update_assets,
                                   platform_override=platform_override):
@@ -328,6 +334,7 @@ class LegendaryCore:
                             app_title=eg_meta['title'], asset_info=ga, metadata=eg_meta)
 
                 if not platform_override:
+                    meta_updated = True
                     self.lgd.set_game_meta(game.app_name, game)
 
             # replace asset info with the platform specific one if override is used
@@ -339,6 +346,9 @@ class LegendaryCore:
                 _dlc[game.metadata['mainGameItem']['id']].append(game)
             elif not any(i['path'] == 'mods' for i in game.metadata.get('categories', [])):
                 _ret.append(game)
+
+        if not platform_override:
+            self.update_aliases(force=meta_updated)
 
         return _ret, _dlc
 
