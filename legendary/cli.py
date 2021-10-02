@@ -755,7 +755,7 @@ class LegendaryCLI:
                 logger.info(f'Using install tags from config: {config_tags}')
                 args.install_tag = config_tags.split(',')
 
-        logger.info('Preparing download...')
+        logger.info(f'Preparing download for "{game.app_title}" ({game.app_name})...')
         # todo use status queue to print progress from CLI
         # This has become a little ridiculous hasn't it?
         dlm, analysis, igame = self.core.prepare_download(game=game, base_game=base_game, base_path=args.base_path,
