@@ -159,8 +159,8 @@ legendary -y egl-sync
 ## Usage
 
 ````
-usage: legendary [-h] [-v] [-y] [-V]
-                 {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game,egl-sync,status,cleanup}
+usage: legendary [-h] [-v] [-y] [-V] [-c <path/name>]
+                 {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game,egl-sync,status,cleanup,info}
                  ...
 
 Legendary v0.X.X - "Codename"
@@ -170,9 +170,12 @@ optional arguments:
   -v, --debug           Set loglevel to debug
   -y, --yes             Default to yes for all prompts
   -V, --version         Print version and exit
+  -c <path/name>, --config-file <path/name>
+                        Specify custom config file or name for the config file
+                        in the default directory.
 
 Commands:
-  {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game,egl-sync,status,cleanup}
+  {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game,egl-sync,status,cleanup,info}
     auth                Authenticate with EPIC
     install (download,update,repair)
                         Download a game
@@ -189,6 +192,7 @@ Commands:
     egl-sync            Setup or run Epic Games Launcher sync
     status              Show legendary status information
     cleanup             Remove old temporary, metadata, and manifest files
+    info                Prints info about specified app name or manifest
 
 Individual command help:
 
@@ -268,11 +272,16 @@ optional arguments:
                         download size)
   --reset-sdl           Reset selective downloading choices (requires repair
                         to download new components)
+  --skip-sdl            Skip SDL prompt and continue with defaults (only
+                        required game data)
+  --disable-sdl         Disable selective downloading for title, reset
+                        existing configuration (if any)
   --preferred-cdn <hostname>
                         Set the hostname of the preferred CDN to use when
                         available
   --no-https            Download games via plaintext HTTP (like EGS), e.g. for
                         use with a lan cache
+  --with-dlcs           Automatically install all DLCs with the base game
 
 
 Command: uninstall
@@ -315,6 +324,7 @@ optional arguments:
   --override-exe <exe path>
                         Override executable to launch (relative path)
   --origin              Launch Origin to activate or run the game.
+  --json                Print launch information as JSON and exit
   --wine <wine binary>  Set WINE binary to use to launch the app
   --wine-prefix <wine pfx path>
                         Set WINE prefix to use
@@ -324,7 +334,7 @@ optional arguments:
 Command: list-games
 usage: legendary list-games [-h] [--platform <Platform>] [--include-ue]
                             [--include-non-installable] [--csv] [--tsv]
-                            [--json]
+                            [--json] [--force-refresh]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -339,6 +349,7 @@ optional arguments:
   --csv                 List games in CSV format
   --tsv                 List games in TSV format
   --json                List games in JSON format
+  --force-refresh       Force a refresh of all game metadata
 
 
 Command: list-installed
@@ -482,6 +493,18 @@ usage: legendary cleanup [-h] [--keep-manifests]
 optional arguments:
   -h, --help        show this help message and exit
   --keep-manifests  Do not delete old manifests
+
+
+Command: info
+usage: legendary info [-h] [--offline] <App Name/Manifest URI>
+
+positional arguments:
+  <App Name/Manifest URI>
+                        App name or manifest path/URI
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --offline             Only print info available offline
 ````
 
 
@@ -526,6 +549,11 @@ disable_update_check = false
 ; Disables the notice about an available update on exit
 disable_update_notice = false
 
+[Legendary.aliases]
+; List of aliases for simpler CLI use
+HITMAN 3 = Eider
+gtav = 9d2d0eb64d5c44529cece33fe2a46482
+
 ; default settings to use (currently limited to WINE executable)
 [default]
 ; (linux) specify wine executable to use
@@ -562,4 +590,6 @@ wrapper = "/path/to/Proton 5.0/proton" run
 no_wine = true
 ; Override the executable launched for this game, for example to bypass a launcher (e.g. Borderlands)
 override_exe = relative/path/to/file.exe
+; Disable selective downloading for this title
+disable_sdl = true
 ````
