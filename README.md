@@ -160,7 +160,7 @@ legendary -y egl-sync
 
 ````
 usage: legendary [-h] [-v] [-y] [-V] [-c <path/name>]
-                 {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game,egl-sync,status,cleanup,info}
+                 {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game,egl-sync,status,info,alias,cleanup}
                  ...
 
 Legendary v0.X.X - "Codename"
@@ -175,7 +175,7 @@ optional arguments:
                         in the default directory.
 
 Commands:
-  {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game,egl-sync,status,cleanup,info}
+  {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game,egl-sync,status,info,alias,cleanup}
     auth                Authenticate with EPIC
     install (download,update,repair)
                         Download a game
@@ -191,8 +191,9 @@ Commands:
     import-game         Import an already installed game
     egl-sync            Setup or run Epic Games Launcher sync
     status              Show legendary status information
-    cleanup             Remove old temporary, metadata, and manifest files
     info                Prints info about specified app name or manifest
+    alias               Manage aliases
+    cleanup             Remove old temporary, metadata, and manifest files
 
 Individual command help:
 
@@ -487,14 +488,6 @@ optional arguments:
   --json      Show status in JSON format
 
 
-Command: cleanup
-usage: legendary cleanup [-h] [--keep-manifests]
-
-optional arguments:
-  -h, --help        show this help message and exit
-  --keep-manifests  Do not delete old manifests
-
-
 Command: info
 usage: legendary info [-h] [--offline] <App Name/Manifest URI>
 
@@ -505,6 +498,32 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   --offline             Only print info available offline
+
+
+Command: alias
+usage: legendary alias [-h]
+                       <add|rename|remove|list> [App name/Old alias]
+                       [New alias]
+
+positional arguments:
+  <add|rename|remove|list>
+                        Action: Add, rename, remove, or list alias(es)
+  App name/Old alias    App name when using "add" or "list" action, existing
+                        alias when using "rename" or "remove" action
+  New alias             New alias when using "add" action
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+
+Command: cleanup
+usage: legendary cleanup [-h] [--keep-manifests]
+
+optional arguments:
+  -h, --help        show this help message and exit
+  --keep-manifests  Do not delete old manifests
+
+
 ````
 
 
@@ -548,6 +567,8 @@ disable_https = false
 disable_update_check = false
 ; Disables the notice about an available update on exit
 disable_update_notice = false
+; Disable automatically-generated aliases
+disable_auto_aliasing = false
 
 [Legendary.aliases]
 ; List of aliases for simpler CLI use
