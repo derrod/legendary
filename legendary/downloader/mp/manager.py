@@ -685,13 +685,13 @@ class DLManager(Process):
             total_used = (num_shared_memory_segments - total_avail) * (self.analysis.biggest_chunk / 1024 / 1024)
 
             if runtime and processed_chunks:
-                rt_hours, runtime = int(runtime // 3600), runtime % 3600
-                rt_minutes, rt_seconds = int(runtime // 60), int(runtime % 60)
+                rt_hours, runtime_without_hours = int(runtime // 3600), runtime % 3600
+                rt_minutes, rt_seconds = int(runtime_without_hours // 60), int(runtime_without_hours % 60)
 
                 average_speed = processed_chunks / runtime
                 estimate = (num_chunk_tasks - processed_chunks) / average_speed
-                hours, estimate = int(estimate // 3600), estimate % 3600
-                minutes, seconds = int(estimate // 60), int(estimate % 60)
+                hours, estimate_without_hours = int(estimate // 3600), estimate % 3600
+                minutes, seconds = int(estimate_without_hours // 60), int(estimate_without_hours % 60)
             else:
                 hours = minutes = seconds = 0
                 rt_hours = rt_minutes = rt_seconds = 0
