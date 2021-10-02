@@ -385,6 +385,8 @@ class LegendaryCore:
             elif not any(i['path'] == 'mods' for i in game.metadata.get('categories', [])):
                 _ret.append(game)
 
+        # Force refresh to make sure these titles are included in aliasing
+        self.update_aliases(force=True)
         return _ret, _dlc
 
     def get_dlc_for_game(self, app_name):
