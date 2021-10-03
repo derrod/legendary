@@ -361,6 +361,8 @@ class LGDLFS:
         alias_map = defaultdict(set)
 
         for app_name in self._game_metadata.keys():
+            # Prevent app names from being used as aliases
+            collisions.add(app_name.lower())
             game = self.get_game_meta(app_name)
             if game.is_dlc:
                 continue
