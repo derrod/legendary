@@ -10,6 +10,10 @@ from legendary.models.egl import EGLManifest
 
 
 class EPCLFS:
+    # Encryption key for JSON data
+    # Data is encrypted using AES-256-ECB mode
+    data_key = 'A09C853C9E95409BB94D707EADEFA52E'
+
     def __init__(self):
         if os.name == 'nt':
             self.appdata_path = os.path.expandvars(

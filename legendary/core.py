@@ -31,6 +31,7 @@ from legendary.models.game import *
 from legendary.models.json_manifest import JSONManifest
 from legendary.models.manifest import Manifest, ManifestMeta
 from legendary.models.chunk import Chunk
+from legendary.utils.egl_crypt import decrypt_epic_data
 from legendary.utils.env import is_windows_or_pyi
 from legendary.utils.game_workarounds import is_opt_enabled, update_workarounds
 from legendary.utils.savegame_helper import SaveGameHelper
@@ -144,7 +145,11 @@ class LegendaryCore:
         """Import refresh token from EGL installation and use it for logging in"""
         self.egl.read_config()
         remember_me_data = self.egl.config.get('RememberMe', 'Data')
-        re_data = json.loads(b64decode(remember_me_data))[0]
+        raw_data = b64decode(remember_me_data)
+        # data is encrypted
+        if raw_data[0] != '{':
+            raw_data = decrypt_epic_data(self.egl.data_key, raw_data)
+        re_data = json.loads(raw_data)[0]
         if 'Token' not in re_data:
             raise ValueError('No login session in config')
         refresh_token = re_data['Token']
@@ -240,6 +245,7 @@ class LegendaryCore:
         if 'egl_config' in version_info:
             self.egs.update_egs_params(version_info['egl_config'])
             self._egl_version = version_info['egl_config'].get('version', self._egl_version)
+            self.egl.data_key = version_info['egl_config'].get('data_key', self.egl.data_key)
         if game_overrides := version_info.get('game_overrides'):
             update_workarounds(game_overrides)
             if sdl_config := game_overrides.get('sdl_config'):
