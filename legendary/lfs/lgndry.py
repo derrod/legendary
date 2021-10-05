@@ -103,7 +103,8 @@ class LGDLFS:
 
         try:
             self._installed = json.load(open(os.path.join(self.path, 'installed.json')))
-        except Exception as e:  # todo do not do this
+        except Exception as e:
+            self.log.debug(f'Loading installed games failed: {e!r}')
             self._installed = None
 
         # load existing app metadata

@@ -16,8 +16,8 @@ def read_fstring(bio):
 
     # if the length is negative the string is UTF-16 encoded, this was a pain to figure out.
     if length < 0:
-        # utf-16 chars are 2 bytes wide but the length is # of characters, not bytes
-        # todo actually make sure utf-16 characters can't be longer than 2 bytes
+        # utf-16 chars are (generally) 2 bytes wide, but the length is # of characters, not bytes.
+        # 4-byte wide chars exist, but best I can tell Epic's (de)serializer doesn't support those.
         length *= -2
         s = bio.read(length - 2).decode('utf-16')
         bio.seek(2, 1)  # utf-16 strings have two byte null terminators

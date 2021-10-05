@@ -1094,7 +1094,6 @@ class LegendaryCore:
             delta = max(0, analysis.install_size - current_size)
             min_disk_space = delta + analysis.biggest_file_size
 
-        # todo when resuming, only check remaining files
         _, _, free = shutil.disk_usage(os.path.split(install.install_path)[0])
         if free < min_disk_space:
             free_mib = free / 1024 / 1024
