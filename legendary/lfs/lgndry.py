@@ -362,13 +362,13 @@ class LGDLFS:
         alias_map = defaultdict(set)
 
         for app_name in self._game_metadata.keys():
-            # Prevent app names from being used as aliases
-            collisions.add(app_name.lower())
             game = self.get_game_meta(app_name)
             if game.is_dlc:
                 continue
             game_folder = game.metadata.get('customAttributes', {}).get('FolderName', {}).get('value', None)
             _aliases = generate_aliases(game.app_title, game_folder)
+            # include lowercase version of app name in aliases
+            _aliases.append(app_name.lower())
             for alias in _aliases:
                 if alias not in aliases:
                     aliases.add(alias)
