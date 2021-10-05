@@ -148,8 +148,18 @@ class LegendaryCore:
         raw_data = b64decode(remember_me_data)
         # data is encrypted
         if raw_data[0] != '{':
-            raw_data = decrypt_epic_data(self.egl.data_key, raw_data)
-        re_data = json.loads(raw_data)[0]
+            for data_key in self.egl.data_keys:
+                try:
+                    decrypted_data = decrypt_epic_data(data_key, raw_data)
+                    re_data = json.loads(decrypted_data)[0]
+                    break
+                except Exception as e:
+                    self.log.debug(f'Decryption with key {data_key} failed with {e!r}')
+            else:
+                raise ValueError('Decryption of EPIC launcher user information failed.')
+        else:
+            re_data = json.loads(raw_data)[0]
+
         if 'Token' not in re_data:
             raise ValueError('No login session in config')
         refresh_token = re_data['Token']
@@ -245,7 +255,9 @@ class LegendaryCore:
         if 'egl_config' in version_info:
             self.egs.update_egs_params(version_info['egl_config'])
             self._egl_version = version_info['egl_config'].get('version', self._egl_version)
-            self.egl.data_key = version_info['egl_config'].get('data_key', self.egl.data_key)
+            for data_key in version_info['egl_config'].get('data_keys', []):
+                if data_key not in self.egl.data_keys:
+                    self.egl.data_keys.append(data_key)
         if game_overrides := version_info.get('game_overrides'):
             update_workarounds(game_overrides)
             if sdl_config := game_overrides.get('sdl_config'):

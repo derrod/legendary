@@ -64,6 +64,7 @@ class LegendaryCLI:
     def auth(self, args):
         if args.auth_delete:
             self.core.lgd.invalidate_userdata()
+            logger.info('User data deleted.')
             return
 
         try:
@@ -77,6 +78,10 @@ class LegendaryCLI:
         except InvalidCredentialsError:
             logger.error('Stored credentials were found but were no longer valid. Continuing with login...')
             self.core.lgd.invalidate_userdata()
+
+        # Force an update check and notice in case there are API changes
+        self.core.check_for_updates(force=True)
+        self.core.force_show_update = True
 
         if args.import_egs_auth:
             # get appdata path on Linux
@@ -127,10 +132,6 @@ class LegendaryCLI:
             except Exception as e:
                 logger.error(f'No EGS login session found, please login manually. (Exception: {e!r})')
                 exit(1)
-
-        # Force an update check and notice in case there are API changes
-        self.core.check_for_updates(force=True)
-        self.core.force_show_update = True
 
         exchange_token = ''
         if not args.auth_code and not args.session_id:
