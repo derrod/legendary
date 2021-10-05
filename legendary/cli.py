@@ -1430,6 +1430,14 @@ class LegendaryCLI:
             else:
                 manifest_info.append(InfoItem('Prerequisites', 'prerequisites', None, None))
 
+            install_tags = {''}
+            for fm in manifest.file_manifest_list.elements:
+                for tag in fm.install_tags:
+                    install_tags.add(tag)
+
+            install_tags = sorted(install_tags)
+            install_tags_human = ', '.join(i if i else '(empty)' for i in install_tags)
+            manifest_info.append(InfoItem('Install tags', 'install_tags', install_tags_human, install_tags))
             # file # and size
             manifest_info.append(InfoItem('Files', 'num_files', manifest.file_manifest_list.count,
                                           manifest.file_manifest_list.count))
