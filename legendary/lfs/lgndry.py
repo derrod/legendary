@@ -356,6 +356,7 @@ class LGDLFS:
     def generate_aliases(self):
         self.log.debug('Generating list of aliases...')
 
+        self.aliases = dict()
         aliases = set()
         collisions = set()
         alias_map = defaultdict(set)
