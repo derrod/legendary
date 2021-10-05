@@ -11,7 +11,7 @@ import subprocess
 import time
 import webbrowser
 
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from distutils.util import strtobool
 from logging.handlers import QueueListener
 from multiprocessing import freeze_support, Queue as MPQueue
@@ -1263,6 +1263,10 @@ class LegendaryCLI:
             except ValueError:
                 pass
 
+        # lists that will be printed or turned into JSON data
+        info_items = dict(game=list(), manifest=list(), install=list())
+        InfoItem = namedtuple('InfoItem', ['name', 'json_name', 'value', 'json_value'])
+
         game = self.core.get_game(app_name, update_meta=not args.offline)
         manifest_data = None
         entitlements = None
@@ -1288,13 +1292,18 @@ class LegendaryCLI:
             entitlements = self.core.egs.get_user_entitlements()
 
         if game:
-            print('\nGame Information:')
-            print('- Title:', game.app_title)
-            print('- Latest version:', game.app_version)
-            print('- Cloud saves supported:', game.supports_cloud_saves)
+            game_infos = info_items['game']
+            game_infos.append(InfoItem('App name', 'app_name', game.app_name, game.app_name))
+            game_infos.append(InfoItem('Title', 'title', game.app_title, game.app_title))
+            game_infos.append(InfoItem('Latest version', 'version', game.app_version, game.app_version))
+            game_infos.append(InfoItem('Cloud saves supported', 'cloud_saves_supported',
+                                       game.supports_cloud_saves, game.supports_cloud_saves))
             if game.supports_cloud_saves:
-                print('- Cloud save folder:', game.metadata['customAttributes']['CloudSaveFolder']['value'])
-            print('- Is DLC:', game.is_dlc)
+                cs_dir = game.metadata['customAttributes']['CloudSaveFolder']['value']
+            else:
+                cs_dir = None
+            game_infos.append(InfoItem('Cloud save folder', 'cloud_save_folder', cs_dir, cs_dir))
+            game_infos.append(InfoItem('Is DLC', 'is_dlc', game.is_dlc, game.is_dlc))
             # Find custom launch options, if available
             launch_options = []
             i = 1
@@ -1306,9 +1315,15 @@ class LegendaryCLI:
                 i += 1
 
             if launch_options:
-                print('- Extra launch options:')
+                human_list = []
+                json_list = []
                 for opt_name, opt_cmd in sorted(launch_options):
-                    print(f' + Name: "{opt_name}", Parameters: {opt_cmd}')
+                    human_list.append(f'Name: "{opt_name}", Parameters: {opt_cmd}')
+                    json_list.append(dict(name=opt_name, parameters=opt_cmd))
+                game_infos.append(InfoItem('Extra launch options', 'launch_options',
+                                           human_list, json_list))
+            else:
+                game_infos.append(InfoItem('Extra launch options', 'launch_options', None, []))
 
             # list all owned DLC based on entitlements
             if entitlements and not game.is_dlc:
@@ -1318,76 +1333,144 @@ class LegendaryCLI:
                 for dlc in game.metadata.get('dlcItemList', []):
                     installable = dlc.get('releaseInfo', None)
                     if dlc['entitlementName'] in owned_entitlements:
-                        owned_dlc.append((installable, None, dlc['title']))
+                        owned_dlc.append((installable, None, dlc['title'], dlc['id']))
                     elif installable:
                         app_name = dlc['releaseInfo'][0]['appId']
                         if app_name in owned_app_names:
-                            owned_dlc.append((installable, app_name, dlc['title']))
+                            owned_dlc.append((installable, app_name, dlc['title'], dlc['id']))
 
                 if owned_dlc:
-                    print('- Owned DLC:')
-                    for installable, app_name, title in owned_dlc:
+                    human_list = []
+                    json_list = []
+                    for installable, app_name, title, dlc_id in owned_dlc:
+                        json_list.append(dict(app_name=app_name, title=title,
+                                              installable=installable, id=dlc_id))
                         if installable:
-                            print(f' + App name: {app_name}, Title: "{title}"')
+                            human_list.append(f'App name: {app_name}, Title: "{title}"')
                         else:
-                            print(f' + Title: "{title}" (no installation required)')
+                            human_list.append(f'Title: "{title}" (no installation required)')
+                    game_infos.append(InfoItem('Owned DLC', 'owned_dlc', human_list, json_list))
+                else:
+                    game_infos.append(InfoItem('Owned DLC', 'owned_dlc', None, []))
+            else:
+                game_infos.append(InfoItem('Owned DLC', 'owned_dlc', None, []))
 
             igame = self.core.get_installed_game(app_name)
             if igame:
-                print('\nInstallation information:')
-                print(f'- Version:', igame.version)
-                print(f'- File size: {igame.install_size / 1024 / 1024 / 1024:.02f} GiB')
-                print('- Path:', igame.install_path)
-                print('- Save data path:', igame.save_path or '(None)')
-                print('- EGL sync GUID:', igame.egl_guid or '(None)')
+                installation_info = info_items['install']
+                installation_info.append(InfoItem('Version', 'version', igame.version, igame.version))
+                disk_size_human = f'{igame.install_size / 1024 / 1024 / 1024:.02f} GiB'
+                installation_info.append(InfoItem('Install size', 'disk_size', disk_size_human,
+                                                  igame.install_size))
+                installation_info.append(InfoItem('Install path', 'install_path', igame.install_path,
+                                                  igame.install_path))
+                installation_info.append(InfoItem('Save data path', 'save_path', igame.save_path,
+                                                  igame.save_path))
+                installation_info.append(InfoItem('EGL sync GUID', 'synced_egl_guid', igame.egl_guid,
+                                                  igame.egl_guid))
                 if igame.install_tags:
-                    print('- Tags:', ', '.join(igame.install_tags))
+                    tags = ', '.join(igame.install_tags)
                 else:
-                    print('- Tags: N/A')
-                print('- Requires ownership verification token (DRM):', igame.requires_ot)
+                    tags = '(None, all game data selected for install)'
+                installation_info.append(InfoItem('Install tags', 'install_tags', tags, igame.install_tags))
+                installation_info.append(InfoItem('Requires ownership verification token (DRM)', 'requires_ovt',
+                                                  igame.requires_ot, igame.requires_ot))
 
-                installed_dlc = []
+                installed_dlc_human = []
+                installed_dlc_json = []
                 for dlc in game.metadata.get('dlcItemList', []):
                     if not dlc.get('releaseInfo', None):
                         continue
                     app_name = dlc['releaseInfo'][0]['appId']
                     if igame := self.core.get_installed_game(app_name):
-                        installed_dlc.append(igame)
-
-                if installed_dlc:
-                    print('- Installed DLC')
-                    for igame in installed_dlc:
-                        print(' + App name: {}, Title: "{}", Size: {:.02f} GiB'.format(
+                        installed_dlc_json.append(dict(app_name=igame.app_name, title=igame.title,
+                                                       install_size=igame.install_size))
+                        installed_dlc_human.append('App name: {}, Title: "{}", Size: {:.02f} GiB'.format(
                             igame.app_name, igame.title, igame.install_size / 1024 / 1024 / 1024
                         ))
+                installation_info.append(InfoItem('Installed DLC', 'installed_dlc', None or installed_dlc_human,
+                                                  installed_dlc_json))
 
         if manifest_data:
-            manifest_size = len(manifest_data)
+            manifest_info = info_items['manifest']
             manifest = self.core.load_manifest(manifest_data)
-            print('\nManifest Information:')
-            print('- Size: {:.01f} KiB'.format(manifest_size / 1024))
-            print('- Manifest type:', 'JSON' if hasattr(manifest, 'json_data') else 'Binary')
-            print('- Manifest version:', manifest.version)
-            print('- Manifest feature level:', manifest.meta.feature_level)
-            print('- Manifest app name:', manifest.meta.app_name)
-            print('- Launch EXE:', manifest.meta.launch_exe or 'N/A')
-            print('- Launch Command:', manifest.meta.launch_command or '(None)')
-            print('- Build version:', manifest.meta.build_version)
-            print('- Build ID:', manifest.meta.build_id)
+            manifest_size = len(manifest_data)
+            manifest_size_human = f'{manifest_size / 1024:.01f} KiB'
+            manifest_info.append(InfoItem('Manifest size', 'size', manifest_size_human, manifest_size))
+            manifest_type = 'JSON' if hasattr(manifest, 'json_data') else 'Binary'
+            manifest_info.append(InfoItem('Manifest type', 'type', manifest_type, manifest_type.lower()))
+            manifest_info.append(InfoItem('Manifest version', 'version', manifest.version, manifest.version))
+            manifest_info.append(InfoItem('Manifest feature level', 'feature_level',
+                                          manifest.meta.feature_level, manifest.meta.feature_level))
+            manifest_info.append(InfoItem('Manifest app name', 'app_name', manifest.meta.app_name,
+                                          manifest.meta.app_name))
+            manifest_info.append(InfoItem('Launch EXE', 'launch_exe', manifest.meta.launch_exe or 'N/A',
+                                          manifest.meta.launch_exe))
+            manifest_info.append(InfoItem('Launch Command', 'launch_command',
+                                          manifest.meta.launch_command or '(None)',
+                                          manifest.meta.launch_command))
+            manifest_info.append(InfoItem('Build version', 'build_version', manifest.meta.build_version,
+                                          manifest.meta.build_version))
+            manifest_info.append(InfoItem('Build ID', 'build_id', manifest.meta.build_id,
+                                          manifest.meta.build_id))
             if manifest.meta.prereq_ids:
-                print('- Prerequisites:')
-                print(' + Prerequisite IDs:', ', '.join(manifest.meta.prereq_ids))
-                print(' + Prerequisite name:', manifest.meta.prereq_name)
-                print(' + Prerequisite path:', manifest.meta.prereq_path)
-                print(' + Prerequisite args:', manifest.meta.prereq_args or '(None)')
+                human_list = [
+                    f'Prerequisite IDs: {", ".join(manifest.meta.prereq_ids)}',
+                    f'Prerequisite name: {manifest.meta.prereq_name}',
+                    f'Prerequisite path: {manifest.meta.prereq_path}',
+                    f'Prerequisite args: {manifest.meta.prereq_args or "(None)"}',
+                ]
+                manifest_info.append(InfoItem('Prerequisites', 'prerequisites', human_list,
+                                              dict(ids=manifest.meta.prereq_ids,
+                                                   name=manifest.meta.prereq_name,
+                                                   path=manifest.meta.prereq_path,
+                                                   args=manifest.meta.prereq_args)))
             else:
-                print('- Prerequisites: (None)')
-            print('- Files:', manifest.file_manifest_list.count)
+                manifest_info.append(InfoItem('Prerequisites', 'prerequisites', None, None))
+
+            # file # and size
+            manifest_info.append(InfoItem('Files', 'num_files', manifest.file_manifest_list.count,
+                                          manifest.file_manifest_list.count))
             total_size = sum(fm.file_size for fm in manifest.file_manifest_list.elements)
-            print(' + Total: {:.02f} GiB (uncompressed)'.format(total_size / 1024 / 1024 / 1024))
-            print('- Chunks:', manifest.chunk_data_list.count)
+            file_size = '{:.02f} GiB'.format(total_size / 1024 / 1024 / 1024)
+            manifest_info.append(InfoItem('Disk size (uncompressed)', 'disk_size', file_size, total_size))
+            # chunk # and size
+            manifest_info.append(InfoItem('Chunks', 'num_chunks', manifest.chunk_data_list.count,
+                                          manifest.chunk_data_list.count))
             total_size = sum(c.file_size for c in manifest.chunk_data_list.elements)
-            print(' + Total: {:.02f} GiB (compressed)'.format(total_size / 1024 / 1024 / 1024))
+            chunk_size = '{:.02f} GiB'.format(total_size / 1024 / 1024 / 1024)
+            manifest_info.append(InfoItem('Download size (compressed)', 'download_size',
+                                          chunk_size, total_size))
+
+        if not args.json:
+            def print_info_item(item: InfoItem):
+                if item.value is None:
+                    print(f'- {item.name}: (None)')
+                elif isinstance(item.value, list):
+                    print(f'- {item.name}:')
+                    for list_item in item.value:
+                        print(' + ', list_item)
+                else:
+                    print(f'- {item.name}: {item.value}')
+
+            print('\nGame Information:')
+            for info_item in info_items['game']:
+                print_info_item(info_item)
+            print('\nInstallation information:')
+            for info_item in info_items['install']:
+                print_info_item(info_item)
+            print('\nManifest information:')
+            for info_item in info_items['manifest']:
+                print_info_item(info_item)
+        else:
+            json_out = dict(game=dict(), install=dict(), manifest=dict())
+            for info_item in info_items['game']:
+                json_out['game'][info_item.json_name] = info_item.json_value
+            for info_item in info_items['install']:
+                json_out['install'][info_item.json_name] = info_item.json_value
+            for info_item in info_items['manifest']:
+                json_out['manifest'][info_item.json_name] = info_item.json_value
+            print(json.dumps(json_out, indent=2, sort_keys=True))
 
     def alias(self, args):
         if args.action not in ('add', 'rename', 'remove', 'list'):
@@ -1735,6 +1818,8 @@ def main():
 
     info_parser.add_argument('--offline', dest='offline', action='store_true',
                              help='Only print info available offline')
+    info_parser.add_argument('--json', dest='json', action='store_true',
+                             help='Output information in JSON format')
 
     args, extra = parser.parse_known_args()
 
