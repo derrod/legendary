@@ -61,6 +61,13 @@ class LegendaryCLI:
             fallback=self.core.lgd.aliases.get(name.lower(), name)
         )
 
+    @staticmethod
+    def _print_json(data, pretty=False):
+        if pretty:
+            print(json.dumps(data, indent=2, sort_keys=True))
+        else:
+            print(json.dumps(data))
+
     def auth(self, args):
         if args.auth_delete:
             self.core.lgd.invalidate_userdata()
@@ -205,8 +212,7 @@ class LegendaryCLI:
                 _j['dlcs'] = [vars(dlc) for dlc in dlc_list[game.asset_info.catalog_item_id]]
                 _out.append(_j)
 
-            print(json.dumps(_out, sort_keys=True, indent=2))
-            return
+            return self._print_json(_out, args.pretty_json)
 
         print('\nAvailable games:')
         for game in games:
@@ -256,8 +262,7 @@ class LegendaryCLI:
             return
 
         if args.json:
-            print(json.dumps([vars(g) for g in games], indent=2, sort_keys=True))
-            return
+            return self._print_json([vars(g) for g in games], args.pretty_json)
 
         installed_dlcs = defaultdict(list)
         for game in games.copy():
@@ -344,7 +349,7 @@ class LegendaryCLI:
                     file_size=fm.file_size,
                     flags=fm.flags,
                 ))
-            print(json.dumps(_files, sort_keys=True, indent=2))
+            return self._print_json(_files, args.pretty_json)
         else:
             install_tags = set()
             for fm in files:
@@ -567,8 +572,7 @@ class LegendaryCLI:
                 self.core.lgd.config[app_name]['wrapper'] = args.wrapper
 
         if args.json:
-            print(json.dumps(vars(params)))
-            return
+            return self._print_json(vars(params), args.pretty_json)
 
         full_params = list()
         full_params.extend(params.launch_command)
@@ -618,8 +622,7 @@ class LegendaryCLI:
 
         origin_uri = self.core.get_origin_uri(args.app_name, args.offline)
         if args.json:
-            print(json.dumps(dict(uri=origin_uri)))
-            return
+            return self._print_json(dict(uri=origin_uri), args.pretty_json)
 
         if os.name == 'nt':
             logger.debug(f'Opening Origin URI: {origin_uri}')
@@ -1222,14 +1225,13 @@ class LegendaryCLI:
         games_available = len(self.core.get_game_list(update_assets=not args.offline))
         games_installed = len(self.core.get_installed_list())
         if args.json:
-            print(json.dumps(dict(
+            return self._print_json(dict(
                 account=user_name,
                 games_available=games_available,
                 games_installed=games_installed,
                 egl_sync_enabled=self.core.egl_sync_enabled,
                 config_directory=self.core.lgd.path
-            ), indent=2, sort_keys=True))
-            return
+            ), args.pretty_json)
 
         print(f'Epic account: {user_name}')
         print(f'Games available: {games_available}')
@@ -1470,7 +1472,7 @@ class LegendaryCLI:
                 json_out['install'][info_item.json_name] = info_item.json_value
             for info_item in info_items['manifest']:
                 json_out['manifest'][info_item.json_name] = info_item.json_value
-            print(json.dumps(json_out, indent=2, sort_keys=True))
+            return self._print_json(json_out, args.pretty_json)
 
     def alias(self, args):
         if args.action not in ('add', 'rename', 'remove', 'list'):
@@ -1570,6 +1572,8 @@ def main():
     parser.add_argument('-V', '--version', dest='version', action='store_true', help='Print version and exit')
     parser.add_argument('-c', '--config-file', dest='config_file', action='store', metavar='<path/name>',
                         help='Specify custom config file or name for the config file in the default directory.')
+    parser.add_argument('-J', '--pretty-json', dest='pretty_json', action='store_true',
+                        help='Pretty-print JSON')
 
     # all the commands
     subparsers = parser.add_subparsers(title='Commands', dest='subparser_name')
