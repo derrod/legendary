@@ -159,7 +159,7 @@ legendary -y egl-sync
 ## Usage
 
 ````
-usage: legendary [-h] [-v] [-y] [-V] [-c <path/name>]
+usage: legendary [-h] [-v] [-y] [-V] [-c <path/name>] [-J]
                  {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game,egl-sync,status,info,alias,cleanup}
                  ...
 
@@ -173,6 +173,7 @@ optional arguments:
   -c <path/name>, --config-file <path/name>
                         Specify custom config file or name for the config file
                         in the default directory.
+  -J, --pretty-json     Pretty-print JSON
 
 Commands:
   {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game,egl-sync,status,info,alias,cleanup}
@@ -489,7 +490,7 @@ optional arguments:
 
 
 Command: info
-usage: legendary info [-h] [--offline] <App Name/Manifest URI>
+usage: legendary info [-h] [--offline] [--json] <App Name/Manifest URI>
 
 positional arguments:
   <App Name/Manifest URI>
@@ -498,6 +499,7 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   --offline             Only print info available offline
+  --json                Output information in JSON format
 
 
 Command: alias
@@ -522,8 +524,6 @@ usage: legendary cleanup [-h] [--keep-manifests]
 optional arguments:
   -h, --help        show this help message and exit
   --keep-manifests  Do not delete old manifests
-
-
 ````
 
 
