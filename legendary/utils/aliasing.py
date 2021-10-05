@@ -63,6 +63,8 @@ def generate_aliases(game_name, game_folder=None, split_words=True):
     # remove subtitle from game
     if ':' in game_name:
         _aliases.extend(generate_aliases(game_name.partition(':')[0]))
+    if '-' in game_name:
+        _aliases.extend(generate_aliases(game_name.replace('-', ' ')))
     # include folder name for alternative short forms
     if game_folder:
         _aliases.extend(generate_aliases(game_folder, split_words=False))
