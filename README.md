@@ -75,6 +75,13 @@ Legendary is available on [PyPI](https://pypi.org/project/legendary-gl/), to ins
 pip install legendary-gl
 ```
 
+Optionally if logging in via an embedded web view is desired also run
+```bash
+pip install legendary-gl[webview]
+```
+On Linux this may also require installing a supported web engine and its python bindings.
+For example `pip install pywebview[gtk]` to use a GTK-based web view.
+
 #### Manually from the repo
 
 - Install python3.8, setuptools, wheel, and requests
@@ -113,8 +120,13 @@ To log in:
 ````
 legendary auth
 ````
-Authentication is a little finicky since we have to go through the Epic website. The login page should open in your browser and after logging in you should be presented with a JSON response that contains a code, just copy and paste the code into your terminal to log in.
-On Windows you can use the `--import` flag to import the authentication from the Epic Games Launcher. Note that this will log you out of the Epic Launcher.
+When using the prebuilt Windows executables of version 0.20.14 or higher this should open a new window with the Epic Login.
+
+Otherwise, authentication is a little finicky since we have to go through the Epic website and manually copy a code.
+The login page should open in your browser and after logging in you should be presented with a JSON response that contains a code ("sid"), just copy the code into the terminal and hit enter.
+
+Alternatively you can use the `--import` flag to import the authentication from the Epic Games Launcher (manually specifying the used WINE prefix may be required on Linux).
+Note that this will log you out of the Epic Launcher.
 
 Listing your games
 ````
@@ -126,7 +138,7 @@ Installing a game
 ````
 legendary install Anemone
 ````
-**Important:** the name used for these commands is the app name, *not* the game's name! The app name is in the parentheses after the game title in the games list.
+**Note:** the name used here is generally the game's "app name" as seen in the games list rather than its title, but as of 0.20.12 legendary will try to match game names or abbreviations thereof as well. In this case `legendary install world of goo` or `legendary install wog` would also work!
 
 List installed games and check for updates
 ````
@@ -143,7 +155,8 @@ Importing a previously installed game
 ````
 legendary import-game Anemone /mnt/games/Epic/WorldOfGoo
 ````
-**Note:** Importing will require a full verification so Legendary can correctly update the game later.
+**Note:** Importing will require a full verification so Legendary can correctly update the game later.  
+**Note 2:** In order to use an alias here you may have to put it into quotes if if contains more than one word, e.g. `legendary import-game "world of goo" /mnt/games/Epic/WorldOfGoo`.
 
 Sync savegames with the Epic Cloud
 ````
@@ -200,7 +213,7 @@ Individual command help:
 
 Command: auth
 usage: legendary auth [-h] [--import] [--code <exchange code>]
-                      [--sid <session id>] [--delete]
+                      [--sid <session id>] [--delete] [--disable-webview]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -212,6 +225,7 @@ optional arguments:
   --sid <session id>    Use specified session id instead of interactive
                         authentication
   --delete              Remove existing authentication (log out)
+  --disable-webview     Do not use embedded browser for login
 
 
 Command: install
