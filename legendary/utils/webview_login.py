@@ -1,5 +1,6 @@
 import logging
 import json
+import webbrowser
 
 logger = logging.getLogger('WebViewHelper')
 webview_available = True
@@ -24,9 +25,7 @@ window.ue = {
         registersignincompletecallback: pywebview.api.trigger_logout
     },
     common: {
-        launchexternalurl: function(url) {
-            window.open(url, "blank");
-        },
+        launchexternalurl: pywebview.api.open_url_external,
         // not required, just needs to be non-null
         auth: {
             completeLogin: pywebview.api.nop
@@ -76,6 +75,9 @@ class MockLauncher:
 
     def nop(self, *args, **kwargs):
         return
+
+    def open_url_external(self, url):
+        webbrowser.open(url)
 
     def trigger_logout(self, *args, **kwargs):
         self.inject_js = False
