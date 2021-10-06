@@ -1,0 +1,23 @@
+
+_cmds() 
+{
+    local cur prev
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    if [[ ${cur} == * ]] ; then
+        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+        return 0
+    fi
+}
+
+# Add main commands
+opts=$(legendary --help | grep "{*}" | tr '{|}|,' ' ' | head --lines=1)
+opts=${opts##*( )}
+
+# Add dashed commands 
+opts="$opts $(legendary --help | grep "\-\-"  | awk '{ printf $1 " " $2 "\n" }' | tr '\n|,' ' ')"
+
+
+complete -F _cmds legendary 
