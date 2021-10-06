@@ -39,6 +39,9 @@ setup(
         'setuptools',
         'wheel'
     ],
+    extras_reuqire=dict(
+        webview=['pywebview'],
+    ),
     url='https://github.com/derrod/legendary',
     description='Free and open-source replacement for the Epic Games Launcher application',
     long_description=long_description,
@@ -54,5 +57,5 @@ setup(
         'Intended Audience :: End Users/Desktop',
         'Topic :: Games/Entertainment',
         'Development Status :: 4 - Beta',
-    ],
+    ]
 )
