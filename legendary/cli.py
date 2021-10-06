@@ -150,7 +150,12 @@ class LegendaryCLI:
             print('If web page did not open automatically, please manually open the following URL: '
                   'https://www.epicgames.com/id/login?redirectUrl=https://www.epicgames.com/id/api/redirect')
             sid = input('Please enter the "sid" value from the JSON response: ')
-            sid = sid.strip().strip('"')
+            sid = sid.strip()
+            if sid[0] == '{':
+                tmp = json.loads(sid)
+                sid = tmp['sid']
+            else:
+                sid = sid.strip('"')
             exchange_token = self.core.auth_sid(sid)
         elif args.session_id:
             exchange_token = self.core.auth_sid(args.session_id)
