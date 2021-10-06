@@ -21,8 +21,8 @@ logout_url = 'https://www.epicgames.com/id/logout?productName=epic-games&redirec
 window_js = '''
 window.ue = {
     signinprompt: {
-        requestexchangecodesignin: pywebview.api.complete_login,
-        registersignincompletecallback: pywebview.api.trigger_logout
+        requestexchangecodesignin: pywebview.api.set_exchange_code,
+        registersignincompletecallback: pywebview.api.trigger_sid_exchange
     },
     common: {
         launchexternalurl: pywebview.api.open_url_external,
@@ -32,6 +32,17 @@ window.ue = {
         }
     }
 }
+'''
+
+get_sid_js = '''
+function on_loaded() {
+    pywebview.api.login_sid(this.responseText);
+}
+
+var sid_req = new XMLHttpRequest();
+sid_req.addEventListener("load", on_loaded);
+sid_req.open("GET", "/id/api/redirect?");
+sid_req.send();
 '''
 
 
@@ -52,20 +63,7 @@ class MockLauncher:
         if self.inject_js:
             self.window.evaluate_js(window_js)
 
-        if 'id/api/redirect' in url:
-            body = self.window.get_elements('body')[0]['textContent']
-            try:
-                j = json.loads(body)
-                self.sid = j['sid']
-                logger.debug(f'Got SID (stage 2)!')
-                if self.callback:
-                    logger.debug(f'Calling login callback...')
-                    self.callback_result = self.callback(self.sid)
-            except Exception as e:
-                logger.error(f'Loading SID response failed with {e!r}')
-            logger.debug('Starting browser logout...')
-            self.window.load_url(logout_url)
-        elif 'logout' in url:
+        if 'logout' in url:
             # prepare to close browser after logout redirect
             self.destroy_on_load = True
         elif self.destroy_on_load:
@@ -79,18 +77,32 @@ class MockLauncher:
     def open_url_external(self, url):
         webbrowser.open(url)
 
-    def trigger_logout(self, *args, **kwargs):
-        self.inject_js = False
-        # first obtain SID, then log out
-        self.window.load_url(sid_url)
-
-    def complete_login(self, exchange_code):
+    def set_exchange_code(self, exchange_code):
         logger.debug('Got exchange code (stage 1)!')
         # we cannot use this exchange code as our login would be invalidated
         # after logging out on the website. Hence we do the dance of using
         # the SID to create *another* exchange code which will create a session
         # that remains valid after logging out.
         self.exchange_code = exchange_code
+
+    def trigger_sid_exchange(self, *args, **kwargs):
+        self.inject_js = False
+        # first obtain SID, then log out
+        self.window.evaluate_js(get_sid_js)
+
+    def login_sid(self, sid_json):
+        try:
+            j = json.loads(sid_json)
+            self.sid = j['sid']
+            logger.debug(f'Got SID (stage 2)!')
+            if self.callback:
+                logger.debug(f'Calling login callback...')
+                self.callback_result = self.callback(self.sid)
+        except Exception as e:
+            logger.error(f'Loading SID response failed with {e!r}')
+        finally:
+            logger.debug('Starting browser logout...')
+            self.window.load_url(logout_url)
 
 
 def do_webview_login(callback=None):
