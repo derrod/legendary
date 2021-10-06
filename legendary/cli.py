@@ -142,21 +142,36 @@ class LegendaryCLI:
 
         exchange_token = ''
         if not args.auth_code and not args.session_id:
-            # unfortunately the captcha stuff makes a complete CLI login flow kinda impossible right now...
-            print('Please login via the epic web login!')
-            webbrowser.open(
-                'https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect'
-            )
-            print('If web page did not open automatically, please manually open the following URL: '
-                  'https://www.epicgames.com/id/login?redirectUrl=https://www.epicgames.com/id/api/redirect')
-            sid = input('Please enter the "sid" value from the JSON response: ')
-            sid = sid.strip()
-            if sid[0] == '{':
-                tmp = json.loads(sid)
-                sid = tmp['sid']
+            # only import here since pywebview import is slow
+            from legendary.utils.webview_login import webview_available, do_webview_login
+
+            if not webview_available or args.no_webview:
+                # unfortunately the captcha stuff makes a complete CLI login flow kinda impossible right now...
+                print('Please login via the epic web login!')
+                webbrowser.open(
+                    'https://www.epicgames.com/id/login?redirectUrl='
+                    'https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect'
+                )
+                print('If web page did not open automatically, please manually open the following URL: '
+                      'https://www.epicgames.com/id/login?redirectUrl=https://www.epicgames.com/id/api/redirect')
+                sid = input('Please enter the "sid" value from the JSON response: ')
+                sid = sid.strip()
+                if sid[0] == '{':
+                    tmp = json.loads(sid)
+                    sid = tmp['sid']
+                else:
+                    sid = sid.strip('"')
+                exchange_token = self.core.auth_sid(sid)
             else:
-                sid = sid.strip('"')
-            exchange_token = self.core.auth_sid(sid)
+                def callback(web_sid):
+                    exchange_code = self.core.auth_sid(web_sid)
+                    return exchange_code and self.core.auth_code(exchange_code)
+
+                if do_webview_login(callback=callback):
+                    logger.info(f'Successfully logged in as "{self.core.lgd.userdata["displayName"]}" via WebView')
+                else:
+                    logger.error('WebView login attempt failed, please see log for details.')
+                return
         elif args.session_id:
             exchange_token = self.core.auth_sid(args.session_id)
         elif args.auth_code:
@@ -1646,6 +1661,8 @@ def main():
                              help='Use specified session id instead of interactive authentication')
     auth_parser.add_argument('--delete', dest='auth_delete', action='store_true',
                              help='Remove existing authentication (log out)')
+    auth_parser.add_argument('--disable-webview', dest='no_webview', action='store_true',
+                             help='Do not use embedded browser for login')
 
     install_parser.add_argument('--base-path', dest='base_path', action='store', metavar='<path>',
                                 help='Path for game installations (defaults to ~/legendary)')
