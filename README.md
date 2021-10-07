@@ -617,7 +617,7 @@ offline = true
 skip_update_check = true
 ; start parameters to use (in addition to the required ones)
 start_params = -windowed
-wine_executable = /path/to/proton/wine64
+wine_executable = /path/to/wine64
 ; override language with two-letter language code
 language = fr
 
@@ -629,7 +629,7 @@ DXVK_CONFIG_FILE = /mnt/tank/games/Game/dxvk.conf
 [AppName2]
 ; Use a wrapper to run this script
 ; Note that the path might have to be quoted if it contains spaces
-wrapper = "/path/to/Proton 5.0/proton" run
+wrapper = "/path/with spaces/gamemoderun"
 ; Do not run this executable with WINE (e.g. when the wrapper handles that)
 no_wine = true
 ; Override the executable launched for this game, for example to bypass a launcher (e.g. Borderlands)
