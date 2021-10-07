@@ -145,7 +145,7 @@ class LegendaryCLI:
             # only import here since pywebview import is slow
             from legendary.utils.webview_login import webview_available, do_webview_login
 
-            if not webview_available or args.no_webview:
+            if not webview_available or args.no_webview or self.core.webview_killswitch:
                 # unfortunately the captcha stuff makes a complete CLI login flow kinda impossible right now...
                 print('Please login via the epic web login!')
                 webbrowser.open(

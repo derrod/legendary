@@ -85,6 +85,7 @@ class LegendaryCore:
 
         self.update_available = False
         self.force_show_update = False
+        self.webview_killswitch = False
 
     def auth(self, username, password):
         """
@@ -265,6 +266,8 @@ class LegendaryCore:
                 for app_name in sdl_config.keys():
                     if app_name not in sdl_games:
                         sdl_games[app_name] = None
+        if lgd_config := version_info.get('legendary_config'):
+            self.webview_killswitch = lgd_config.get('webview_killswitch', False)
 
     def get_update_info(self):
         return self.lgd.get_cached_version()['data'].get('release_info')
