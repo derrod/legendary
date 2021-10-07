@@ -80,7 +80,11 @@ Optionally if logging in via an embedded web view is desired also run
 pip install legendary-gl[webview]
 ```
 On Linux this may also require installing a supported web engine and its python bindings.
-For example `pip install pywebview[gtk]` to use a GTK-based web view.
+A shortcut for GTK based web views (recommended) is also provided:
+```bash
+pip install legendary-gl[webview_gtk]
+``` 
+Alternatively use `pip install pywebview[gtk]` to install `pywebview` and `PyGObject`.
 
 **Note:** Using pywebview's Qt engine may not work correctly. 
 

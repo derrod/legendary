@@ -41,6 +41,7 @@ setup(
     ],
     extras_reuqire=dict(
         webview=['pywebview'],
+        webview_gtk=['pywebview', 'PyGObject']
     ),
     url='https://github.com/derrod/legendary',
     description='Free and open-source replacement for the Epic Games Launcher application',
