@@ -2,10 +2,10 @@ blank_issues_enabled: false
 contact_links:
   - name: GitHub Wiki
     url: https://github.com/derrod/legendary/wiki/Game-workarounds
-    about: The Legendary Wiki contains troubleshooting steps for some games and a guide for setting up Proton
+    about: The Legendary Wiki contains troubleshooting steps for some games as well as a setup guide for Windows
   - name: GitHub Discussions
     url: https://github.com/derrod/legendary/discussions
     about: GitHub Forum for anything that is not a legendary issue (e.g. game or WINE problems)
   - name: Discord chat
-    url: https://discord.gg/RQHbMVrwRr
+    url: https://legendary.gl/discord
     about: Discord chat for help with game or WINE issues
