@@ -1505,7 +1505,7 @@ class LegendaryCLI:
 
         if args.action == 'add':
             alias = args.alias
-            app_name = args.app_or_alias
+            app_name = self._resolve_aliases(args.app_or_alias)
             game = self.core.get_game(app_name)
             if not game:
                 logger.error(f'Invalid app name: "{app_name}"')
