@@ -131,4 +131,7 @@ def do_webview_login(callback_sid=None, callback_code=None):
     window.loaded += api.on_loaded
     webview.start()
 
+    if api.callback_result is None:
+        logger.error(f'Login aborted by user.')
+
     return api.callback_result
