@@ -86,6 +86,7 @@ class LegendaryCore:
         self.update_available = False
         self.force_show_update = False
         self.webview_killswitch = False
+        self.logged_in = False
 
     def auth(self, username, password):
         """
@@ -179,6 +180,8 @@ class LegendaryCore:
         """
         if not self.lgd.userdata:
             raise ValueError('No saved credentials')
+        elif self.logged_in:
+            return True
 
         # run update check
         if self.update_check_enabled():
@@ -199,6 +202,7 @@ class LegendaryCore:
                 self.log.info('Trying to re-use existing login session...')
                 try:
                     self.egs.resume_session(self.lgd.userdata)
+                    self.logged_in = True
                     return True
                 except InvalidCredentialsError as e:
                     self.log.warning(f'Resuming failed due to invalid credentials: {e!r}')
@@ -219,6 +223,7 @@ class LegendaryCore:
             return False
 
         self.lgd.userdata = userdata
+        self.logged_in = True
         return True
 
     def update_check_enabled(self):
