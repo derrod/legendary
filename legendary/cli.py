@@ -1048,21 +1048,21 @@ class LegendaryCLI:
 
         if not os.path.exists(args.app_path):
             logger.error(f'Specified path "{args.app_path}" does not exist!')
-            exit(1)
+            return
 
         if self.core.is_installed(args.app_name):
             logger.error('Game is already installed!')
-            exit(0)
+            return
 
         if not self.core.login():
             logger.error('Log in failed!')
-            exit(1)
+            return
 
         # do some basic checks
         game = self.core.get_game(args.app_name, update_meta=True)
         if not game:
             logger.fatal(f'Did not find game "{args.app_name}" on account.')
-            exit(1)
+            return
 
         if game.is_dlc:
             release_info = game.metadata.get('mainGameItem', {}).get('releaseInfo')
@@ -1072,10 +1072,10 @@ class LegendaryCLI:
                 if not self.core.is_installed(main_game_appname):
                     logger.error(f'Import candidate is DLC but base game "{main_game_title}" '
                                  f'(App name: "{main_game_appname}") is not installed!')
-                    exit(1)
+                    return
             else:
                 logger.fatal(f'Unable to get base game information for DLC, cannot continue.')
-                exit(1)
+                return
 
         # get everything needed for import from core, then run additional checks.
         manifest, igame = self.core.import_game(game, args.app_path)
@@ -1086,25 +1086,46 @@ class LegendaryCLI:
                     for f in manifest.file_manifest_list.elements)
         ratio = found / total
 
-        if not os.path.exists(exe_path and not args.disable_check):
+        if not found and game.is_dlc:
+            logger.info(f'DLC "{game.app_title}" ("{game.app_name}") does not appear to be installed.')
+            return
+
+        if not game.is_dlc and not os.path.exists(exe_path and not args.disable_check):
             logger.error(f'Game executable could not be found at "{exe_path}", '
                          f'please verify that the specified path is correct.')
-            exit(1)
+            return
 
         if ratio < 0.95:
             logger.warning('Some files are missing from the game installation, install may not '
                            'match latest Epic Games Store version or might be corrupted.')
         else:
-            logger.info('Game install appears to be complete.')
+            logger.info(f'{"DLC" if game.is_dlc else "Game"} install appears to be complete.')
 
         self.core.install_game(igame)
         if igame.needs_verification:
-            logger.info(f'NOTE: The game installation will have to be verified before it can be updated '
-                        f'with legendary. Run "legendary repair {args.app_name}" to do so.')
+            logger.info(f'NOTE: The {"DLC" if game.is_dlc else "Game"} installation will have to be '
+                        f'verified before it can be updated with legendary.')
+            logger.info(f'Run "legendary repair {args.app_name}" to do so.')
         else:
             logger.info(f'Installation had Epic Games Launcher metadata for version "{igame.version}", '
                         f'verification will not be required.')
-        logger.info('Game has been imported.')
+
+        # check for importable DLC
+        if not args.skip_dlcs:
+            dlcs = self.core.get_dlc_for_game(game.app_name)
+            if dlcs:
+                logger.info(f'Found {len(dlcs)} items of DLC that could be imported.')
+                import_dlc = True
+                if not args.yes and not args.with_dlcs:
+                    if not get_boolean_choice(f'Do you wish to automatically attempt to import all DLCs?'):
+                        import_dlc = False
+
+                if import_dlc:
+                    for dlc in dlcs:
+                        args.app_name = dlc.app_name
+                        self.import_game(args)
+
+        logger.info(f'{"DLC" if game.is_dlc else "Game"} "{game.app_title}" has been imported.')
 
     def egs_sync(self, args):
         if args.unlink:
@@ -1832,6 +1853,10 @@ def main():
     import_parser.add_argument('--disable-check', dest='disable_check', action='store_true',
                                help='Disables completeness check of the to-be-imported game installation '
                                     '(useful if the imported game is a much older version or missing files)')
+    import_parser.add_argument('--with-dlcs', dest='with_dlcs', action='store_true',
+                               help='Automatically attempt to import all DLCs with the base game')
+    import_parser.add_argument('--skip-dlcs', dest='skip_dlcs', action='store_true',
+                               help='Do not ask about importing DLCs.')
 
     egl_sync_parser.add_argument('--egl-manifest-path', dest='egl_manifest_path', action='store',
                                  help='Path to the Epic Games Launcher\'s Manifests folder, should '
