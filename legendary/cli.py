@@ -1064,6 +1064,19 @@ class LegendaryCLI:
             logger.fatal(f'Did not find game "{args.app_name}" on account.')
             exit(1)
 
+        if game.is_dlc:
+            release_info = game.metadata.get('mainGameItem', {}).get('releaseInfo')
+            if release_info:
+                main_game_appname = release_info[0]['appId']
+                main_game_title = game.metadata['mainGameItem']['title']
+                if not self.core.is_installed(main_game_appname):
+                    logger.error(f'Import candidate is DLC but base game "{main_game_title}" '
+                                 f'(App name: "{main_game_appname}") is not installed!')
+                    exit(1)
+            else:
+                logger.fatal(f'Unable to get base game information for DLC, cannot continue.')
+                exit(1)
+
         # get everything needed for import from core, then run additional checks.
         manifest, igame = self.core.import_game(game, args.app_path)
         exe_path = os.path.join(args.app_path, manifest.meta.launch_exe.lstrip('/'))
