@@ -878,14 +878,14 @@ class LegendaryCLI:
                     self._handle_postinstall(postinstall, igame, yes=args.yes)
 
                 dlcs = self.core.get_dlc_for_game(game.app_name)
-                if dlcs:
+                if dlcs and not args.skip_dlcs:
                     print('The following DLCs are available for this game:')
                     for dlc in dlcs:
                         print(f' - {dlc.app_title} (App name: {dlc.app_name}, version: {dlc.app_version})')
                     print('Manually installing DLCs works the same; just use the DLC app name instead.')
 
-                    install_dlcs = True
-                    if not args.yes and not args.with_dlcs:
+                    install_dlcs = not args.skip_dlcs
+                    if not args.yes and not args.with_dlcs and not args.skip_dlcs:
                         if not get_boolean_choice(f'Do you wish to automatically install DLCs?'):
                             install_dlcs = False
 
@@ -1755,6 +1755,8 @@ def main():
                                 help='Download games via plaintext HTTP (like EGS), e.g. for use with a lan cache')
     install_parser.add_argument('--with-dlcs', dest='with_dlcs', action='store_true',
                                 help='Automatically install all DLCs with the base game')
+    install_parser.add_argument('--skip-dlcs', dest='skip_dlcs', action='store_true',
+                                help='Do not ask about installing DLCs.')
 
     uninstall_parser.add_argument('--keep-files', dest='keep_files', action='store_true',
                                   help='Keep files but remove game from Legendary database')
