@@ -1199,7 +1199,7 @@ class LegendaryCore:
         manifest_data = None
 
         # check if the game is from an EGL installation, load manifest if possible
-        if os.path.exists(os.path.join(app_path, '.egstore')):
+        if not game.is_dlc and os.path.exists(os.path.join(app_path, '.egstore')):
             mf = None
             if not egl_guid:
                 for f in os.listdir(os.path.join(app_path, '.egstore')):
