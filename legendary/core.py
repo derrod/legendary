@@ -180,8 +180,16 @@ class LegendaryCore:
         """
         if not self.lgd.userdata:
             raise ValueError('No saved credentials')
-        elif self.logged_in:
-            return True
+        elif self.logged_in and self.lgd.userdata['expires_at']:
+            dt_exp = datetime.fromisoformat(self.lgd.userdata['expires_at'][:-1])
+            dt_now = datetime.utcnow()
+            td = dt_now - dt_exp
+
+            # if session still has at least 10 minutes left we can re-use it.
+            if dt_exp > dt_now and abs(td.total_seconds()) > 600:
+                return True
+            else:
+                self.logged_in = False
 
         # run update check
         if self.update_check_enabled():
