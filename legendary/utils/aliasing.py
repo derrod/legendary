@@ -57,9 +57,13 @@ def generate_aliases(game_name, game_folder=None, split_words=True):
     ]
 
     # single word abbreviation
-    first_word = next(i for i in game_parts if i not in ('for', 'the', 'of'))
-    if len(first_word) > 1:
-        _aliases.append(first_word)
+    try:
+        first_word = next(i for i in game_parts if i not in ('for', 'the', 'of'))
+        if len(first_word) > 1:
+            _aliases.append(first_word)
+    except StopIteration:
+        pass
+
     # remove subtitle from game
     if ':' in game_name:
         _aliases.extend(generate_aliases(game_name.partition(':')[0]))
@@ -90,5 +94,5 @@ def generate_aliases(game_name, game_folder=None, split_words=True):
             _aliases.append(''.join(p[0] if p not in roman else p for p in new_game_parts))
             _aliases.append(''.join(roman.get(p, p[0]) for p in new_game_parts))
 
-    # return sorted unqiues
+    # return sorted uniques
     return sorted(set(_aliases))
