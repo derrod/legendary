@@ -307,6 +307,7 @@ optional arguments:
   --no-https            Download games via plaintext HTTP (like EGS), e.g. for
                         use with a lan cache
   --with-dlcs           Automatically install all DLCs with the base game
+  --skip-dlcs           Do not ask about installing DLCs.
 
 
 Command: uninstall
@@ -464,7 +465,8 @@ optional arguments:
 
 
 Command: import-game
-usage: legendary import-game [-h] [--disable-check]
+usage: legendary import-game [-h] [--disable-check] [--with-dlcs]
+                             [--skip-dlcs]
                              <App Name> <Installation directory>
 
 positional arguments:
@@ -477,6 +479,9 @@ optional arguments:
   --disable-check       Disables completeness check of the to-be-imported game
                         installation (useful if the imported game is a much
                         older version or missing files)
+  --with-dlcs           Automatically attempt to import all DLCs with the base
+                        game
+  --skip-dlcs           Do not ask about importing DLCs.
 
 
 Command: egl-sync
