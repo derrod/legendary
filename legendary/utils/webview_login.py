@@ -129,7 +129,13 @@ def do_webview_login(callback_sid=None, callback_code=None):
                                    url=login_url, width=768, height=1024, js_api=api)
     api.window = window
     window.loaded += api.on_loaded
-    webview.start()
+
+    try:
+        webview.start()
+    except Exception as we:
+        logger.error(f'Running webview failed with {we!r}. If this error persists try the manual '
+                     f'login process by adding --disable-webview to your command line.')
+        return None
 
     if api.callback_result is None:
         logger.error(f'Login aborted by user.')
