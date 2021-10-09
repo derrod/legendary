@@ -1440,7 +1440,8 @@ class LegendaryCLI:
                         installed_dlc_human.append('App name: {}, Title: "{}", Size: {:.02f} GiB'.format(
                             igame.app_name, igame.title, igame.install_size / 1024 / 1024 / 1024
                         ))
-                installation_info.append(InfoItem('Installed DLC', 'installed_dlc', None or installed_dlc_human,
+                installation_info.append(InfoItem('Installed DLC', 'installed_dlc',
+                                                  installed_dlc_human or None,
                                                   installed_dlc_json))
 
         if manifest_data:
@@ -1456,7 +1457,8 @@ class LegendaryCLI:
                                           manifest.meta.feature_level, manifest.meta.feature_level))
             manifest_info.append(InfoItem('Manifest app name', 'app_name', manifest.meta.app_name,
                                           manifest.meta.app_name))
-            manifest_info.append(InfoItem('Launch EXE', 'launch_exe', manifest.meta.launch_exe or 'N/A',
+            manifest_info.append(InfoItem('Launch EXE', 'launch_exe',
+                                          manifest.meta.launch_exe or 'N/A',
                                           manifest.meta.launch_exe))
             manifest_info.append(InfoItem('Launch Command', 'launch_command',
                                           manifest.meta.launch_command or '(None)',
@@ -1488,19 +1490,56 @@ class LegendaryCLI:
             install_tags = sorted(install_tags)
             install_tags_human = ', '.join(i if i else '(empty)' for i in install_tags)
             manifest_info.append(InfoItem('Install tags', 'install_tags', install_tags_human, install_tags))
-            # file # and size
+            # file and chunk count
             manifest_info.append(InfoItem('Files', 'num_files', manifest.file_manifest_list.count,
                                           manifest.file_manifest_list.count))
+            manifest_info.append(InfoItem('Chunks', 'num_chunks', manifest.chunk_data_list.count,
+                                          manifest.chunk_data_list.count))
+            # total file size
             total_size = sum(fm.file_size for fm in manifest.file_manifest_list.elements)
             file_size = '{:.02f} GiB'.format(total_size / 1024 / 1024 / 1024)
             manifest_info.append(InfoItem('Disk size (uncompressed)', 'disk_size', file_size, total_size))
-            # chunk # and size
-            manifest_info.append(InfoItem('Chunks', 'num_chunks', manifest.chunk_data_list.count,
-                                          manifest.chunk_data_list.count))
+            # total chunk size
             total_size = sum(c.file_size for c in manifest.chunk_data_list.elements)
             chunk_size = '{:.02f} GiB'.format(total_size / 1024 / 1024 / 1024)
             manifest_info.append(InfoItem('Download size (compressed)', 'download_size',
                                           chunk_size, total_size))
+
+            # if there are install tags break down size by tag
+            tag_disk_size = []
+            tag_disk_size_human = []
+            tag_download_size = []
+            tag_download_size_human = []
+            if len(install_tags) > 1:
+                longest_tag = max(max(len(t) for t in install_tags), len('(empty)'))
+                for tag in install_tags:
+                    # sum up all file sizes for the tag
+                    human_tag = tag or '(empty)'
+                    tag_files = [fm for fm in manifest.file_manifest_list.elements if
+                                 (tag in fm.install_tags) or (not tag and not fm.install_tags)]
+                    tag_file_size = sum(fm.file_size for fm in tag_files)
+                    tag_disk_size.append(dict(tag=tag, size=tag_file_size, count=len(tag_files)))
+                    tag_file_size_human = '{:.02f} GiB'.format(tag_file_size / 1024 / 1024 / 1024)
+                    tag_disk_size_human.append(f'{human_tag.ljust(longest_tag)} - {tag_file_size_human} '
+                                               f'(Files: {len(tag_files)})')
+                    # tag_disk_size_human.append(f'Size: {tag_file_size_human}, Files: {len(tag_files)}, Tag: "{tag}"')
+                    # accumulate chunk guids used for this tag and count their size too
+                    tag_chunk_guids = set()
+                    for fm in tag_files:
+                        for cp in fm.chunk_parts:
+                            tag_chunk_guids.add(cp.guid_num)
+
+                    tag_chunk_size = sum(c.file_size for c in manifest.chunk_data_list.elements
+                                         if c.guid_num in tag_chunk_guids)
+                    tag_download_size.append(dict(tag=tag, size=tag_chunk_size, count=len(tag_chunk_guids)))
+                    tag_chunk_size_human = '{:.02f} GiB'.format(tag_chunk_size / 1024 / 1024 / 1024)
+                    tag_download_size_human.append(f'{human_tag.ljust(longest_tag)} - {tag_chunk_size_human} '
+                                               f'(Chunks: {len(tag_chunk_guids)})')
+
+            manifest_info.append(InfoItem('Disk size by install tag', 'tag_disk_size',
+                                          tag_disk_size_human or 'N/A', tag_disk_size))
+            manifest_info.append(InfoItem('Download size by install tag', 'tag_download_size',
+                                          tag_download_size_human or 'N/A', tag_download_size))
 
         if not args.json:
             def print_info_item(item: InfoItem):
