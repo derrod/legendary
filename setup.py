@@ -39,7 +39,7 @@ setup(
         'setuptools',
         'wheel'
     ],
-    extras_reuqire=dict(
+    extras_require=dict(
         webview=['pywebview>=3.4'],
         webview_gtk=['pywebview>=3.4', 'PyGObject']
     ),
