@@ -1,5 +1,6 @@
 import logging
 import json
+import os
 import webbrowser
 
 from legendary import __version__
@@ -12,7 +13,9 @@ try:
 
     # silence logger
     webview.logger.setLevel(logging.FATAL)
-    webview.initialize()
+    gui = webview.initialize()
+    if gui and os.name == 'nt' and gui.renderer not in ('edgechromium', 'cef'):
+        raise NotImplementedError(f'Renderer {gui.renderer} not supported on Windows.')
 except Exception as e:
     logger.debug(f'Webview unavailable, disabling webview login (Exception: {e!r}).')
     webview_available = False
