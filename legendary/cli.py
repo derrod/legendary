@@ -988,6 +988,12 @@ class LegendaryCLI:
 
         logger.info(f'Loading installed manifest for "{args.app_name}"')
         igame = self.core.get_installed_game(args.app_name)
+        if not os.path.exists(igame.install_path):
+            logger.error(f'Install path "{igame.install_path}" does not exist, make sure all necessary mounts '
+                         f'are available. If you previously deleted the game folder without uninstalling, run '
+                         f'"legendary uninstall -y {igame.app_name}" and reinstall from scratch.')
+            return
+
         manifest_data, _ = self.core.get_installed_manifest(args.app_name)
         manifest = self.core.load_manifest(manifest_data)
 
