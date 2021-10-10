@@ -958,9 +958,6 @@ class LegendaryCLI:
         if not igame:
             logger.error(f'Game {args.app_name} not installed, cannot uninstall!')
             exit(0)
-        if igame.is_dlc:
-            logger.error('Uninstalling DLC is not supported.')
-            exit(1)
 
         if not args.yes:
             if not get_boolean_choice(f'Do you wish to uninstall "{igame.title}"?', default=False):
@@ -968,15 +965,17 @@ class LegendaryCLI:
                 exit(0)
 
         try:
-            # Remove DLC first so directory is empty when game uninstall runs
-            dlcs = self.core.get_dlc_for_game(igame.app_name)
-            for dlc in dlcs:
-                if (idlc := self.core.get_installed_game(dlc.app_name)) is not None:
-                    logger.info(f'Uninstalling DLC "{dlc.app_name}"...')
-                    self.core.uninstall_game(idlc, delete_files=not args.keep_files)
+            if not igame.is_dlc:
+                # Remove DLC first so directory is empty when game uninstall runs
+                dlcs = self.core.get_dlc_for_game(igame.app_name)
+                for dlc in dlcs:
+                    if (idlc := self.core.get_installed_game(dlc.app_name)) is not None:
+                        logger.info(f'Uninstalling DLC "{dlc.app_name}"...')
+                        self.core.uninstall_game(idlc, delete_files=not args.keep_files)
 
             logger.info(f'Removing "{igame.title}" from "{igame.install_path}"...')
-            self.core.uninstall_game(igame, delete_files=not args.keep_files, delete_root_directory=True)
+            self.core.uninstall_game(igame, delete_files=not args.keep_files,
+                                     delete_root_directory=not igame.is_dlc)
             logger.info('Game has been uninstalled.')
         except Exception as e:
             logger.warning(f'Removing game failed: {e!r}, please remove {igame.install_path} manually.')
