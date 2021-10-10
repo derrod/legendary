@@ -15,7 +15,7 @@ from requests import session
 from requests.exceptions import HTTPError
 from typing import List, Dict
 from uuid import uuid4
-from urllib.parse import urlencode
+from urllib.parse import urlencode, parse_qsl
 
 from legendary import __version__
 from legendary.api.egs import EPCAPI
@@ -595,10 +595,12 @@ class LegendaryCore:
             ('epicusername', user_name),
             ('epicuserid', account_id),
             ('epiclocale', self.language_code),
-            ('theme', 'sws'),
-            ('platform', 'epic'),
-            ('Hotfix', 'go')
         ]
+
+        game = self.get_game(app_name)
+        extra_args = game.metadata.get('customAttributes', {}).get('AdditionalCommandline', {}).get('value')
+        if extra_args:
+            parameters.extend(parse_qsl(extra_args))
 
         return f'link2ea://launchgame/{app_name}?{urlencode(parameters)}'
 
