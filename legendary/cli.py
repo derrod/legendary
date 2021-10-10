@@ -1343,12 +1343,18 @@ class LegendaryCLI:
             else:
                 logger.info('Game not installed and offline mode enabled, cannot load manifest.')
         elif game:
-            # get latest metadata and manifest
-            egl_meta = self.core.egs.get_game_info(game.asset_info.namespace,
-                                                   game.asset_info.catalog_item_id)
-            game.metadata = egl_meta
-            manifest_data, _ = self.core.get_cdn_manifest(game)
             entitlements = self.core.egs.get_user_entitlements()
+            # get latest metadata and manifest
+            if game.asset_info.catalog_item_id:
+                egl_meta = self.core.egs.get_game_info(game.asset_info.namespace,
+                                                       game.asset_info.catalog_item_id)
+                game.metadata = egl_meta
+                manifest_data, _ = self.core.get_cdn_manifest(game)
+            else:
+                # Origin games do not have asset info, so fall back to info from metadata
+                egl_meta = self.core.egs.get_game_info(game.metadata['namespace'],
+                                                       game.metadata['id'])
+                game.metadata = egl_meta
 
         if game:
             game_infos = info_items['game']
