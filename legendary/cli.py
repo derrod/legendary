@@ -1559,15 +1559,18 @@ class LegendaryCLI:
                 else:
                     print(f'- {item.name}: {item.value}')
 
-            print('\nGame Information:')
-            for info_item in info_items['game']:
-                print_info_item(info_item)
-            print('\nInstallation information:')
-            for info_item in info_items['install']:
-                print_info_item(info_item)
-            print('\nManifest information:')
-            for info_item in info_items['manifest']:
-                print_info_item(info_item)
+            if info_items['game']:
+                print('\nGame Information:')
+                for info_item in info_items['game']:
+                    print_info_item(info_item)
+            if info_items['install']:
+                print('\nInstallation information:')
+                for info_item in info_items['install']:
+                    print_info_item(info_item)
+            if info_items['manifest']:
+                print('\nManifest information:')
+                for info_item in info_items['manifest']:
+                    print_info_item(info_item)
         else:
             json_out = dict(game=dict(), install=dict(), manifest=dict())
             for info_item in info_items['game']:
