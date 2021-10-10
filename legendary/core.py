@@ -1103,23 +1103,29 @@ class LegendaryCore:
         if not install.can_run_offline:
             results.warnings.add('This game is not marked for offline use (may still work).')
 
-        # check if enough disk space is free (dl size is the approximate amount the installation will grow)
-        min_disk_space = analysis.install_size
-        if updating:
-            current_size = get_dir_size(install.install_path)
-            delta = max(0, analysis.install_size - current_size)
-            min_disk_space = delta + analysis.biggest_file_size
+        base_path = os.path.split(install.install_path)[0]
+        if os.path.exists(base_path):
+            # check if enough disk space is free (dl size is the approximate amount the installation will grow)
+            min_disk_space = analysis.install_size
+            if updating:
+                current_size = get_dir_size(install.install_path)
+                delta = max(0, analysis.install_size - current_size)
+                min_disk_space = delta + analysis.biggest_file_size
 
-        _, _, free = shutil.disk_usage(os.path.split(install.install_path)[0])
-        if free < min_disk_space:
-            free_mib = free / 1024 / 1024
-            required_mib = min_disk_space / 1024 / 1024
-            if ignore_space_req:
-                results.warnings.add(f'Potentially not enough available disk space! '
-                                     f'{free_mib:.02f} MiB < {required_mib:.02f} MiB')
-            else:
-                results.failures.add(f'Not enough available disk space! '
-                                     f'{free_mib:.02f} MiB < {required_mib:.02f} MiB')
+            _, _, free = shutil.disk_usage(base_path)
+            if free < min_disk_space:
+                free_mib = free / 1024 / 1024
+                required_mib = min_disk_space / 1024 / 1024
+                if ignore_space_req:
+                    results.warnings.add(f'Potentially not enough available disk space! '
+                                         f'{free_mib:.02f} MiB < {required_mib:.02f} MiB')
+                else:
+                    results.failures.add(f'Not enough available disk space! '
+                                         f'{free_mib:.02f} MiB < {required_mib:.02f} MiB')
+        else:
+            results.failures.add(f'Install path "{base_path}" does not exist, make sure all necessary mounts are '
+                                 f'available. If you previously deleted the game folder without uninstalling, run '
+                                 f'"legendary uninstall -y {game.app_name}" first.')
 
         # check if the game actually ships the files or just a uplay installer + packed game files
         executables = [f for f in analysis.manifest_comparison.added if
