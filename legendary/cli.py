@@ -641,8 +641,12 @@ class LegendaryCLI:
             return self._print_json(dict(uri=origin_uri), args.pretty_json)
 
         if os.name == 'nt':
-            logger.debug(f'Opening Origin URI: {origin_uri}')
-            return webbrowser.open(origin_uri)
+            if args.dry_run:
+                logger.info(f'Origin URI: {origin_uri}')
+            else:
+                logger.debug(f'Opening Origin URI: {origin_uri}')
+                webbrowser.open(origin_uri)
+            return
 
         # on linux, require users to specify at least the wine binary and prefix in config or command line
         command = self.core.get_app_launch_command(args.app_name, wrapper=args.wrapper,
@@ -658,8 +662,11 @@ class LegendaryCLI:
             return
 
         command.append(origin_uri)
-        logger.debug(f'Opening Origin URI with command: {shlex.join(command)}')
-        subprocess.Popen(command, env=full_env)
+        if args.dry_run:
+            logger.info(f'Origin launch command: {shlex.join(command)}')
+        else:
+            logger.debug(f'Opening Origin URI with command: {shlex.join(command)}')
+            subprocess.Popen(command, env=full_env)
 
     def install_game(self, args):
         args.app_name = self._resolve_aliases(args.app_name)
