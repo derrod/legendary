@@ -1,4 +1,4 @@
 """Legendary!"""
 
-__version__ = '0.20.15'
-__codename__ = 'Nova Prospekt (hotfix)'
+__version__ = '0.20.16'
+__codename__ = 'Nova Prospekt (hotfix #2)'
