@@ -1181,7 +1181,10 @@ class LegendaryCore:
         if delete_files:
             try:
                 manifest = self.load_manifest(self.get_installed_manifest(installed_game.app_name)[0])
-                filelist = [fm.filename for fm in manifest.file_manifest_list.elements]
+                filelist = [
+                    fm.filename for fm in manifest.file_manifest_list.elements if
+                    not fm.install_tags or any(t in installed_game.install_tags for t in fm.install_tags)
+                ]
                 if not delete_filelist(installed_game.install_path, filelist, delete_root_directory):
                     self.log.error(f'Deleting "{installed_game.install_path}" failed, please remove manually.')
             except Exception as e:
