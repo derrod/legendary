@@ -43,7 +43,7 @@ def _filter(input):
     return ''.join(l for l in input if l in allowed_characters)
 
 
-def generate_aliases(game_name, game_folder=None, split_words=True):
+def generate_aliases(game_name, game_folder=None, split_words=True, app_name=None):
     # normalise and split name, then filter for legal characters
     game_parts = [_filter(p) for p in game_name.lower().split()]
     # filter out empty parts
@@ -72,6 +72,9 @@ def generate_aliases(game_name, game_folder=None, split_words=True):
     # include folder name for alternative short forms
     if game_folder:
         _aliases.extend(generate_aliases(game_folder, split_words=False))
+    # include lowercase version of app name in aliases
+    if app_name:
+        _aliases.append(app_name.lower())
     # include initialisms
     if len(game_parts) > 1:
         _aliases.append(''.join(p[0] for p in game_parts))
