@@ -53,6 +53,12 @@ class Game:
         return self.metadata and 'mainGameItem' in self.metadata
 
     @property
+    def third_party_store(self):
+        if not self.metadata:
+            return None
+        return self.metadata.get('customAttributes', {}).get('ThirdPartyManagedApp', {}).get('value', None)
+
+    @property
     def supports_cloud_saves(self):
         return self.metadata and (self.metadata.get('customAttributes', {}).get('CloudSaveFolder') is not None)
 
