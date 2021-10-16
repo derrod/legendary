@@ -394,8 +394,27 @@ class LegendaryCore:
 
         if not platform_override:
             self.update_aliases(force=meta_updated)
+            if meta_updated:
+                self._prune_metadata()
 
         return _ret, _dlc
+
+    def _prune_metadata(self):
+        # compile list of games without assets, then delete their metadata
+        available_assets = {i.app_name for i in self.get_assets()}
+
+        for app_name in self.lgd.get_game_app_names():
+            if app_name in available_assets:
+                continue
+            # if metadata is still used by an install hold-off on deleting it
+            if self.is_installed(app_name):
+                continue
+            game = self.get_game(app_name)
+            # Origin games etc.
+            if game.third_party_store:
+                continue
+            self.log.debug(f'Removing old/unused metadata for "{app_name}"')
+            self.lgd.delete_game_meta(app_name)
 
     def get_non_asset_library_items(self, force_refresh=False,
                                     skip_ue=True) -> (List[Game], Dict[str, List[Game]]):

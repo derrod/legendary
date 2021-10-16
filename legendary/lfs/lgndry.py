@@ -230,6 +230,9 @@ class LGDLFS:
         else:
             raise ValueError(f'Game {app_name} does not exist in metadata DB!')
 
+    def get_game_app_names(self):
+        return sorted(self._game_metadata.keys())
+
     def get_tmp_path(self):
         return os.path.join(self.path, 'tmp')
 
