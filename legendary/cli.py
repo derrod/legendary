@@ -1590,6 +1590,10 @@ class LegendaryCLI:
                 json_out['install'][info_item.json_name] = info_item.json_value
             for info_item in info_items['manifest']:
                 json_out['manifest'][info_item.json_name] = info_item.json_value
+            # set empty items to null
+            for key, value in json_out.items():
+                if not value:
+                    json_out[key] = None
             return self._print_json(json_out, args.pretty_json)
 
     def alias(self, args):
