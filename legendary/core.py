@@ -338,6 +338,18 @@ class LegendaryCore:
     def asset_valid(self, app_name) -> bool:
         return any(i.app_name == app_name for i in self.lgd.assets)
 
+    def asset_available(self, game: Game) -> bool:
+        # Just say yes for Origin titles
+        _store = game.metadata.get('customAttributes', {}).get('ThirdPartyManagedApp', {}).get('value', None)
+        if _store:
+            return True
+
+        try:
+            asset = self.get_asset(game.app_name)
+            return asset is not None
+        except ValueError:
+            return False
+
     def get_game(self, app_name, update_meta=False) -> Game:
         if update_meta:
             self.get_game_list(True)
