@@ -340,8 +340,7 @@ class LegendaryCore:
 
     def asset_available(self, game: Game) -> bool:
         # Just say yes for Origin titles
-        _store = game.metadata.get('customAttributes', {}).get('ThirdPartyManagedApp', {}).get('value', None)
-        if _store:
+        if game.third_party_store:
             return True
 
         try:

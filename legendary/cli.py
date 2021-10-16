@@ -234,13 +234,14 @@ class LegendaryCLI:
         for game in games:
             print(f' * {game.app_title.strip()} (App name: {game.app_name} | Version: {game.app_version})')
             if not game.app_version:
-                _custom_attribs = game.metadata.get('customAttributes', {})
-                _store = _custom_attribs.get('ThirdPartyManagedApp', {}).get('value', 'Unknown')
+                _store = game.third_party_store
                 if _store == 'Origin':
                     print(f'  - This game has to be activated, installed, and launched via Origin, use '
                           f'"legendary launch --origin {game.app_name}" to activate and/or run the game.')
-                else:
+                elif _store:
                     print(f'  ! This game has to be installed through third-party store ({_store}, not supported)')
+                else:
+                    print(f'  ! No version information (unknown cause)')
             for dlc in dlc_list[game.asset_info.catalog_item_id]:
                 print(f'  + {dlc.app_title} (App name: {dlc.app_name} | Version: {dlc.app_version})')
                 if not dlc.app_version:
@@ -623,9 +624,7 @@ class LegendaryCLI:
                          f'to fetch data for Origin titles before using this command.')
             return
 
-        _custom_attribs = game.metadata.get('customAttributes', {})
-        _store = _custom_attribs.get('ThirdPartyManagedApp', {}).get('value', None)
-        if not _store or _store != 'Origin':
+        if not game.third_party_store or game.third_party_store != 'Origin':
             logger.error(f'The specified game is not an Origin title.')
             return
 
