@@ -1588,6 +1588,9 @@ class LegendaryCLI:
                 print('\nManifest information:')
                 for info_item in info_items['manifest']:
                     print_info_item(info_item)
+
+            if not any(info_items.values()):
+                print('No game information available.')
         else:
             json_out = dict(game=dict(), install=dict(), manifest=dict())
             for info_item in info_items['game']:
