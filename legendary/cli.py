@@ -706,6 +706,13 @@ class LegendaryCLI:
                          f'did you type the name correctly?')
             exit(1)
 
+        if store := game.third_party_store:
+            logger.error(f'The selected title has to be installed via a third-party store: {store}')
+            if store == 'Origin':
+                logger.info(f'For Origin games use "legendary launch --origin {args.app_name}" to '
+                            f'activate and/or run the game.')
+            exit(0)
+
         if game.is_dlc:
             logger.info('Install candidate is DLC')
             app_name = game.metadata['mainGameItem']['releaseInfo'][0]['appId']
