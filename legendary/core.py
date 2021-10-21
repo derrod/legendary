@@ -849,6 +849,71 @@ class LegendaryCore:
 
         self.log.info('Successfully completed savegame download.')
 
+    def clean_saves(self, app_name=''):
+        savegames = self.egs.get_user_cloud_saves(app_name=app_name)
+        files = savegames['files']
+        deletion_list = []
+        used_chunks = set()
+        do_not_delete = set()
+
+        # check if all chunks for manifests are there
+        for fname, f in files.items():
+            if '.manifest' not in fname:
+                continue
+
+            app_name = fname.split('/', 3)[2]
+
+            self.log.info(f'Checking {app_name} "{fname.split("/", 2)[2]}"...')
+            # download manifest
+            r = self.egs.unauth_session.get(f['readLink'])
+
+            if r.status_code == 404:
+                self.log.error('Manifest is missing! Marking for deletion.')
+                deletion_list.append(fname)
+                continue
+            elif r.status_code != 200:
+                self.log.warning(f'Download failed, status code: {r.status_code}. Skipping...')
+                do_not_delete.add(app_name)
+                continue
+
+            if not r.content:
+                self.log.error('Manifest is empty! Marking for deletion.')
+                deletion_list.append(fname)
+                continue
+
+            m = self.load_manifest(r.content)
+            # check if all required chunks are present
+            chunk_fnames = set()
+            for chunk in m.chunk_data_list.elements:
+                cpath_p = fname.split('/', 3)[:3]
+                cpath_p.append(chunk.path)
+                cpath = '/'.join(cpath_p)
+                if cpath not in files:
+                    self.log.error(f'Chunk missing, marking manifest for deletion.')
+                    deletion_list.append(fname)
+                    break
+                else:
+                    chunk_fnames.add(cpath)
+            else:
+                used_chunks |= chunk_fnames
+
+        # check for orphaned chunks (not used in any manifests)
+        for fname, f in files.items():
+            if fname in used_chunks or '.manifest' in fname:
+                continue
+            # skip chunks where orphan status could not be reliably determined
+            if fname.split('/', 3)[2] in do_not_delete:
+                continue
+            self.log.debug(f'Marking orphaned chunk {fname} for deletion.')
+            deletion_list.append(fname)
+
+        self.log.info('Deleting unused/broken files...')
+        for fname in deletion_list:
+            self.log.debug(f'Deleting {fname}')
+            self.egs.delete_game_cloud_save_file(fname)
+
+        self.log.info('Successfully completed savegame cleanup.')
+
     def is_offline_game(self, app_name: str) -> bool:
         return self.lgd.config.getboolean(app_name, 'offline', fallback=False)
 

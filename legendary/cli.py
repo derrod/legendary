@@ -403,6 +403,13 @@ class LegendaryCLI:
         logger.info(f'Downloading saves to "{self.core.get_default_install_dir()}"')
         self.core.download_saves(self._resolve_aliases(args.app_name))
 
+    def clean_saves(self, args):
+        if not self.core.login():
+            logger.error('Login failed! Cannot continue with download process.')
+            exit(1)
+        logger.info(f'Cleaning saves...')
+        self.core.clean_saves(self._resolve_aliases(args.app_name))
+
     def sync_saves(self, args):
         if not self.core.login():
             logger.error('Login failed! Cannot continue with download process.')
@@ -1727,6 +1734,7 @@ def main():
     list_files_parser = subparsers.add_parser('list-files', help='List files in manifest')
     list_saves_parser = subparsers.add_parser('list-saves', help='List available cloud saves')
     download_saves_parser = subparsers.add_parser('download-saves', help='Download all cloud saves')
+    clean_saves_parser = subparsers.add_parser('clean-saves', help='Clean cloud saves')
     sync_saves_parser = subparsers.add_parser('sync-saves', help='Sync cloud saves')
     verify_parser = subparsers.add_parser('verify-game', help='Verify a game\'s local files')
     import_parser = subparsers.add_parser('import-game', help='Import an already installed game')
@@ -1745,6 +1753,8 @@ def main():
                                    help='Name of the app (optional)')
     download_saves_parser.add_argument('app_name', nargs='?', metavar='<App Name>', default='',
                                        help='Name of the app (optional)')
+    clean_saves_parser.add_argument('app_name', nargs='?', metavar='<App Name>', default='',
+                                    help='Name of the app (optional)')
     sync_saves_parser.add_argument('app_name', nargs='?', metavar='<App Name>', default='',
                                    help='Name of the app (optional)')
     verify_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
@@ -1979,8 +1989,8 @@ def main():
     if args.subparser_name not in ('auth', 'list-games', 'list-installed', 'list-files',
                                    'launch', 'download', 'uninstall', 'install', 'update',
                                    'repair', 'list-saves', 'download-saves', 'sync-saves',
-                                   'verify-game', 'import-game', 'egl-sync', 'status',
-                                   'info', 'alias', 'cleanup'):
+                                   'clean-saves', 'verify-game', 'import-game', 'egl-sync',
+                                   'status', 'info', 'alias', 'cleanup'):
         print(parser.format_help())
 
         # Print the main help *and* the help for all of the subcommands. Thanks stackoverflow!
@@ -2031,6 +2041,8 @@ def main():
             cli.download_saves(args)
         elif args.subparser_name == 'sync-saves':
             cli.sync_saves(args)
+        elif args.subparser_name == 'clean-saves':
+            cli.clean_saves(args)
         elif args.subparser_name == 'verify-game':
             cli.verify_game(args)
         elif args.subparser_name == 'import-game':
