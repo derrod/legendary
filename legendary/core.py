@@ -909,10 +909,14 @@ class LegendaryCore:
             self.log.debug(f'Marking orphaned chunk {fname} for deletion.')
             deletion_list.append(fname)
 
-        self.log.info('Deleting unused/broken files...')
-        for fname in deletion_list:
-            self.log.debug(f'Deleting {fname}')
-            self.egs.delete_game_cloud_save_file(fname)
+        if deletion_list:
+            self.log.info('Deleting unused/broken files...')
+            for fname in deletion_list:
+                self.log.debug(f'Deleting {fname}')
+                self.egs.delete_game_cloud_save_file(fname)
+            self.log.info(f'Deleted {len(deletion_list)} files.')
+        else:
+            self.log.info('Nothing to delete.')
 
         self.log.info('Successfully completed savegame cleanup.')
 
