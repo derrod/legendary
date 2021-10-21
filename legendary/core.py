@@ -807,6 +807,10 @@ class LegendaryCore:
                 cpath_p = fname.split('/', 3)[:3]
                 cpath_p.append(chunk.path)
                 cpath = '/'.join(cpath_p)
+                if cpath not in files:
+                    self.log.warning(f'Chunk {cpath} not in file list, save data may be incomplete!')
+                    continue
+
                 self.log.debug(f'Downloading chunk "{cpath}"')
                 r = self.egs.unauth_session.get(files[cpath]['readLink'])
                 if r.status_code != 200:
@@ -814,6 +818,14 @@ class LegendaryCore:
                     break
                 c = Chunk.read_buffer(r.content)
                 chunks[c.guid_num] = c.data
+
+            if not chunks:
+                if manifest_name:
+                    self.log.fatal(f'No chunks were available, aborting.')
+                    return
+                else:
+                    self.log.error(f'No chunks were available, skipping.')
+                    continue
 
             for fm in m.file_manifest_list.elements:
                 dirs, fname = os.path.split(fm.filename)
@@ -825,7 +837,10 @@ class LegendaryCore:
                 self.log.debug(f'Writing "{fpath}"...')
                 with open(fpath, 'wb') as fh:
                     for cp in fm.chunk_parts:
-                        fh.write(chunks[cp.guid_num][cp.offset:cp.offset + cp.size])
+                        if cp.guid_num not in chunks:
+                            self.log.error(f'Chunk part for {fname} is missing, file may be corrupted!')
+                        else:
+                            fh.write(chunks[cp.guid_num][cp.offset:cp.offset + cp.size])
 
                 # set modified time to savegame creation timestamp
                 m_date = datetime.strptime(f_parts[4], '%Y.%m.%d-%H.%M.%S.manifest')
