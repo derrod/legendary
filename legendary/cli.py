@@ -408,7 +408,7 @@ class LegendaryCLI:
             logger.error('Login failed! Cannot continue with download process.')
             exit(1)
         logger.info(f'Cleaning saves...')
-        self.core.clean_saves(self._resolve_aliases(args.app_name))
+        self.core.clean_saves(self._resolve_aliases(args.app_name), args.delete_incomplete)
 
     def sync_saves(self, args):
         if not self.core.login():
@@ -1940,6 +1940,9 @@ def main():
                                    help='Override savegame path (requires single app name to be specified)')
     sync_saves_parser.add_argument('--disable-filters', dest='disable_filters', action='store_true',
                                    help='Disable save game file filtering')
+
+    clean_saves_parser.add_argument('--delete-incomplete', dest='delete_incomplete', action='store_true',
+                                    help='Delete incomplete save files')
 
     import_parser.add_argument('--disable-check', dest='disable_check', action='store_true',
                                help='Disables completeness check of the to-be-imported game installation '

@@ -851,7 +851,7 @@ class LegendaryCore:
 
         self.log.info('Successfully completed savegame download.')
 
-    def clean_saves(self, app_name=''):
+    def clean_saves(self, app_name='', delete_incomplete=False):
         savegames = self.egs.get_user_cloud_saves(app_name=app_name)
         files = savegames['files']
         deletion_list = []
@@ -886,18 +886,26 @@ class LegendaryCore:
             m = self.load_manifest(r.content)
             # check if all required chunks are present
             chunk_fnames = set()
+            missing_chunks = 0
+            total_chunks = m.chunk_data_list.count
             for chunk in m.chunk_data_list.elements:
                 cpath_p = fname.split('/', 3)[:3]
                 cpath_p.append(chunk.path)
                 cpath = '/'.join(cpath_p)
+                chunk_fnames.add(cpath)
                 if cpath not in files:
-                    self.log.error(f'Chunk missing, marking manifest for deletion.')
-                    deletion_list.append(fname)
-                    break
-                else:
-                    chunk_fnames.add(cpath)
-            else:
-                used_chunks |= chunk_fnames
+                    missing_chunks += 1
+
+            if (0 < missing_chunks < total_chunks and delete_incomplete) or missing_chunks == total_chunks:
+                self.log.error(f'Chunk(s) missing, marking manifest for deletion.')
+                deletion_list.append(fname)
+                continue
+            elif 0 < missing_chunks < total_chunks:
+                self.log.error(f'Some chunk(s) missing, optionally run "legendary download-saves" to obtain a backup '
+                               f'of the corrupted save, then re-run this command with "--delete-incomplete" to remove '
+                               f'it from the cloud save service.')
+
+            used_chunks |= chunk_fnames
 
         # check for orphaned chunks (not used in any manifests)
         for fname, f in files.items():
