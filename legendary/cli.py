@@ -213,7 +213,7 @@ class LegendaryCLI:
             dlc_list[citem_id] = sorted(dlc_list[citem_id], key=lambda d: d.app_title.lower())
 
         if args.csv or args.tsv:
-            writer = csv.writer(stdout, dialect='excel-tab' if args.tsv else 'excel')
+            writer = csv.writer(stdout, dialect='excel-tab' if args.tsv else 'excel', lineterminator='\n')
             writer.writerow(['App name', 'App title', 'Version', 'Is DLC'])
             for game in games:
                 writer.writerow((game.app_name, game.app_title, game.app_version, False))
@@ -270,7 +270,7 @@ class LegendaryCLI:
                                f'with "--check-updates".')
 
         if args.csv or args.tsv:
-            writer = csv.writer(stdout, dialect='excel-tab' if args.tsv else 'excel')
+            writer = csv.writer(stdout, dialect='excel-tab' if args.tsv else 'excel', lineterminator='\n')
             writer.writerow(['App name', 'App title', 'Installed version', 'Available version',
                              'Update available', 'Install size', 'Install path'])
             writer.writerows((game.app_name, game.title, game.version, versions[game.app_name],
@@ -353,7 +353,7 @@ class LegendaryCLI:
             for fm in files:
                 print(f'{fm.hash.hex()} *{fm.filename}')
         elif args.csv or args.tsv:
-            writer = csv.writer(stdout, dialect='excel-tab' if args.tsv else 'excel')
+            writer = csv.writer(stdout, dialect='excel-tab' if args.tsv else 'excel', lineterminator='\n')
             writer.writerow(['path', 'hash', 'size', 'install_tags'])
             writer.writerows((fm.filename, fm.hash.hex(), fm.file_size, '|'.join(fm.install_tags)) for fm in files)
         elif args.json:
