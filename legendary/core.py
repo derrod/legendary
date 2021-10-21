@@ -821,10 +821,12 @@ class LegendaryCore:
 
             if not chunks:
                 if manifest_name:
-                    self.log.fatal(f'No chunks were available, aborting.')
+                    self.log.fatal(f'No chunks were available, aborting. Try running '
+                                   f'"legendary clean-saves" and try again.')
                     return
                 else:
-                    self.log.error(f'No chunks were available, skipping.')
+                    self.log.error(f'No chunks were available, skipping. You can run "legendary clean-saves" '
+                                   f'to remove this broken save from your account.')
                     continue
 
             for fm in m.file_manifest_list.elements:
