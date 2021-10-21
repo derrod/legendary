@@ -664,7 +664,7 @@ class LegendaryCore:
 
         if os.name == 'nt':
             path_vars.update({
-                '{appdata}': os.path.expandvars('%APPDATA%'),
+                '{appdata}': os.path.expandvars('%LOCALAPPDATA%'),
                 '{userdir}': os.path.expandvars('%userprofile%/documents'),
                 # '{userprofile}': os.path.expandvars('%userprofile%'),  # possibly wrong
                 '{usersavedgames}': os.path.expandvars('%userprofile%/Saved Games')
@@ -686,7 +686,7 @@ class LegendaryCore:
                 wine_reg = read_registry(wine_pfx)
                 wine_folders = get_shell_folders(wine_reg, wine_pfx)
                 # path_vars['{userprofile}'] = user_path
-                path_vars['{appdata}'] = wine_folders['AppData']
+                path_vars['{appdata}'] = wine_folders['Local AppData']
                 # this maps to ~/Documents, but the name is locale-dependent so just resolve the symlink from WINE
                 path_vars['{userdir}'] = os.path.realpath(wine_folders['Personal'])
                 path_vars['{usersavedgames}'] = wine_folders['{4C5C32FF-BB9D-43B0-B5B4-2D72E54EAAA4}']
