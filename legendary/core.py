@@ -822,7 +822,7 @@ class LegendaryCore:
             if not chunks:
                 if manifest_name:
                     self.log.fatal(f'No chunks were available, aborting. Try running '
-                                   f'"legendary clean-saves" and try again.')
+                                   f'"legendary clean-saves {app_name}" and try again.')
                     return
                 else:
                     self.log.error(f'No chunks were available, skipping. You can run "legendary clean-saves" '
