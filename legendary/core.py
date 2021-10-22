@@ -37,7 +37,7 @@ from legendary.utils.game_workarounds import is_opt_enabled, update_workarounds
 from legendary.utils.savegame_helper import SaveGameHelper
 from legendary.utils.selective_dl import games as sdl_games
 from legendary.utils.manifests import combine_manifests
-from legendary.utils.wine_helpers import read_registry, get_shell_folders
+from legendary.utils.wine_helpers import read_registry, get_shell_folders, case_insensitive_path_search
 
 
 # ToDo: instead of true/false return values for success/failure actually raise an exception that the CLI/GUI
@@ -696,7 +696,12 @@ class LegendaryCore:
 
         # these paths should always use a forward slash
         new_save_path = [path_vars.get(p.lower(), p) for p in save_path.split('/')]
-        return os.path.realpath(os.path.join(*new_save_path))
+        absolute_path = os.path.realpath(os.path.join(*new_save_path))
+        # attempt to resolve as much as possible on case-insensitive file-systems
+        if os.name != 'nt':
+            absolute_path = case_insensitive_path_search(absolute_path)
+
+        return absolute_path
 
     def check_savegame_state(self, path: str, save: SaveGameFile) -> (SaveGameStatus, (datetime, datetime)):
         latest = 0
