@@ -182,7 +182,7 @@ legendary -y egl-sync
 
 ````
 usage: legendary [-h] [-v] [-y] [-V] [-c <path/name>] [-J]
-                 {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game,egl-sync,status,info,alias,cleanup}
+                 {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,clean-saves,sync-saves,verify-game,import-game,egl-sync,status,info,alias,cleanup}
                  ...
 
 Legendary v0.X.X - "Codename"
@@ -198,7 +198,7 @@ optional arguments:
   -J, --pretty-json     Pretty-print JSON
 
 Commands:
-  {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,sync-saves,verify-game,import-game,egl-sync,status,info,alias,cleanup}
+  {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,clean-saves,sync-saves,verify-game,import-game,egl-sync,status,info,alias,cleanup}
     auth                Authenticate with EPIC
     install (download,update,repair)
                         Download a game
@@ -209,6 +209,7 @@ Commands:
     list-files          List files in manifest
     list-saves          List available cloud saves
     download-saves      Download all cloud saves
+    clean-saves         Clean cloud saves
     sync-saves          Sync cloud saves
     verify-game         Verify a game's local files
     import-game         Import an already installed game
@@ -432,6 +433,17 @@ positional arguments:
 
 optional arguments:
   -h, --help  show this help message and exit
+
+
+Command: clean-saves
+usage: legendary clean-saves [-h] [--delete-incomplete] [<App Name>]
+
+positional arguments:
+  <App Name>           Name of the app (optional)
+
+optional arguments:
+  -h, --help           show this help message and exit
+  --delete-incomplete  Delete incomplete save files
 
 
 Command: sync-saves
