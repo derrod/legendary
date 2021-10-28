@@ -32,7 +32,10 @@ jobs:
       run: pip3 install --upgrade
         pyinstaller
         requests
-        pywebview
+
+    - name: Optional dependencies (WebView)
+      run: pip3 install --upgrade pywebview
+      if: runner.os != 'macOS'
 
     - name: Strip
       id: strip
