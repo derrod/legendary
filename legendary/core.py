@@ -1145,8 +1145,9 @@ class LegendaryCore:
         else:
             resume_file = None
 
-        # Match EGS' behaviour and just use the first available URL
-        base_url = base_urls[0]
+        # Use user-specified base URL or preferred CDN first, otherwise fall back to
+        # EGS's behaviour of just selecting the first CDN in the list.
+        base_url = None
         if override_base_url:
             self.log.info(f'Overriding base URL with "{override_base_url}"')
             base_url = override_base_url
@@ -1157,6 +1158,11 @@ class LegendaryCore:
                     break
             else:
                 self.log.warning(f'Preferred CDN "{preferred_cdn}" unavailable, using default selection.')
+        # Use first, fail if none known
+        if not base_url:
+            if not base_urls:
+                raise ValueError('No base URLs found, please try again.')
+            base_url = base_urls[0]
 
         # The EGS client uses plaintext HTTP by default for the purposes of enabling simple DNS based
         # CDN redirection to a (local) cache. In Legendary this will be a config option.
