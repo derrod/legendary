@@ -11,7 +11,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ['ubuntu-20.04', 'windows-latest', 'macos-latest']
+        os: ['ubuntu-20.04', 'windows-latest', 'macos-11']
 
       fail-fast: true
       max-parallel: 3
@@ -21,14 +21,17 @@ jobs:
 
     - uses: actions/setup-python@v2
       with:
-        python-version: '3.8'
+        python-version: '3.9'
 
-    - name: Dependencies
+    - name: Python components
+      run: pip3 install --upgrade
+        setuptools
+        wheel
+
+    - name: Legendary dependencies and build tools
       run: pip3 install --upgrade
         pyinstaller
         requests
-        setuptools
-        wheel
         pywebview
 
     - name: Strip
