@@ -44,6 +44,7 @@ jobs:
       run: pyinstaller
         --onefile
         --name legendary
+        --target-architecture universal2
         ${{ steps.strip.outputs.option }}
         cli.py
       env:
