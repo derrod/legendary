@@ -118,10 +118,10 @@ class Manifest:
         _manifest.version = struct.unpack('<I', bio.read(4))[0]
 
         if bio.tell() != _manifest.header_size:
-            logger.fatal(f'Did not read entire header {bio.tell()} != {_manifest.header_size}! '
-                         f'Header version: {_manifest.version}, please report this on '
-                         f'GitHub along with a sample of the problematic manifest!')
-            raise ValueError('Did not read complete manifest header!')
+            logger.warning(f'Did not read entire header {bio.tell()} != {_manifest.header_size}! '
+                           f'Header version: {_manifest.version}, please report this on '
+                           f'GitHub along with a sample of the problematic manifest!')
+            bio.seek(_manifest.header_size)
 
         data = bio.read()
         if _manifest.compressed:
@@ -234,8 +234,12 @@ class ManifestMeta:
         if _meta.data_version > 0:
             _meta._build_id = read_fstring(bio)
 
-        if bio.tell() != _meta.meta_size:
-            raise ValueError('Did not read entire meta!')
+        if (size_read := bio.tell()) != _meta.meta_size:
+            logger.warning(f'Did not read entire manifest metadata! Version: {_meta.data_version}, '
+                           f'{_meta.meta_size - size_read} bytes missing, skipping...')
+            bio.seek(_meta.meta_size - size_read, 1)
+            # downgrade version to prevent issues during serialisation
+            _meta.data_version = 0
 
         return _meta
 
@@ -366,8 +370,12 @@ class CDL:
         for chunk in _cdl.elements:
             chunk.file_size = struct.unpack('<q', bio.read(8))[0]
 
-        if bio.tell() - cdl_start != _cdl.size:
-            raise ValueError('Did not read entire chunk data list!')
+        if (size_read := bio.tell() - cdl_start) != _cdl.size:
+            logger.warning(f'Did not read entire chunk data list! Version: {_cdl.version}, '
+                           f'{_cdl.size - size_read} bytes missing, skipping...')
+            bio.seek(_cdl.size - size_read, 1)
+            # downgrade version to prevent issues during serialisation
+            _cdl.version = 0
 
         return _cdl
 
@@ -546,7 +554,7 @@ class FML:
                            f'{_fml.size - size_read} bytes missing, skipping...')
             bio.seek(_fml.size - size_read, 1)
             # downgrade version to prevent issues during serialisation
-            _fml.version = 2
+            _fml.version = 0
 
         return _fml
 
@@ -554,7 +562,7 @@ class FML:
         fml_start = bio.tell()
         bio.write(struct.pack('<I', 0))  # placeholder size
         # currently we only serialise version 0
-        bio.write(struct.pack('B', 0))
+        bio.write(struct.pack('B', 0))  # self.version
         bio.write(struct.pack('<I', len(self.elements)))
 
         for fm in self.elements:
@@ -704,8 +712,12 @@ class CustomFields:
 
         _cf._dict = dict(zip(_keys, _values))
 
-        if bio.tell() - cf_start != _cf.size:
-            raise ValueError('Did not read entire custom fields list!')
+        if (size_read := bio.tell() - cf_start) != _cf.size:
+            logger.warning(f'Did not read entire custom fields part! Version: {_cf.version}, '
+                           f'{_cf.size - size_read} bytes missing, skipping...')
+            bio.seek(_cf.size - size_read, 1)
+            # downgrade version to prevent issues during serialisation
+            _cf.version = 0
 
         return _cf
 
