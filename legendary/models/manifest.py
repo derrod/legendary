@@ -61,6 +61,7 @@ def get_chunk_dir(version):
 
 class Manifest:
     header_magic = 0x44BEC00C
+    serialisation_version = 18
 
     def __init__(self):
         self.header_size = 41
@@ -162,7 +163,7 @@ class Manifest:
         bio.write(struct.pack('<I', self.size_compressed))
         bio.write(self.sha_hash)
         bio.write(struct.pack('B', self.stored_as))
-        bio.write(struct.pack('<I', self.version))
+        bio.write(struct.pack('<I', self.serialisation_version))
         bio.write(self.data)
 
         if not fp:
@@ -172,6 +173,8 @@ class Manifest:
 
 
 class ManifestMeta:
+    serialisation_version = 0
+
     def __init__(self):
         self.meta_size = 0
         self.data_version = 0
@@ -247,7 +250,7 @@ class ManifestMeta:
         meta_start = bio.tell()
 
         bio.write(struct.pack('<I', 0))  # placeholder size
-        bio.write(struct.pack('B', self.data_version))
+        bio.write(struct.pack('B', self.serialisation_version))
         bio.write(struct.pack('<I', self.feature_level))
         bio.write(struct.pack('B', self.is_file_data))
         bio.write(struct.pack('<I', self.app_id))
@@ -274,6 +277,8 @@ class ManifestMeta:
 
 
 class CDL:
+    serialisation_version = 0
+
     def __init__(self):
         self.version = 0
         self.size = 0
@@ -382,7 +387,7 @@ class CDL:
     def write(self, bio):
         cdl_start = bio.tell()
         bio.write(struct.pack('<I', 0))  # placeholder size
-        bio.write(struct.pack('B', self.version))
+        bio.write(struct.pack('B', self.serialisation_version))
         bio.write(struct.pack('<I', len(self.elements)))
 
         for chunk in self.elements:
@@ -461,6 +466,8 @@ class ChunkInfo:
 
 
 class FML:
+    serialisation_version = 0
+
     def __init__(self):
         self.version = 0
         self.size = 0
@@ -561,8 +568,7 @@ class FML:
     def write(self, bio):
         fml_start = bio.tell()
         bio.write(struct.pack('<I', 0))  # placeholder size
-        # currently we only serialise version 0
-        bio.write(struct.pack('B', 0))  # self.version
+        bio.write(struct.pack('B', self.serialisation_version))
         bio.write(struct.pack('<I', len(self.elements)))
 
         for fm in self.elements:
@@ -667,6 +673,8 @@ class ChunkPart:
 
 
 class CustomFields:
+    serialisation_version = 0
+
     def __init__(self):
         self.size = 0
         self.version = 0
@@ -724,7 +732,7 @@ class CustomFields:
     def write(self, bio):
         cf_start = bio.tell()
         bio.write(struct.pack('<I', 0))  # placeholder size
-        bio.write(struct.pack('B', self.version))
+        bio.write(struct.pack('B', self.serialisation_version))
         bio.write(struct.pack('<I', len(self._dict)))
 
         for key in self.keys():
