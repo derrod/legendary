@@ -526,8 +526,12 @@ class FML:
         for fm in _fml.elements:
             fm.file_size = sum(c.size for c in fm.chunk_parts)
 
-        if bio.tell() - fml_start != _fml.size:
-            raise ValueError('Did not read entire chunk data list!')
+        if (size_read := bio.tell() - fml_start) != _fml.size:
+            logger.warning(f'Did not read entire file data list! Version: {_fml.version}, '
+                           f'{_fml.size - size_read} bytes missing, skipping...')
+            bio.seek(_fml.size - size_read, 1)
+            # downgrade version to prevent issues during serialisation
+            _fml.version = 1
 
         return _fml
 
