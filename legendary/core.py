@@ -1248,6 +1248,8 @@ class LegendaryCore:
                 current_size = get_dir_size(install.install_path)
                 delta = max(0, analysis.install_size - current_size)
                 min_disk_space = delta + analysis.biggest_file_size
+            elif analysis.reuse_size:
+                min_disk_space -= analysis.reuse_size
 
             _, _, free = shutil.disk_usage(base_path)
             if free < min_disk_space:
