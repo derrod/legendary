@@ -522,6 +522,21 @@ class FML:
                     logger.warning(f'Did not read {diff} bytes from chunk part!')
                     bio.seek(diff)
 
+        # MD5 hash + MIME type
+        if _fml.version >= 1:
+            for fm in _fml.elements:
+                _has_md5 = struct.unpack('<I', bio.read(4))[0]
+                if _has_md5 != 0:
+                    fm.hash_md5 = bio.read(16)
+
+            for fm in _fml.elements:
+                fm.mime_type = read_fstring(bio)
+
+        # SHA256 hash
+        if _fml.version >= 2:
+            for fm in _fml.elements:
+                fm.hash_sha256 = bio.read(32)
+
         # we have to calculate the actual file size ourselves
         for fm in _fml.elements:
             fm.file_size = sum(c.size for c in fm.chunk_parts)
@@ -531,14 +546,15 @@ class FML:
                            f'{_fml.size - size_read} bytes missing, skipping...')
             bio.seek(_fml.size - size_read, 1)
             # downgrade version to prevent issues during serialisation
-            _fml.version = 1
+            _fml.version = 2
 
         return _fml
 
     def write(self, bio):
         fml_start = bio.tell()
         bio.write(struct.pack('<I', 0))  # placeholder size
-        bio.write(struct.pack('B', self.version))
+        # currently we only serialise version 0
+        bio.write(struct.pack('B', 0))
         bio.write(struct.pack('<I', len(self.elements)))
 
         for fm in self.elements:
@@ -579,6 +595,9 @@ class FileManifest:
         self.install_tags = []
         self.chunk_parts = []
         self.file_size = 0
+        self.hash_md5 = b''
+        self.mime_type = ''
+        self.hash_sha256 = b''
 
     @property
     def read_only(self):
