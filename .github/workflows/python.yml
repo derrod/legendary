@@ -36,7 +36,7 @@ jobs:
       run: pip3 install --upgrade pywebview
       if: runner.os != 'macOS'
 
-    - name: Strip
+    - name: Set strip option on non-Windows
       id: strip
       run: echo ::set-output name=option::--strip
       if: runner.os != 'Windows'
@@ -46,7 +46,6 @@ jobs:
       run: pyinstaller
         --onefile
         --name legendary
-        --target-architecture universal2
         ${{ steps.strip.outputs.option }}
         cli.py
       env:
