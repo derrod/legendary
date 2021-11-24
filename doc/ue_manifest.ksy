@@ -1,27 +1,31 @@
 meta:
   id: ue_manifest
+  title: Binary Unreal Engine Manifest Version 20
+  application: Epic Games Launcher
   file-extension: manifest
+  license: 0BSD
   endian: le
 seq:
-  - id: magic
-    contents: [0x0C, 0xC0, 0xBE, 0x44]
-  - id: header_size
-    type: u4
   - id: header
-    size: header_size - 8
     type: header
   - id: body_compressed
-    size-eos: true
+    size: header.size_compressed
     type: body
     process: zlib
-    if: header.stored_as == stored_as_flag::compressed
+    if: header.is_compressed
   - id: body_uncompressed
-    size-eos: true
+    size: header.size_uncompressed
     type: body
-    if: header.stored_as == stored_as_flag::uncompressed
+    if: not header.is_compressed
+  - id: unknown
+    size-eos: true
 types:
   header:
     seq:
+      - id: magic
+        contents: [0x0C, 0xC0, 0xBE, 0x44]
+      - id: header_size
+        type: u4
       - id: size_uncompressed
         type: u4
       - id: size_compressed
@@ -34,7 +38,10 @@ types:
       - id: version
         type: u4
       - id: unknown
-        size-eos: true
+        size: header_size - 41
+    instances:
+      is_compressed:
+        value: stored_as.to_i & 1 == 1
   body:
     seq:
       - id: meta_size
@@ -221,18 +228,13 @@ types:
       - id: count
         type: u4
       - id: elements
-        type: chunk_part_entry
+        type: chunk_part
         repeat: expr
         repeat-expr: count
-  chunk_part_entry:
+  chunk_part:
     seq:
       - id: entry_size
         type: u4
-      - id: chunk_part
-        type: chunk_part
-        size: entry_size - 4
-  chunk_part:
-    seq:
       - id: guid
         size: 16
       - id: offset
@@ -240,7 +242,7 @@ types:
       - id: size
         type: u4
       - id: unknown
-        size-eos: true
+        size: entry_size - 28
   md5_hash:
     seq:
       - id: has_md5
@@ -250,8 +252,7 @@ types:
         if: has_md5 != 0
 instances:
   body:
-    value: 'header.stored_as == stored_as_flag::compressed ? body_compressed : body_uncompressed'
-    if: header.stored_as == stored_as_flag::compressed or header.stored_as == stored_as_flag::uncompressed
+    value: 'header.is_compressed ? body_compressed : body_uncompressed'
 enums:
   stored_as_flag:
     0x0: uncompressed
