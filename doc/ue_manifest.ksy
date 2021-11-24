@@ -33,6 +33,8 @@ types:
         enum: stored_as_flag
       - id: version
         type: u4
+      - id: unknown
+        size-eos: true
   body:
     seq:
       - id: meta_size
@@ -55,6 +57,8 @@ types:
       - id: custom_fields
         type: custom_fields
         size: custom_data_size - 4
+      - id: unknown
+        size-eos: true
   metadata:
     seq:
       - id: data_version
@@ -88,6 +92,8 @@ types:
       - id: build_id
         type: fstring
         if: data_version > 0
+      - id: unknown
+        size-eos: true
   chunk_data_list:
     seq:
       - id: version
@@ -115,9 +121,11 @@ types:
         repeat: expr
         repeat-expr: count
       - id: file_sizes
-        type: u4
+        type: s8
         repeat: expr
         repeat-expr: count
+      - id: unknown
+        size-eos: true
   file_manifest_list:
     seq:
       - id: version
@@ -164,6 +172,8 @@ types:
         size: 32
         repeat: expr
         repeat-expr: count
+      - id: unknown
+        size-eos: true
   custom_fields:
     seq:
       - id: version
@@ -178,6 +188,8 @@ types:
         type: fstring
         repeat: expr
         repeat-expr: count
+      - id: unknown
+        size-eos: true
   fstring:
     seq:
       - id: length
@@ -227,6 +239,8 @@ types:
         type: u4
       - id: size
         type: u4
+      - id: unknown
+        size-eos: true
   md5_hash:
     seq:
       - id: has_md5
