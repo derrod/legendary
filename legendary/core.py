@@ -467,7 +467,7 @@ class LegendaryCore:
             return []
 
         _, dlcs = self.get_game_and_dlc_list(update_assets=False, platform=platform)
-        return dlcs[game.asset_infos['Windows'].catalog_item_id]
+        return dlcs[game.asset_infos[platform].catalog_item_id]
 
     def get_installed_platforms(self):
         return {i.platform for i in self._get_installed_list(False)}
@@ -596,11 +596,11 @@ class LegendaryCore:
 
         if install.requires_ot and not offline:
             self.log.info('Getting ownership token.')
-            ovt = self.egs.get_ownership_token(game.asset_infos['Windows'].namespace,
-                                               game.asset_infos['Windows'].catalog_item_id)
+            ovt = self.egs.get_ownership_token(game.asset_infos[install.platform].namespace,
+                                               game.asset_infos[install.platform].catalog_item_id)
             ovt_path = os.path.join(self.lgd.get_tmp_path(),
-                                    f'{game.asset_infos["Windows"].namespace}'
-                                    f'{game.asset_infos["Windows"].catalog_item_id}.ovt')
+                                    f'{game.asset_infos[install.platform].namespace}'
+                                    f'{game.asset_infos[install.platform].catalog_item_id}.ovt')
             with open(ovt_path, 'wb') as f:
                 f.write(ovt)
             params.egl_parameters.append(f'-epicovt={ovt_path}')
