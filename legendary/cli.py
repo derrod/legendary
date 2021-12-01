@@ -255,7 +255,9 @@ class LegendaryCLI:
             if not self.core.login():
                 logger.error('Login failed! Not checking for updates.')
             else:
-                self.core.get_assets(True)
+                # Update assets for all platforms currently installed
+                for platform in self.core.get_installed_platforms():
+                    self.core.get_assets(True, platform=platform)
 
         games = sorted(self.core.get_installed_list(include_dlc=True),
                        key=lambda x: x.title.lower())
@@ -559,7 +561,7 @@ class LegendaryCLI:
             if not args.skip_version_check and not self.core.is_noupdate_game(app_name):
                 logger.info('Checking for updates...')
                 try:
-                    latest = self.core.get_asset(app_name, update=True)
+                    latest = self.core.get_asset(app_name, update=True, platform=igame.platform)
                 except ValueError:
                     logger.fatal(f'Metadata for "{app_name}" does not exist, cannot launch!')
                     exit(1)

@@ -467,6 +467,9 @@ class LegendaryCore:
         _, dlcs = self.get_game_and_dlc_list(update_assets=False, platform=platform)
         return dlcs[game.asset_infos['Windows'].catalog_item_id]
 
+    def get_installed_platforms(self):
+        return {i.platform for i in self._get_installed_list(False)}
+
     def get_installed_list(self, include_dlc=False) -> List[InstalledGame]:
         if self.egl_sync_enabled:
             self.log.debug('Running EGL sync...')
