@@ -194,7 +194,7 @@ class LegendaryCLI:
             logger.info('Getting game list... (this may take a while)')
 
         games, dlc_list = self.core.get_game_and_dlc_list(
-            platform_override=args.platform_override, skip_ue=not args.include_ue,
+            platform=args.platform, skip_ue=not args.include_ue,
             force_refresh=args.force_refresh
         )
         # Get information for games that cannot be installed through legendary (yet), such
@@ -216,24 +216,24 @@ class LegendaryCLI:
             writer = csv.writer(stdout, dialect='excel-tab' if args.tsv else 'excel', lineterminator='\n')
             writer.writerow(['App name', 'App title', 'Version', 'Is DLC'])
             for game in games:
-                writer.writerow((game.app_name, game.app_title, game.app_version, False))
-                for dlc in dlc_list[game.asset_info.catalog_item_id]:
-                    writer.writerow((dlc.app_name, dlc.app_title, dlc.app_version, True))
+                writer.writerow((game.app_name, game.app_title, game.app_version(args.platform), False))
+                for dlc in dlc_list[game.asset_infos[args.platform].catalog_item_id]:
+                    writer.writerow((dlc.app_name, dlc.app_title, dlc.app_version(args.platform), True))
             return
 
         if args.json:
             _out = []
             for game in games:
                 _j = vars(game)
-                _j['dlcs'] = [vars(dlc) for dlc in dlc_list[game.asset_info.catalog_item_id]]
+                _j['dlcs'] = [vars(dlc) for dlc in dlc_list[game.asset_infos[args.platform].catalog_item_id]]
                 _out.append(_j)
 
             return self._print_json(_out, args.pretty_json)
 
         print('\nAvailable games:')
         for game in games:
-            print(f' * {game.app_title.strip()} (App name: {game.app_name} | Version: {game.app_version})')
-            if not game.app_version:
+            print(f' * {game.app_title.strip()} (App name: {game.app_name} | Version: {game.app_version(args.platform)})')
+            if not game.app_version(args.platform):
                 _store = game.third_party_store
                 if _store == 'Origin':
                     print(f'  - This game has to be activated, installed, and launched via Origin, use '
@@ -242,9 +242,9 @@ class LegendaryCLI:
                     print(f'  ! This game has to be installed through third-party store ({_store}, not supported)')
                 else:
                     print(f'  ! No version information (unknown cause)')
-            for dlc in dlc_list[game.asset_info.catalog_item_id]:
-                print(f'  + {dlc.app_title} (App name: {dlc.app_name} | Version: {dlc.app_version})')
-                if not dlc.app_version:
+            for dlc in dlc_list[game.asset_infos[args.platform].catalog_item_id]:
+                print(f'  + {dlc.app_title} (App name: {dlc.app_name} | Version: {dlc.app_version(args.platform)})')
+                if not dlc.app_version(args.platform):
                     print('   ! This DLC is included in the game does not have to be downloaded separately')
 
         print(f'\nTotal: {len(games)}')
@@ -263,7 +263,8 @@ class LegendaryCLI:
         versions = dict()
         for game in games:
             try:
-                versions[game.app_name] = self.core.get_asset(game.app_name).build_version
+                print(f'{game.title} (App name: {game.app_name}, platform: {game.platform})')
+                versions[game.app_name] = self.core.get_asset(game.app_name, platform=game.platform).build_version
             except ValueError:
                 logger.warning(f'Metadata for "{game.app_name}" is missing, the game may have been removed from '
                                f'your account or not be in legendary\'s database yet, try rerunning the command '
@@ -315,7 +316,7 @@ class LegendaryCLI:
         print(f'\nTotal: {len(games)}')
 
     def list_files(self, args):
-        if args.platform_override:
+        if args.platform:
             args.force_download = True
 
         if not args.override_manifest and not args.app_name:
@@ -340,7 +341,7 @@ class LegendaryCLI:
             if not game:
                 logger.fatal(f'Could not fetch metadata for "{args.app_name}" (check spelling/account ownership)')
                 exit(1)
-            manifest_data, _ = self.core.get_cdn_manifest(game, platform_override=args.platform_override)
+            manifest_data, _ = self.core.get_cdn_manifest(game, platform=args.platform)
 
         manifest = self.core.load_manifest(manifest_data)
         files = sorted(manifest.file_manifest_list.elements,
@@ -678,6 +679,7 @@ class LegendaryCLI:
         args.app_name = self._resolve_aliases(args.app_name)
         if self.core.is_installed(args.app_name):
             igame = self.core.get_installed_game(args.app_name)
+            args.platform = igame.platform
             if igame.needs_verification and not args.repair_mode:
                 logger.info('Game needs to be verified before updating, switching to repair mode...')
                 args.repair_mode = True
@@ -695,6 +697,10 @@ class LegendaryCLI:
             logger.error('Login failed! Cannot continue with download process.')
             exit(1)
 
+        # default to windows unless installed game or command line has overriden it
+        if not args.platform:
+            args.platform = 'Windows'
+
         if args.file_prefix or args.file_exclude_prefix:
             args.no_install = True
 
@@ -702,9 +708,6 @@ class LegendaryCLI:
             if not self.core.is_installed(args.app_name):
                 logger.error(f'Update requested for "{args.app_name}", but app not installed!')
                 exit(1)
-
-        if args.platform_override:
-            args.no_install = True
 
         game = self.core.get_game(args.app_name, update_meta=True)
 
@@ -805,7 +808,7 @@ class LegendaryCLI:
                                                           override_manifest=args.override_manifest,
                                                           override_old_manifest=args.override_old_manifest,
                                                           override_base_url=args.override_base_url,
-                                                          platform_override=args.platform_override,
+                                                          platform=args.platform,
                                                           file_prefix_filter=args.file_prefix,
                                                           file_exclude_filter=args.file_exclude_prefix,
                                                           file_install_tag=args.install_tag,
@@ -901,7 +904,8 @@ class LegendaryCLI:
                 if dlcs and not args.skip_dlcs:
                     print('The following DLCs are available for this game:')
                     for dlc in dlcs:
-                        print(f' - {dlc.app_title} (App name: {dlc.app_name}, version: {dlc.app_version})')
+                        print(f' - {dlc.app_title} (App name: {dlc.app_name}, version: '
+                              f'{dlc.app_version(args.platform)})')
                     print('Manually installing DLCs works the same; just use the DLC app name instead.')
 
                     install_dlcs = not args.skip_dlcs
@@ -1344,8 +1348,11 @@ class LegendaryCLI:
         info_items = dict(game=list(), manifest=list(), install=list())
         InfoItem = namedtuple('InfoItem', ['name', 'json_name', 'value', 'json_value'])
 
-        game = self.core.get_game(app_name, update_meta=not args.offline)
-        if game and not self.core.asset_available(game):
+        if self.core.is_installed(app_name):
+            args.platform = self.core.get_installed_game(app_name).platform
+
+        game = self.core.get_game(app_name, update_meta=not args.offline, platform=args.platform)
+        if game and not self.core.asset_available(game, platform=args.platform):
             logger.warning(f'Asset information for "{game.app_name}" is missing, the game may have been removed from '
                            f'your account or you may be logged in with a different account than the one used to build '
                            f'legendary\'s metadata database.')
@@ -1369,11 +1376,11 @@ class LegendaryCLI:
         elif game:
             entitlements = self.core.egs.get_user_entitlements()
             # get latest metadata and manifest
-            if game.asset_info.catalog_item_id:
-                egl_meta = self.core.egs.get_game_info(game.asset_info.namespace,
-                                                       game.asset_info.catalog_item_id)
+            if game.asset_infos[args.platform].catalog_item_id:
+                egl_meta = self.core.egs.get_game_info(game.asset_infos[args.platform].namespace,
+                                                       game.asset_infos[args.platform].catalog_item_id)
                 game.metadata = egl_meta
-                manifest_data, _ = self.core.get_cdn_manifest(game)
+                manifest_data, _ = self.core.get_cdn_manifest(game, args.platform)
             else:
                 # Origin games do not have asset info, so fall back to info from metadata
                 egl_meta = self.core.egs.get_game_info(game.metadata['namespace'],
@@ -1384,7 +1391,10 @@ class LegendaryCLI:
             game_infos = info_items['game']
             game_infos.append(InfoItem('App name', 'app_name', game.app_name, game.app_name))
             game_infos.append(InfoItem('Title', 'title', game.app_title, game.app_title))
-            game_infos.append(InfoItem('Latest version', 'version', game.app_version, game.app_version))
+            game_infos.append(InfoItem('Latest version', 'version', game.app_version(args.platform),
+                                       game.app_version(args.platform)))
+            all_versions = {k: v.build_version for k,v in game.asset_infos.items()}
+            game_infos.append(InfoItem('All versions', 'platform_versions', all_versions, all_versions))
             game_infos.append(InfoItem('Cloud saves supported', 'cloud_saves_supported',
                                        game.supports_cloud_saves, game.supports_cloud_saves))
             if game.supports_cloud_saves:
@@ -1447,6 +1457,7 @@ class LegendaryCLI:
             igame = self.core.get_installed_game(app_name)
             if igame:
                 installation_info = info_items['install']
+                installation_info.append(InfoItem('Platform', 'platform', igame.platform, igame.platform))
                 installation_info.append(InfoItem('Version', 'version', igame.version, igame.version))
                 disk_size_human = f'{igame.install_size / 1024 / 1024 / 1024:.02f} GiB'
                 installation_info.append(InfoItem('Install size', 'disk_size', disk_size_human,
@@ -1586,6 +1597,10 @@ class LegendaryCLI:
                     print(f'- {item.name}:')
                     for list_item in item.value:
                         print(' + ', list_item)
+                elif isinstance(item.value, dict):
+                    print(f'- {item.name}:')
+                    for k, v in item.value.items():
+                        print(' + ', k, ':', v)
                 else:
                     print(f'- {item.name}: {item.value}')
 
@@ -1809,8 +1824,8 @@ def main():
                                 help='Only update, do not do anything if specified app is not installed')
     install_parser.add_argument('--dlm-debug', dest='dlm_debug', action='store_true',
                                 help='Set download manager and worker processes\' loglevel to debug')
-    install_parser.add_argument('--platform', dest='platform_override', action='store', metavar='<Platform>',
-                                type=str, help='Platform override for download (also sets --no-install)')
+    install_parser.add_argument('--platform', dest='platform', action='store', metavar='<Platform>',
+                                type=str, help='Platform override for download')
     install_parser.add_argument('--prefix', dest='file_prefix', action='append', metavar='<prefix>',
                                 help='Only fetch files whose path starts with <prefix> (case insensitive)')
     install_parser.add_argument('--exclude', dest='file_exclude_prefix', action='append', metavar='<prefix>',
@@ -1891,7 +1906,7 @@ def main():
         launch_parser.add_argument('--no-wine', dest='no_wine', help=argparse.SUPPRESS,
                                    action='store_true', default=True)
 
-    list_parser.add_argument('--platform', dest='platform_override', action='store', metavar='<Platform>',
+    list_parser.add_argument('--platform', dest='platform', action='store', metavar='<Platform>', default='Windows',
                              type=str, help='Override platform that games are shown for (e.g. Win32/Mac)')
     list_parser.add_argument('--include-ue', dest='include_ue', action='store_true',
                              help='Also include Unreal Engine content (Engine/Marketplace) in list')
@@ -1916,8 +1931,8 @@ def main():
 
     list_files_parser.add_argument('--force-download', dest='force_download', action='store_true',
                                    help='Always download instead of using on-disk manifest')
-    list_files_parser.add_argument('--platform', dest='platform_override', action='store', metavar='<Platform>',
-                                   type=str, help='Platform override for download (disables install)')
+    list_files_parser.add_argument('--platform', dest='platform', action='store', metavar='<Platform>',
+                                   type=str, help='Platform override for download', default='Windows')
     list_files_parser.add_argument('--manifest', dest='override_manifest', action='store', metavar='<uri>',
                                    help='Manifest URL or path to use instead of the CDN one')
     list_files_parser.add_argument('--csv', dest='csv', action='store_true', help='Output in CSV format')
@@ -1982,6 +1997,8 @@ def main():
                              help='Only print info available offline')
     info_parser.add_argument('--json', dest='json', action='store_true',
                              help='Output information in JSON format')
+    info_parser.add_argument('--platform', dest='platform', action='store', metavar='<Platform>',
+                             type=str, help='Platform override for download', default='Windows')
 
     args, extra = parser.parse_known_args()
 

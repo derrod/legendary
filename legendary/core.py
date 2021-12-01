@@ -312,90 +312,93 @@ class LegendaryCore:
         if _aliases_enabled and (force or not self.lgd.aliases):
             self.lgd.generate_aliases()
 
-    def get_assets(self, update_assets=False, platform_override=None) -> List[GameAsset]:
+    def get_assets(self, update_assets=False, platform='Windows') -> List[GameAsset]:
         # do not save and always fetch list when platform is overridden
-        if platform_override:
-            return [GameAsset.from_egs_json(a) for a in
-                    self.egs.get_game_assets(platform=platform_override)]
-
         if not self.lgd.assets or update_assets:
             # if not logged in, return empty list
             if not self.egs.user:
                 return []
-            self.lgd.assets = [GameAsset.from_egs_json(a) for a in self.egs.get_game_assets()]
 
-        return self.lgd.assets
+            if self.lgd.assets:
+                assets = self.lgd.assets.copy()
+            else:
+                assets = dict()
 
-    def get_asset(self, app_name, update=False) -> GameAsset:
-        if update:
-            self.get_assets(update_assets=True)
+            assets.update({
+                platform: [
+                    GameAsset.from_egs_json(a) for a in
+                    self.egs.get_game_assets(platform=platform)
+                ]
+            })
+
+            self.lgd.assets = assets
+
+        return self.lgd.assets[platform]
+
+    def get_asset(self, app_name, platform='Windows', update=False) -> GameAsset:
+        if update or platform not in self.lgd.assets:
+            self.get_assets(update_assets=True, platform=platform)
 
         try:
-            return next(i for i in self.lgd.assets if i.app_name == app_name)
+            return next(i for i in self.lgd.assets[platform] if i.app_name == app_name)
         except StopIteration:
             raise ValueError
 
     def asset_valid(self, app_name) -> bool:
-        return any(i.app_name == app_name for i in self.lgd.assets)
+        # EGL sync is only supported for Windows titles so this is fine
+        return any(i.app_name == app_name for i in self.lgd.assets['Windows'])
 
-    def asset_available(self, game: Game) -> bool:
+    def asset_available(self, game: Game, platform='Windows') -> bool:
         # Just say yes for Origin titles
         if game.third_party_store:
             return True
 
         try:
-            asset = self.get_asset(game.app_name)
+            asset = self.get_asset(game.app_name, platform=platform)
             return asset is not None
         except ValueError:
             return False
 
-    def get_game(self, app_name, update_meta=False) -> Game:
+    def get_game(self, app_name, update_meta=False, platform='Windows') -> Game:
         if update_meta:
-            self.get_game_list(True)
+            self.get_game_list(True, platform=platform)
         return self.lgd.get_game_meta(app_name)
 
-    def get_game_list(self, update_assets=True) -> List[Game]:
-        return self.get_game_and_dlc_list(update_assets=update_assets)[0]
+    def get_game_list(self, update_assets=True, platform='Windows') -> List[Game]:
+        return self.get_game_and_dlc_list(update_assets=update_assets, platform=platform)[0]
 
-    def get_game_and_dlc_list(self, update_assets=True, platform_override=None,
+    def get_game_and_dlc_list(self, update_assets=True, platform='Windows',
                               force_refresh=False, skip_ue=True) -> (List[Game], Dict[str, List[Game]]):
         _ret = []
         _dlc = defaultdict(list)
         meta_updated = False
 
-        for ga in self.get_assets(update_assets=update_assets,
-                                  platform_override=platform_override):
+        for ga in self.get_assets(update_assets=update_assets, platform=platform):
             if ga.namespace == 'ue' and skip_ue:
                 continue
 
             game = self.lgd.get_game_meta(ga.app_name)
             if update_assets and (not game or force_refresh or
-                                  (game and game.app_version != ga.build_version and not platform_override)):
-                if game and game.app_version != ga.build_version and not platform_override:
+                                  (game and game.app_version(platform) != ga.build_version)):
+                if game and game.app_version(platform) != ga.build_version:
                     self.log.info(f'Updating meta for {game.app_name} due to build version mismatch')
 
                 eg_meta = self.egs.get_game_info(ga.namespace, ga.catalog_item_id)
-                game = Game(app_name=ga.app_name, app_version=ga.build_version,
-                            app_title=eg_meta['title'], asset_info=ga, metadata=eg_meta)
+                game.asset_infos[platform] = ga
+                game = Game(app_name=ga.app_name, app_title=eg_meta['title'], metadata=eg_meta,
+                            asset_infos=game.asset_infos)
 
-                if not platform_override:
-                    meta_updated = True
-                    self.lgd.set_game_meta(game.app_name, game)
-
-            # replace asset info with the platform specific one if override is used
-            if platform_override:
-                game.app_version = ga.build_version
-                game.asset_info = ga
+                meta_updated = True
+                self.lgd.set_game_meta(game.app_name, game)
 
             if game.is_dlc:
                 _dlc[game.metadata['mainGameItem']['id']].append(game)
             elif not any(i['path'] == 'mods' for i in game.metadata.get('categories', [])):
                 _ret.append(game)
 
-        if not platform_override:
-            self.update_aliases(force=meta_updated)
-            if meta_updated:
-                self._prune_metadata()
+        self.update_aliases(force=meta_updated)
+        if meta_updated:
+            self._prune_metadata()
 
         return _ret, _dlc
 
@@ -440,8 +443,7 @@ class LegendaryCore:
             game = self.lgd.get_game_meta(libitem['appName'])
             if not game or force_refresh:
                 eg_meta = self.egs.get_game_info(libitem['namespace'], libitem['catalogItemId'])
-                game = Game(app_name=libitem['appName'], app_version=None,
-                            app_title=eg_meta['title'], asset_info=None, metadata=eg_meta)
+                game = Game(app_name=libitem['appName'], app_title=eg_meta['title'], metadata=eg_meta)
                 self.lgd.set_game_meta(game.app_name, game)
 
             if game.is_dlc:
@@ -453,7 +455,7 @@ class LegendaryCore:
         self.update_aliases(force=True)
         return _ret, _dlc
 
-    def get_dlc_for_game(self, app_name):
+    def get_dlc_for_game(self, app_name, platform='Windows'):
         game = self.get_game(app_name)
         if not game:
             self.log.warning(f'Metadata for {app_name} is missing!')
@@ -462,8 +464,8 @@ class LegendaryCore:
         if game.is_dlc:  # dlc shouldn't have DLC
             return []
 
-        _, dlcs = self.get_game_and_dlc_list(update_assets=False)
-        return dlcs[game.asset_info.catalog_item_id]
+        _, dlcs = self.get_game_and_dlc_list(update_assets=False, platform=platform)
+        return dlcs[game.asset_infos['Windows'].catalog_item_id]
 
     def get_installed_list(self, include_dlc=False) -> List[InstalledGame]:
         if self.egl_sync_enabled:
@@ -539,6 +541,11 @@ class LegendaryCore:
         install = self.lgd.get_installed_game(app_name)
         game = self.lgd.get_game_meta(app_name)
 
+        # Disable wine for non-Windows executables (e.g. native macOS)
+        if not install.platform.startswith('Win'):
+            disable_wine = True
+            wine_pfx = wine_bin = None
+
         if executable_override or (executable_override := self.lgd.config.get(app_name, 'override_exe', fallback=None)):
             game_exe = executable_override.replace('\\', '/')
             exe_path = os.path.join(install.install_path, game_exe)
@@ -584,10 +591,11 @@ class LegendaryCore:
 
         if install.requires_ot and not offline:
             self.log.info('Getting ownership token.')
-            ovt = self.egs.get_ownership_token(game.asset_info.namespace,
-                                               game.asset_info.catalog_item_id)
+            ovt = self.egs.get_ownership_token(game.asset_infos['Windows'].namespace,
+                                               game.asset_infos['Windows'].catalog_item_id)
             ovt_path = os.path.join(self.lgd.get_tmp_path(),
-                                    f'{game.asset_info.namespace}{game.asset_info.catalog_item_id}.ovt')
+                                    f'{game.asset_infos["Windows"].namespace}'
+                                    f'{game.asset_infos["Windows"].catalog_item_id}.ovt')
             with open(ovt_path, 'wb') as f:
                 f.write(ovt)
             params.egl_parameters.append(f'-epicovt={ovt_path}')
@@ -975,10 +983,9 @@ class LegendaryCore:
         old_bytes = self.lgd.load_manifest(app_name, igame.version)
         return old_bytes, igame.base_urls
 
-    def get_cdn_urls(self, game, platform_override=''):
-        platform = 'Windows' if not platform_override else platform_override
-        m_api_r = self.egs.get_game_manifest(game.asset_info.namespace,
-                                             game.asset_info.catalog_item_id,
+    def get_cdn_urls(self, game, platform='Windows'):
+        m_api_r = self.egs.get_game_manifest(game.asset_infos[platform].namespace,
+                                             game.asset_infos[platform].catalog_item_id,
                                              game.app_name, platform)
 
         # never seen this outside the launcher itself, but if it happens: PANIC!
@@ -1000,8 +1007,8 @@ class LegendaryCore:
 
         return manifest_urls, base_urls
 
-    def get_cdn_manifest(self, game, platform_override=''):
-        manifest_urls, base_urls = self.get_cdn_urls(game, platform_override)
+    def get_cdn_manifest(self, game, platform='Windows'):
+        manifest_urls, base_urls = self.get_cdn_urls(game, platform)
         self.log.debug(f'Downloading manifest from {manifest_urls[0]} ...')
         r = self.egs.unauth_session.get(manifest_urls[0])
         r.raise_for_status()
@@ -1036,7 +1043,7 @@ class LegendaryCore:
                          force: bool = False, disable_patching: bool = False,
                          game_folder: str = '', override_manifest: str = '',
                          override_old_manifest: str = '', override_base_url: str = '',
-                         platform_override: str = '', file_prefix_filter: list = None,
+                         platform: str = '', file_prefix_filter: list = None,
                          file_exclude_filter: list = None, file_install_tag: list = None,
                          dl_optimizations: bool = False, dl_timeout: int = 10,
                          repair: bool = False, repair_use_latest: bool = False,
@@ -1069,7 +1076,7 @@ class LegendaryCore:
             if _base_urls:
                 base_urls = _base_urls
         else:
-            new_manifest_data, base_urls = self.get_cdn_manifest(game, platform_override)
+            new_manifest_data, base_urls = self.get_cdn_manifest(game, platform)
             # overwrite base urls in metadata with current ones to avoid using old/dead CDNs
             game.base_urls = base_urls
             # save base urls to game metadata
@@ -1203,6 +1210,8 @@ class LegendaryCore:
         offline = game.metadata.get('customAttributes', {}).get('CanRunOffline', {}).get('value', 'true')
         ot = game.metadata.get('customAttributes', {}).get('OwnershipToken', {}).get('value', 'false')
 
+        if file_install_tag is None:
+            file_install_tag = []
         igame = InstalledGame(app_name=game.app_name, title=game.app_title,
                               version=new_manifest.meta.build_version, prereq_info=prereq,
                               manifest_path=override_manifest, base_urls=base_urls,
@@ -1210,7 +1219,8 @@ class LegendaryCore:
                               launch_parameters=new_manifest.meta.launch_command,
                               can_run_offline=offline == 'true', requires_ot=ot == 'true',
                               is_dlc=base_game is not None, install_size=anlres.install_size,
-                              egl_guid=egl_guid, install_tags=file_install_tag)
+                              egl_guid=egl_guid, install_tags=file_install_tag,
+                              platform=platform)
 
         return dlm, anlres, igame
 
@@ -1293,7 +1303,7 @@ class LegendaryCore:
         return os.path.expanduser(self.lgd.config.get('Legendary', 'install_dir', fallback='~/legendary'))
 
     def install_game(self, installed_game: InstalledGame) -> dict:
-        if self.egl_sync_enabled and not installed_game.is_dlc:
+        if self.egl_sync_enabled and not installed_game.is_dlc and installed_game.platform.startswith('Win'):
             if not installed_game.egl_guid:
                 installed_game.egl_guid = str(uuid4()).replace('-', '').upper()
             prereq = self._install_game(installed_game)
@@ -1426,7 +1436,8 @@ class LegendaryCore:
     def egl_get_exportable(self):
         if not self.egl.manifests:
             self.egl.read_manifests()
-        return [g for g in self.get_installed_list() if g.app_name not in self.egl.manifests]
+        return [g for g in self.get_installed_list() if
+                g.app_name not in self.egl.manifests and g.platform.startswith('Win')]
 
     def egl_import(self, app_name):
         if not self.asset_valid(app_name):
@@ -1506,8 +1517,8 @@ class LegendaryCore:
             mf.write(manifest_data)
 
         mancpn = dict(FormatVersion=0, AppName=app_name,
-                      CatalogItemId=lgd_game.asset_info.catalog_item_id,
-                      CatalogNamespace=lgd_game.asset_info.namespace)
+                      CatalogItemId=lgd_game.asset_infos['Windows'].catalog_item_id,
+                      CatalogNamespace=lgd_game.asset_infos['Windows'].namespace)
         with open(os.path.join(egstore_folder, f'{egl_game.installation_guid}.mancpn', ), 'w') as mcpnf:
             json.dump(mancpn, mcpnf, indent=4, sort_keys=True)
 

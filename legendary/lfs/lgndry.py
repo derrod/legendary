@@ -177,8 +177,8 @@ class LGDLFS:
     def assets(self):
         if self._assets is None:
             try:
-                self._assets = [GameAsset.from_json(a) for a in
-                                json.load(open(os.path.join(self.path, 'assets.json')))]
+                tmp = json.load(open(os.path.join(self.path, 'assets.json')))
+                self._assets = {k: [GameAsset.from_json(j) for j in v] for k, v in tmp.items()}
             except Exception as e:
                 self.log.debug(f'Failed to load assets data: {e!r}')
                 return None
@@ -191,7 +191,7 @@ class LGDLFS:
             raise ValueError('Assets is none!')
 
         self._assets = assets
-        json.dump([a.__dict__ for a in self._assets],
+        json.dump({platform: [a.__dict__ for a in assets] for platform, assets in self._assets.items()},
                   open(os.path.join(self.path, 'assets.json'), 'w'),
                   indent=2, sort_keys=True)
 
