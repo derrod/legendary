@@ -31,8 +31,9 @@ it has to be run from a terminal (e.g. PowerShell)
 
 ## Requirements
 
-- Linux or Windows (64-bit)
-- python 3.8+ (64-bit on Windows)
+- Linux, Windows, or macOS (64-bit)
+  + macOS support is in an early stage, and only tested on 12.0+
+- python 3.8+ (64-bit)
 - PyPI packages: `requests`, optionally `setuptools` and `wheel` for setup/building
 
 ## How to run/install
@@ -276,8 +277,7 @@ optional arguments:
   --dlm-debug           Set download manager and worker processes' loglevel to
                         debug
   --platform <Platform>
-                        Platform override for download (also sets --no-
-                        install)
+                        Platform for install (default: installed or Windows)
   --prefix <prefix>     Only fetch files whose path starts with <prefix> (case
                         insensitive)
   --exclude <prefix>    Exclude files starting with <prefix> (case
@@ -405,7 +405,7 @@ optional arguments:
   -h, --help            show this help message and exit
   --force-download      Always download instead of using on-disk manifest
   --platform <Platform>
-                        Platform override for download (disables install)
+                        Platform (default: Windows)
   --manifest <uri>      Manifest URL or path to use instead of the CDN one
   --csv                 Output in CSV format
   --tsv                 Output in TSV format
@@ -478,7 +478,7 @@ optional arguments:
 
 Command: import-game
 usage: legendary import-game [-h] [--disable-check] [--with-dlcs]
-                             [--skip-dlcs]
+                             [--skip-dlcs] [--platform <Platform>]
                              <App Name> <Installation directory>
 
 positional arguments:
@@ -494,6 +494,8 @@ optional arguments:
   --with-dlcs           Automatically attempt to import all DLCs with the base
                         game
   --skip-dlcs           Do not ask about importing DLCs.
+  --platform <Platform>
+                        Platform override for import
 
 
 Command: egl-sync
@@ -530,7 +532,8 @@ optional arguments:
 
 
 Command: info
-usage: legendary info [-h] [--offline] [--json] <App Name/Manifest URI>
+usage: legendary info [-h] [--offline] [--json] [--platform <Platform>]
+                      <App Name/Manifest URI>
 
 positional arguments:
   <App Name/Manifest URI>
@@ -540,6 +543,9 @@ optional arguments:
   -h, --help            show this help message and exit
   --offline             Only print info available offline
   --json                Output information in JSON format
+  --platform <Platform>
+                        Platform to fetch info for (default: installed or
+                        Windows)
 
 
 Command: alias
