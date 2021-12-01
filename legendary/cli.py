@@ -1831,8 +1831,8 @@ def main():
                                 help='Only update, do not do anything if specified app is not installed')
     install_parser.add_argument('--dlm-debug', dest='dlm_debug', action='store_true',
                                 help='Set download manager and worker processes\' loglevel to debug')
-    install_parser.add_argument('--platform', dest='platform', action='store', metavar='<Platform>',
-                                type=str, help='Platform override for download', default='Windows')
+    install_parser.add_argument('--platform', dest='platform', action='store', metavar='<Platform>', default='Windows',
+                                type=str, help='Platform for install (default: installed or Windows)')
     install_parser.add_argument('--prefix', dest='file_prefix', action='append', metavar='<prefix>',
                                 help='Only fetch files whose path starts with <prefix> (case insensitive)')
     install_parser.add_argument('--exclude', dest='file_exclude_prefix', action='append', metavar='<prefix>',
@@ -1939,7 +1939,7 @@ def main():
     list_files_parser.add_argument('--force-download', dest='force_download', action='store_true',
                                    help='Always download instead of using on-disk manifest')
     list_files_parser.add_argument('--platform', dest='platform', action='store', metavar='<Platform>',
-                                   type=str, help='Platform override for download', default='Windows')
+                                   type=str, help='Platform (default: Windows)', default='Windows')
     list_files_parser.add_argument('--manifest', dest='override_manifest', action='store', metavar='<uri>',
                                    help='Manifest URL or path to use instead of the CDN one')
     list_files_parser.add_argument('--csv', dest='csv', action='store_true', help='Output in CSV format')
@@ -2006,8 +2006,8 @@ def main():
                              help='Only print info available offline')
     info_parser.add_argument('--json', dest='json', action='store_true',
                              help='Output information in JSON format')
-    info_parser.add_argument('--platform', dest='platform', action='store', metavar='<Platform>',
-                             type=str, help='Platform override for download', default='Windows')
+    info_parser.add_argument('--platform', dest='platform', action='store', metavar='<Platform>', default='Windows',
+                             type=str, help='Platform to fetch info for (default: installed or Windows)')
 
     args, extra = parser.parse_known_args()
 
