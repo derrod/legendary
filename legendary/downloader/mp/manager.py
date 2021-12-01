@@ -352,6 +352,9 @@ class DLManager(Process):
                 self.tasks.extend(chunk_tasks)
                 self.tasks.append(FileTask(current_file.filename, flags=TaskFlags.CLOSE_FILE))
 
+            if current_file.executable:
+                self.tasks.append(FileTask(current_file.filename, flags=TaskFlags.MAKE_EXECUTABLE))
+
             # check if runtime cache size has changed
             if current_cache_size > last_cache_size:
                 self.log.debug(f' * New maximum cache size: {current_cache_size / 1024 / 1024:.02f} MiB')

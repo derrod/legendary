@@ -62,6 +62,7 @@ class TaskFlags(Flag):
     CREATE_EMPTY_FILE = auto()
     RENAME_FILE = auto()
     RELEASE_MEMORY = auto()
+    MAKE_EXECUTABLE = auto()
     SILENT = auto()
 
 

@@ -230,6 +230,21 @@ class FileWorker(Process):
 
                     self.o_q.put(WriterTaskResult(success=True, **j.__dict__))
                     continue
+                elif j.flags & TaskFlags.MAKE_EXECUTABLE:
+                    if current_file:
+                        logger.warning('Trying to chmod file without closing first!')
+                        current_file.close()
+                        current_file = None
+
+                    try:
+                        st = os.stat(full_path)
+                        os.chmod(full_path, st.st_mode | 0o111)
+                    except OSError as e:
+                        if not j.flags & TaskFlags.SILENT:
+                            logger.error(f'chmod\'ing file failed: {e!r}')
+
+                    self.o_q.put(WriterTaskResult(success=True, **j.__dict__))
+                    continue
 
                 try:
                     if j.shared_memory:
