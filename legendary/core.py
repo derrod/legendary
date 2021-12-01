@@ -11,6 +11,7 @@ from collections import defaultdict
 from datetime import timezone
 from locale import getdefaultlocale
 from multiprocessing import Queue
+from platform import system
 from requests import session
 from requests.exceptions import HTTPError
 from uuid import uuid4
@@ -79,7 +80,7 @@ class LegendaryCore:
                 self.egs.language_code, self.egs.country_code = self.language_code, self.country_code
             except Exception as e:
                 self.log.warning(f'Getting locale failed: {e!r}, falling back to using en-US.')
-        else:
+        elif system() != 'Darwin':  # macOS doesn't have a default locale we can query
             self.log.warning(f'Could not determine locale, falling back to en-US')
 
         self.update_available = False
