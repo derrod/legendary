@@ -1,17 +1,23 @@
 # coding: utf-8
 
+from datetime import datetime
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Optional, List, Dict
 
+
+@dataclass
 class GameAsset:
-    def __init__(self):
-        self.app_name = ''
-        self.asset_id = ''
-        self.build_version = ''
-        self.catalog_item_id = ''
-        self.label_name = ''
-        self.namespace = ''
-        self.metadata = dict()
+    """
+    App asset data
+    """
+    app_name: str = ''
+    asset_id: str = ''
+    build_version: str = ''
+    catalog_item_id: str = ''
+    label_name: str = ''
+    namespace: str = ''
+    metadata: Dict = field(default_factory=dict)
 
     @classmethod
     def from_egs_json(cls, json):
@@ -38,15 +44,22 @@ class GameAsset:
         return tmp
 
 
+@dataclass
 class Game:
-    def __init__(self, app_name='', app_title='', asset_info=None, app_version='', metadata=None):
-        self.metadata = dict() if metadata is None else metadata  # store metadata from EGS
-        self.asset_info = asset_info if asset_info else GameAsset()  # asset info from EGS
+    """
+    Combination of app asset and app metadata as stored on disk
+    """
+    app_name: str
+    app_title: str
 
-        self.app_version = app_version
-        self.app_name = app_name
-        self.app_title = app_title
-        self.base_urls = []  # base urls for download, only really used when cached manifest is current
+    asset_infos: Dict[str, GameAsset] = field(default_factory=dict)
+    base_urls: List[str] = field(default_factory=list)
+    metadata: Dict = field(default_factory=dict)
+
+    def app_version(self, platform='Windows'):
+        if platform not in self.asset_infos:
+            return None
+        return self.asset_infos[platform].build_version
 
     @property
     def is_dlc(self):
@@ -64,57 +77,63 @@ class Game:
 
     @classmethod
     def from_json(cls, json):
-        tmp = cls()
+        tmp = cls(
+            app_name=json.get('app_name', ''),
+            app_title=json.get('app_title', ''),
+        )
         tmp.metadata = json.get('metadata', dict())
-        tmp.asset_info = GameAsset.from_json(json.get('asset_info', dict()))
-        tmp.app_name = json.get('app_name', 'undefined')
-        tmp.app_title = json.get('app_title', 'undefined')
-        tmp.app_version = json.get('app_version', 'undefined')
+        if 'asset_infos' in json:
+            tmp.asset_infos = {k: GameAsset.from_json(v) for k, v in json['asset_infos'].items()}
+        else:
+            # Migrate old asset_info to new asset_infos
+            tmp.asset_infos['Windows'] = GameAsset.from_json(json.get('asset_info', dict()))
+
         tmp.base_urls = json.get('base_urls', list())
         return tmp
 
     @property
     def __dict__(self):
-        """This is just here so asset_info gets turned into a dict as well"""
-        return dict(metadata=self.metadata, asset_info=self.asset_info.__dict__,
-                    app_name=self.app_name, app_title=self.app_title,
-                    app_version=self.app_version, base_urls=self.base_urls)
+        """This is just here so asset_infos gets turned into a dict as well"""
+        assets_dictified = {k: v.__dict__ for k, v in self.asset_infos.items()}
+        return dict(metadata=self.metadata, asset_infos=assets_dictified, app_name=self.app_name,
+                    app_title=self.app_title, base_urls=self.base_urls)
 
 
+@dataclass
 class InstalledGame:
-    def __init__(self, app_name='', title='', version='', manifest_path='', base_urls=None,
-                 install_path='', executable='', launch_parameters='', prereq_info=None,
-                 can_run_offline=False, requires_ot=False, is_dlc=False, save_path=None,
-                 needs_verification=False, install_size=0, egl_guid='', install_tags=None):
-        self.app_name = app_name
-        self.title = title
-        self.version = version
+    """
+    Local metadata for an installed app
+    """
+    app_name: str
+    install_path: str
+    title: str
+    version: str
 
-        self.manifest_path = manifest_path
-        self.base_urls = list() if not base_urls else base_urls
-        self.install_path = install_path
-        self.executable = executable
-        self.launch_parameters = launch_parameters
-        self.prereq_info = prereq_info
-        self.can_run_offline = can_run_offline
-        self.requires_ot = requires_ot
-        self.is_dlc = is_dlc
-        self.save_path = save_path
-        self.needs_verification = needs_verification
-        self.install_size = install_size
-        self.egl_guid = egl_guid
-        self.install_tags = install_tags if install_tags else []
+    base_urls: List[str] = field(default_factory=list)
+    can_run_offline: bool = False
+    egl_guid: str = ''
+    executable: str = ''
+    install_size: int = 0
+    install_tags: List[str] = field(default_factory=list)
+    is_dlc: bool = False
+    launch_parameters: str = ''
+    manifest_path: str = ''
+    needs_verification: bool = False
+    platform: str = 'Windows'
+    prereq_info: Optional[Dict] = None
+    requires_ot: bool = False
+    save_path: Optional[str] = None
 
     @classmethod
     def from_json(cls, json):
-        tmp = cls()
-        tmp.app_name = json.get('app_name', '')
-        tmp.version = json.get('version', '')
-        tmp.title = json.get('title', '')
+        tmp = cls(
+            app_name=json.get('app_name', ''),
+            install_path=json.get('install_path', ''),
+            title=json.get('title', ''),
+            version=json.get('version', ''),
+        )
 
-        tmp.manifest_path = json.get('manifest_path', '')
         tmp.base_urls = json.get('base_urls', list())
-        tmp.install_path = json.get('install_path', '')
         tmp.executable = json.get('executable', '')
         tmp.launch_parameters = json.get('launch_parameters', '')
         tmp.prereq_info = json.get('prereq_info', None)
@@ -123,19 +142,24 @@ class InstalledGame:
         tmp.requires_ot = json.get('requires_ot', False)
         tmp.is_dlc = json.get('is_dlc', False)
         tmp.save_path = json.get('save_path', None)
+        tmp.manifest_path = json.get('manifest_path', '')
         tmp.needs_verification = json.get('needs_verification', False) is True
+        tmp.platform = json.get('platform', 'Windows')
         tmp.install_size = json.get('install_size', 0)
         tmp.egl_guid = json.get('egl_guid', '')
         tmp.install_tags = json.get('install_tags', [])
         return tmp
 
 
+@dataclass
 class SaveGameFile:
-    def __init__(self, app_name='', filename='', manifest='', datetime=None):
-        self.app_name = app_name
-        self.filename = filename
-        self.manifest_name = manifest
-        self.datetime = datetime
+    """
+    Metadata for a cloud save manifest
+    """
+    app_name: str
+    filename: str
+    manifest_name: str
+    datetime: Optional[datetime] = None
 
 
 class SaveGameStatus(Enum):
@@ -154,6 +178,9 @@ class VerifyResult(Enum):
 
 @dataclass
 class LaunchParameters:
+    """
+    Parameters for launching a game
+    """
     # game-supplied parameters
     game_parameters: list = field(default_factory=list)
     game_executable: str = ''

@@ -134,8 +134,8 @@ class EGLManifest:
         tmp.app_version_string = igame.version
         tmp.base_urls = igame.base_urls
         tmp.build_label = 'Live'
-        tmp.catalog_item_id = game.asset_info.catalog_item_id
-        tmp.namespace = game.asset_info.namespace
+        tmp.catalog_item_id = game.asset_infos['Windows'].catalog_item_id
+        tmp.namespace = game.asset_infos['Windows'].namespace
         tmp.display_name = igame.title
         tmp.install_location = igame.install_path
         tmp.install_size = igame.install_size
