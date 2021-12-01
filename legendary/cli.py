@@ -15,6 +15,7 @@ from collections import defaultdict, namedtuple
 from distutils.util import strtobool
 from logging.handlers import QueueListener
 from multiprocessing import freeze_support, Queue as MPQueue
+from platform import platform
 from sys import exit, stdout
 
 from legendary import __version__, __codename__
@@ -1322,6 +1323,7 @@ class LegendaryCLI:
         print(f'Games installed: {games_installed}')
         print(f'EGL Sync enabled: {self.core.egl_sync_enabled}')
         print(f'Config directory: {self.core.lgd.path}')
+        print(f'Platform (System): {platform()} ({os.name})')
         print(f'\nLegendary version: {__version__} - "{__codename__}"')
         print(f'Update available: {"yes" if self.core.update_available else "no"}')
         if self.core.update_available:
