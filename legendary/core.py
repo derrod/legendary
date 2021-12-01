@@ -8,12 +8,11 @@ import shutil
 
 from base64 import b64decode
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import timezone
 from locale import getdefaultlocale
 from multiprocessing import Queue
 from requests import session
 from requests.exceptions import HTTPError
-from typing import List, Dict
 from uuid import uuid4
 from urllib.parse import urlencode, parse_qsl
 
