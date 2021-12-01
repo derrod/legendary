@@ -699,10 +699,6 @@ class LegendaryCLI:
             logger.error('Login failed! Cannot continue with download process.')
             exit(1)
 
-        # default to windows unless installed game or command line has overriden it
-        if not args.platform:
-            args.platform = 'Windows'
-
         if args.file_prefix or args.file_exclude_prefix:
             args.no_install = True
 
@@ -1827,7 +1823,7 @@ def main():
     install_parser.add_argument('--dlm-debug', dest='dlm_debug', action='store_true',
                                 help='Set download manager and worker processes\' loglevel to debug')
     install_parser.add_argument('--platform', dest='platform', action='store', metavar='<Platform>',
-                                type=str, help='Platform override for download')
+                                type=str, help='Platform override for download', default='Windows')
     install_parser.add_argument('--prefix', dest='file_prefix', action='append', metavar='<prefix>',
                                 help='Only fetch files whose path starts with <prefix> (case insensitive)')
     install_parser.add_argument('--exclude', dest='file_exclude_prefix', action='append', metavar='<prefix>',
