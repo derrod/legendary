@@ -985,7 +985,7 @@ class LegendaryCore:
 
     def get_installed_manifest(self, app_name):
         igame = self._get_installed_game(app_name)
-        old_bytes = self.lgd.load_manifest(app_name, igame.version)
+        old_bytes = self.lgd.load_manifest(app_name, igame.version, igame.platform)
         return old_bytes, igame.base_urls
 
     def get_cdn_urls(self, game, platform='Windows'):
@@ -1048,7 +1048,7 @@ class LegendaryCore:
                          force: bool = False, disable_patching: bool = False,
                          game_folder: str = '', override_manifest: str = '',
                          override_old_manifest: str = '', override_base_url: str = '',
-                         platform: str = '', file_prefix_filter: list = None,
+                         platform: str = 'Windows', file_prefix_filter: list = None,
                          file_exclude_filter: list = None, file_install_tag: list = None,
                          dl_optimizations: bool = False, dl_timeout: int = 10,
                          repair: bool = False, repair_use_latest: bool = False,
@@ -1092,7 +1092,8 @@ class LegendaryCore:
         self.log.debug(f'Base urls: {base_urls}')
         # save manifest with version name as well for testing/downgrading/etc.
         self.lgd.save_manifest(game.app_name, new_manifest_data,
-                               version=new_manifest.meta.build_version)
+                               version=new_manifest.meta.build_version,
+                               platform=platform)
 
         # check if we should use a delta manifest or not
         disable_delta = disable_delta or ((override_old_manifest or override_manifest) and not override_delta_manifest)
@@ -1365,7 +1366,7 @@ class LegendaryCore:
         igame.prereq_info['installed'] = True
         self.lgd.set_installed_game(app_name, igame)
 
-    def import_game(self, game: Game, app_path: str, egl_guid='') -> (Manifest, InstalledGame):
+    def import_game(self, game: Game, app_path: str, egl_guid='', platform='Windows') -> (Manifest, InstalledGame):
         needs_verify = True
         manifest_data = None
 
@@ -1414,7 +1415,7 @@ class LegendaryCore:
         # parse and save manifest to disk for verification step of import
         new_manifest = self.load_manifest(manifest_data)
         self.lgd.save_manifest(game.app_name, manifest_data,
-                               version=new_manifest.meta.build_version)
+                               version=new_manifest.meta.build_version, platform=platform)
         install_size = sum(fm.file_size for fm in new_manifest.file_manifest_list.elements)
 
         prereq = None
@@ -1428,7 +1429,8 @@ class LegendaryCore:
                               install_path=app_path, version=new_manifest.meta.build_version, is_dlc=game.is_dlc,
                               executable=new_manifest.meta.launch_exe, can_run_offline=offline == 'true',
                               launch_parameters=new_manifest.meta.launch_command, requires_ot=ot == 'true',
-                              needs_verification=needs_verify, install_size=install_size, egl_guid=egl_guid)
+                              needs_verification=needs_verify, install_size=install_size, egl_guid=egl_guid,
+                              platform=platform)
 
         return new_manifest, igame
 
@@ -1485,7 +1487,8 @@ class LegendaryCore:
             manifest_data = f.read()
         new_manifest = self.load_manifest(manifest_data)
         self.lgd.save_manifest(lgd_igame.app_name, manifest_data,
-                               version=new_manifest.meta.build_version)
+                               version=new_manifest.meta.build_version,
+                               platform='Windows')
 
         # transfer install tag choices to config
         if lgd_igame.install_tags:

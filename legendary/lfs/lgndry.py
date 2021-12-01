@@ -195,18 +195,25 @@ class LGDLFS:
                   open(os.path.join(self.path, 'assets.json'), 'w'),
                   indent=2, sort_keys=True)
 
-    def _get_manifest_filename(self, app_name, version):
-        fname = clean_filename(f'{app_name}_{version}')
+    def _get_manifest_filename(self, app_name, version, platform=None):
+        if platform:
+            fname = clean_filename(f'{app_name}_{platform}_{version}')
+        else:
+            fname = clean_filename(f'{app_name}_{version}')
         return os.path.join(self.path, 'manifests', f'{fname}.manifest')
 
-    def load_manifest(self, app_name, version):
+    def load_manifest(self, app_name, version, platform='Windows'):
         try:
-            return open(self._get_manifest_filename(app_name, version), 'rb').read()
+            return open(self._get_manifest_filename(app_name, version, platform), 'rb').read()
         except FileNotFoundError:  # all other errors should propagate
-            return None
+            self.log.debug(f'Loading manifest failed, retrying without platform in filename...')
+            try:
+                return open(self._get_manifest_filename(app_name, version), 'rb').read()
+            except FileNotFoundError:  # all other errors should propagate
+                return None
 
-    def save_manifest(self, app_name, manifest_data, version):
-        with open(self._get_manifest_filename(app_name, version), 'wb') as f:
+    def save_manifest(self, app_name, manifest_data, version, platform='Windows'):
+        with open(self._get_manifest_filename(app_name, version, platform), 'wb') as f:
             f.write(manifest_data)
 
     def get_game_meta(self, app_name):
