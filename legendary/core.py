@@ -384,9 +384,15 @@ class LegendaryCore:
                     self.log.info(f'Updating meta for {game.app_name} due to build version mismatch')
 
                 eg_meta = self.egs.get_game_info(ga.namespace, ga.catalog_item_id)
-                game.asset_infos[platform] = ga
+
+                if game:
+                    asset_info = game.asset_infos
+                    asset_info[platform] = ga
+                else:
+                    asset_info = {platform: ga}
+
                 game = Game(app_name=ga.app_name, app_title=eg_meta['title'], metadata=eg_meta,
-                            asset_infos=game.asset_infos)
+                            asset_infos=asset_info)
 
                 meta_updated = True
                 self.lgd.set_game_meta(game.app_name, game)
