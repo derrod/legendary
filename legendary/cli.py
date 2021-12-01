@@ -290,6 +290,10 @@ class LegendaryCLI:
                 continue
             games.remove(game)
             dlc = self.core.get_game(game.app_name)
+            if not dlc or not dlc.metadata:
+                logger.warning(f'DLC "{game.app_name}" is missing metadata for some reason. '
+                               f'Running "legendary list-games" may fix this.')
+                continue
             main_app_name = dlc.metadata['mainGameItem']['releaseInfo'][0]['appId']
             installed_dlcs[main_app_name].append(game)
 
@@ -438,6 +442,9 @@ class LegendaryCLI:
 
         # evaluate current save state for each game.
         for igame in igames:
+            if not igame.platform.startswith('Win'):
+                continue
+
             game = self.core.get_game(igame.app_name)
             if not game or not game.supports_cloud_saves:
                 if igame.app_name in latest_save:
