@@ -1093,7 +1093,7 @@ class LegendaryCLI:
             return
 
         # do some basic checks
-        game = self.core.get_game(args.app_name, update_meta=True)
+        game = self.core.get_game(args.app_name, update_meta=True, platform=args.platform)
         if not game:
             logger.fatal(f'Did not find game "{args.app_name}" on account.')
             return
@@ -1112,7 +1112,7 @@ class LegendaryCLI:
                 return
 
         # get everything needed for import from core, then run additional checks.
-        manifest, igame = self.core.import_game(game, args.app_path)
+        manifest, igame = self.core.import_game(game, args.app_path, args.platform)
         exe_path = os.path.join(args.app_path, manifest.meta.launch_exe.lstrip('/'))
         # check if most files at least exist or if user might have specified the wrong directory
         total = len(manifest.file_manifest_list.elements)
@@ -1971,6 +1971,8 @@ def main():
                                help='Automatically attempt to import all DLCs with the base game')
     import_parser.add_argument('--skip-dlcs', dest='skip_dlcs', action='store_true',
                                help='Do not ask about importing DLCs.')
+    import_parser.add_argument('--platform', dest='platform', action='store', metavar='<Platform>',
+                               type=str, help='Platform override for import', default='Windows')
 
     egl_sync_parser.add_argument('--egl-manifest-path', dest='egl_manifest_path', action='store',
                                  help='Path to the Epic Games Launcher\'s Manifests folder, should '
