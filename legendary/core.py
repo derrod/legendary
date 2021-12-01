@@ -314,7 +314,7 @@ class LegendaryCore:
 
     def get_assets(self, update_assets=False, platform='Windows') -> List[GameAsset]:
         # do not save and always fetch list when platform is overridden
-        if not self.lgd.assets or update_assets:
+        if not self.lgd.assets or update_assets or platform not in self.lgd.assets:
             # if not logged in, return empty list
             if not self.egs.user:
                 return []
@@ -404,7 +404,9 @@ class LegendaryCore:
 
     def _prune_metadata(self):
         # compile list of games without assets, then delete their metadata
-        available_assets = {i.app_name for i in self.get_assets()}
+        available_assets = set()
+        for platform in self.get_installed_platforms():
+            available_assets |= {i.app_name for i in self.get_assets(platform=platform)}
 
         for app_name in self.lgd.get_game_app_names():
             if app_name in available_assets:
@@ -486,9 +488,9 @@ class LegendaryCore:
     def get_installed_dlc_list(self) -> List[InstalledGame]:
         return [g for g in self.lgd.get_installed_list() if g.is_dlc]
 
-    def get_installed_game(self, app_name) -> InstalledGame:
+    def get_installed_game(self, app_name, skip_sync=False) -> InstalledGame:
         igame = self._get_installed_game(app_name)
-        if igame and self.egl_sync_enabled and igame.egl_guid and not igame.is_dlc:
+        if not skip_sync and igame and self.egl_sync_enabled and igame.egl_guid and not igame.is_dlc:
             self.egl_sync(app_name)
             return self._get_installed_game(app_name)
         else:
