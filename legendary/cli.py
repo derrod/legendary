@@ -715,6 +715,9 @@ class LegendaryCLI:
                 logger.error(f'Update requested for "{args.app_name}", but app not installed!')
                 exit(1)
 
+        if args.platform not in ('Win32', 'Windows', 'Mac'):
+            logger.warning(f'Platform "{args.platform}" may be invalid. Valid ones are: Windows, Win32, Mac.')
+
         game = self.core.get_game(args.app_name, update_meta=True)
 
         if not game:
