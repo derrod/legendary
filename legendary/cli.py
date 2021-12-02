@@ -1428,7 +1428,7 @@ class LegendaryCLI:
             # list all owned DLC based on entitlements
             if entitlements and not game.is_dlc:
                 owned_entitlements = {i['entitlementName'] for i in entitlements}
-                owned_app_names = {g.app_name for g in self.core.get_assets()}
+                owned_app_names = {g.app_name for g in self.core.get_assets(args.platform)}
                 owned_dlc = []
                 for dlc in game.metadata.get('dlcItemList', []):
                     installable = dlc.get('releaseInfo', None)
@@ -1706,7 +1706,9 @@ class LegendaryCLI:
         before = self.core.lgd.get_dir_size()
         # delete metadata
         logger.debug('Removing app metadata...')
-        app_names = set(g.app_name for g in self.core.get_assets(update_assets=False))
+        app_names = {}
+        for _platform in self.core.get_installed_platforms():
+            app_names |= set(g.app_name for g in self.core.get_assets(update_assets=False, platform=_platform))
         self.core.lgd.clean_metadata(app_names)
 
         if not args.keep_manifests:
