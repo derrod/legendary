@@ -371,35 +371,44 @@ class LegendaryCore:
                               force_refresh=False, skip_ue=True) -> (List[Game], Dict[str, List[Game]]):
         _ret = []
         _dlc = defaultdict(list)
+        assets = {}
         meta_updated = False
 
-        for ga in self.get_assets(update_assets=update_assets, platform=platform):
-            if ga.namespace == 'ue' and skip_ue:
+        # fetch asset information for Windows, all installed platforms, and the specified one
+        platforms = {'Windows'}
+        platforms |= {platform}
+        platforms |= self.get_installed_platforms()
+
+        for _platform in platforms:
+            for ga in self.get_assets(update_assets=update_assets, platform=_platform):
+                if ga.app_name not in assets:
+                    assets[ga.app_name] = {_platform: ga}
+                else:
+                    assets[ga.app_name][_platform] = ga
+
+        for app_name, app_assets in sorted(assets.items()):
+            if skip_ue and any(v.namespace == 'ue' for v in app_assets.values()):
                 continue
 
-            game = self.lgd.get_game_meta(ga.app_name)
-            if update_assets and (not game or force_refresh or
-                                  (game and game.app_version(platform) != ga.build_version)):
-                if game and game.app_version(platform) != ga.build_version:
+            game = self.lgd.get_game_meta(app_name)
+            asset_updated = False
+            if game:
+                asset_updated = any(game.app_version(_p) != app_assets[_p].build_version for _p in app_assets.keys())
+
+            if update_assets and (not game or force_refresh or (game and asset_updated)):
+                if game and asset_updated:
                     self.log.info(f'Updating meta for {game.app_name} due to build version mismatch')
 
-                eg_meta = self.egs.get_game_info(ga.namespace, ga.catalog_item_id)
-
-                if game:
-                    asset_info = game.asset_infos
-                    asset_info[platform] = ga
-                else:
-                    asset_info = {platform: ga}
-
-                game = Game(app_name=ga.app_name, app_title=eg_meta['title'], metadata=eg_meta,
-                            asset_infos=asset_info)
+                eg_meta = self.egs.get_game_info(game.namespace, game.catalog_item_id)
+                game = Game(app_name=app_name, app_title=eg_meta['title'], metadata=eg_meta,
+                            asset_infos=app_assets)
 
                 meta_updated = True
                 self.lgd.set_game_meta(game.app_name, game)
 
             if game.is_dlc:
                 _dlc[game.metadata['mainGameItem']['id']].append(game)
-            elif not any(i['path'] == 'mods' for i in game.metadata.get('categories', [])):
+            elif not any(i['path'] == 'mods' for i in game.metadata.get('categories', [])) and platform in app_assets:
                 _ret.append(game)
 
         self.update_aliases(force=meta_updated)
