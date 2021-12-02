@@ -718,7 +718,7 @@ class LegendaryCLI:
         if args.platform not in ('Win32', 'Windows', 'Mac'):
             logger.warning(f'Platform "{args.platform}" may be invalid. Valid ones are: Windows, Win32, Mac.')
 
-        game = self.core.get_game(args.app_name, update_meta=True)
+        game = self.core.get_game(args.app_name, update_meta=True, platform=args.platform)
 
         if not game:
             logger.error(f'Could not find "{args.app_name}" in list of available games, '
