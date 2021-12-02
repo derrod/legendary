@@ -398,8 +398,10 @@ class LegendaryCore:
             if update_assets and (not game or force_refresh or (game and asset_updated)):
                 if game and asset_updated:
                     self.log.info(f'Updating meta for {game.app_name} due to build version mismatch')
-
-                eg_meta = self.egs.get_game_info(game.namespace, game.catalog_item_id)
+                
+                # namespace/catalog item are the same for all platforms, so we can just use the first one
+                _ga = next(iter(app_assets.values()))
+                eg_meta = self.egs.get_game_info(_ga.namespace, _ga.catalog_item_id)
                 game = Game(app_name=app_name, app_title=eg_meta['title'], metadata=eg_meta,
                             asset_infos=app_assets)
 
