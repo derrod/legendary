@@ -24,7 +24,7 @@ from legendary.models.exceptions import InvalidCredentialsError
 from legendary.models.game import SaveGameStatus, VerifyResult
 from legendary.utils.cli import get_boolean_choice, sdl_prompt
 from legendary.utils.custom_parser import AliasedSubParsersAction
-from legendary.utils.env import is_windows_or_pyi
+from legendary.utils.env import is_windows_mac_or_pyi
 from legendary.utils.lfs import validate_files
 from legendary.utils.selective_dl import get_sdl_appname
 from legendary.utils.wine_helpers import read_registry, get_shell_folders
@@ -2117,7 +2117,7 @@ def main():
             print(f'- Release summary:\n{update_info["summary"]}\n- Release URL: {update_info["gh_url"]}')
             if update_info['critical']:
                 print('! This update is recommended as it fixes major issues.')
-            if not is_windows_or_pyi():
+            if not is_windows_mac_or_pyi():
                 print('If you installed legendary via a package manager it may '
                       'take some time for the update to become available.')
 

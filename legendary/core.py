@@ -33,7 +33,7 @@ from legendary.models.json_manifest import JSONManifest
 from legendary.models.manifest import Manifest, ManifestMeta
 from legendary.models.chunk import Chunk
 from legendary.utils.egl_crypt import decrypt_epic_data
-from legendary.utils.env import is_windows_or_pyi
+from legendary.utils.env import is_windows_mac_or_pyi
 from legendary.utils.game_workarounds import is_opt_enabled, update_workarounds
 from legendary.utils.savegame_helper import SaveGameHelper
 from legendary.utils.selective_dl import games as sdl_games
@@ -242,7 +242,7 @@ class LegendaryCore:
         if self.force_show_update:
             return True
         return not self.lgd.config.getboolean('Legendary', 'disable_update_notice',
-                                              fallback=not is_windows_or_pyi())
+                                              fallback=not is_windows_mac_or_pyi())
 
     def check_for_updates(self, force=False):
         def version_tuple(v):
