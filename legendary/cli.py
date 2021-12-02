@@ -447,7 +447,7 @@ class LegendaryCLI:
                 continue
 
             game = self.core.get_game(igame.app_name)
-            if not game or not game.supports_cloud_saves:
+            if not game or not (game.supports_cloud_saves or game.supports_mac_cloud_saves):
                 if igame.app_name in latest_save:
                     # this should never happen unless cloud save support was removed from a game
                     logger.warning(f'{igame.app_name} has remote save(s) but does not support cloud saves?!')
@@ -462,7 +462,7 @@ class LegendaryCLI:
 
             # if there is no saved save path, try to get one
             if not igame.save_path:
-                save_path = self.core.get_save_path(igame.app_name)
+                save_path = self.core.get_save_path(igame.app_name, platform=igame.platform)
 
                 # ask user if path is correct if computing for the first time
                 logger.info(f'Computed save path: "{save_path}"')
@@ -902,7 +902,7 @@ class LegendaryCLI:
             end_t = time.time()
             if not args.no_install:
                 # Allow setting savegame directory at install time so sync-saves will work immediately
-                if game.supports_cloud_saves and args.save_path:
+                if (game.supports_cloud_saves or game.supports_mac_cloud_saves) and args.save_path:
                     igame.save_path = args.save_path
 
                 postinstall = self.core.install_game(igame)
@@ -930,7 +930,7 @@ class LegendaryCLI:
                             self.install_game(args)
                         args.yes, args.app_name = _yes, _app_name
 
-                if game.supports_cloud_saves and not game.is_dlc:
+                if (game.supports_cloud_saves or game.supports_mac_cloud_saves) and not game.is_dlc:
                     # todo option to automatically download saves after the installation
                     #  args does not have the required attributes for sync_saves in here,
                     #  not sure how to solve that elegantly.
@@ -1399,13 +1399,20 @@ class LegendaryCLI:
                                        game.app_version(args.platform)))
             all_versions = {k: v.build_version for k,v in game.asset_infos.items()}
             game_infos.append(InfoItem('All versions', 'platform_versions', all_versions, all_versions))
+            # Cloud save support for Mac and Windows
             game_infos.append(InfoItem('Cloud saves supported', 'cloud_saves_supported',
-                                       game.supports_cloud_saves, game.supports_cloud_saves))
+                                       game.supports_cloud_saves or game.supports_mac_cloud_saves,
+                                       game.supports_cloud_saves or game.supports_mac_cloud_saves))
+            cs_dir = None
             if game.supports_cloud_saves:
                 cs_dir = game.metadata['customAttributes']['CloudSaveFolder']['value']
-            else:
-                cs_dir = None
-            game_infos.append(InfoItem('Cloud save folder', 'cloud_save_folder', cs_dir, cs_dir))
+            game_infos.append(InfoItem('Cloud save folder (Windows)', 'cloud_save_folder', cs_dir, cs_dir))
+
+            cs_dir = None
+            if game.supports_mac_cloud_saves:
+                cs_dir = game.metadata['customAttributes']['CloudSaveFolder_MAC']['value']
+            game_infos.append(InfoItem('Cloud save folder (Mac)', 'cloud_save_folder_mac', cs_dir, cs_dir))
+
             game_infos.append(InfoItem('Is DLC', 'is_dlc', game.is_dlc, game.is_dlc))
             # Find custom launch options, if available
             launch_options = []

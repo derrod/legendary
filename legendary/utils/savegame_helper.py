@@ -51,8 +51,8 @@ class SaveGameHelper:
         _tmp_file.seek(0)
         return ci
 
-    def package_savegame(self, input_folder: str, app_name: str = '',
-                         epic_id: str = '', cloud_folder: str = '',
+    def package_savegame(self, input_folder: str, app_name: str = '', epic_id: str = '',
+                         cloud_folder: str = '', cloud_folder_mac: str = '',
                          include_filter: list = None,
                          exclude_filter: list = None,
                          manifest_dt: datetime = None):
@@ -61,6 +61,7 @@ class SaveGameHelper:
         :param app_name: App name for savegame being stored
         :param epic_id: Epic account ID
         :param cloud_folder: Folder the savegame resides in (based on game metadata)
+        :param cloud_folder_mac: Folder the macOS savegame resides in (based on game metadata)
         :param include_filter: list of patterns for files to include (excludes all others)
         :param exclude_filter: list of patterns for files to exclude (includes all others)
         :param manifest_dt: datetime for the manifest name (optional)
@@ -77,6 +78,8 @@ class SaveGameHelper:
             manifest_dt = datetime.utcnow()
         m.meta.build_version = manifest_dt.strftime('%Y.%m.%d-%H.%M.%S')
         m.custom_fields['CloudSaveFolder'] = cloud_folder
+        if cloud_folder_mac:
+            m.custom_fields['CloudSaveFolder_MAC'] = cloud_folder_mac
 
         self.log.info(f'Packing savegame for "{app_name}", input folder: {input_folder}')
         files = []

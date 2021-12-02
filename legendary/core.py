@@ -14,6 +14,7 @@ from multiprocessing import Queue
 from platform import system
 from requests import session
 from requests.exceptions import HTTPError
+from sys import platform as sys_platform
 from uuid import uuid4
 from urllib.parse import urlencode, parse_qsl
 
@@ -398,7 +399,7 @@ class LegendaryCore:
             if update_assets and (not game or force_refresh or (game and asset_updated)):
                 if game and asset_updated:
                     self.log.info(f'Updating meta for {game.app_name} due to build version mismatch')
-                
+
                 # namespace/catalog item are the same for all platforms, so we can just use the first one
                 _ga = next(iter(app_assets.values()))
                 eg_meta = self.egs.get_game_info(_ga.namespace, _ga.catalog_item_id)
@@ -673,9 +674,14 @@ class LegendaryCore:
 
         return _saves
 
-    def get_save_path(self, app_name):
+    def get_save_path(self, app_name, platform='Windows'):
         game = self.lgd.get_game_meta(app_name)
-        save_path = game.metadata['customAttributes'].get('CloudSaveFolder', {}).get('value')
+
+        if platform == 'Mac':
+            save_path = game.metadata['customAttributes'].get('CloudSaveFolder_MAC', {}).get('value')
+        else:
+            save_path = game.metadata['customAttributes'].get('CloudSaveFolder', {}).get('value')
+
         if not save_path:
             raise ValueError('Game does not support cloud saves')
 
@@ -689,12 +695,18 @@ class LegendaryCore:
             '{epicid}': self.lgd.userdata['account_id']
         }
 
-        if os.name == 'nt':
+        if sys_platform == 'win32':
             path_vars.update({
                 '{appdata}': os.path.expandvars('%LOCALAPPDATA%'),
                 '{userdir}': os.path.expandvars('%userprofile%/documents'),
-                # '{userprofile}': os.path.expandvars('%userprofile%'),  # possibly wrong
+                '{userprofile}': os.path.expandvars('%userprofile%'),
                 '{usersavedgames}': os.path.expandvars('%userprofile%/Saved Games')
+            })
+        elif sys_platform == 'darwin' and platform == 'Mac':
+            path_vars.update({
+                '{appdata}': os.path.expandvars('~/Library/Application Support'),
+                '{userdir}': os.path.expandvars('~/Documents'),
+                '{userlibrary}': os.path.expandvars('~/Library')
             })
         else:
             # attempt to get WINE prefix from config
@@ -724,8 +736,8 @@ class LegendaryCore:
         # these paths should always use a forward slash
         new_save_path = [path_vars.get(p.lower(), p) for p in save_path.split('/')]
         absolute_path = os.path.realpath(os.path.join(*new_save_path))
-        # attempt to resolve as much as possible on case-insensitive file-systems
-        if os.name != 'nt':
+        # attempt to resolve as much as possible on case-sensitive file-systems
+        if os.name != 'nt' and platform != 'Mac':
             absolute_path = case_insensitive_path_search(absolute_path)
 
         return absolute_path
@@ -765,6 +777,7 @@ class LegendaryCore:
         game = self.lgd.get_game_meta(app_name)
         custom_attr = game.metadata['customAttributes']
         save_path = custom_attr.get('CloudSaveFolder', {}).get('value')
+        save_path_mac = custom_attr.get('CloudSaveFolder_MAC', {}).get('value')
 
         include_f = exclude_f = None
         if not disable_filtering:
@@ -774,12 +787,12 @@ class LegendaryCore:
             if (_exclude := custom_attr.get('CloudExcludeList', {}).get('value', None)) is not None:
                 exclude_f = _exclude.split(',')
 
-        if not save_path:
+        if not save_path and not save_path_mac:
             raise ValueError('Game does not support cloud saves')
 
         sgh = SaveGameHelper()
         files = sgh.package_savegame(save_dir, app_name, self.egs.user.get('account_id'),
-                                     save_path, include_f, exclude_f, local_dt)
+                                     save_path, save_path_mac, include_f, exclude_f, local_dt)
 
         if not files:
             self.log.info('No files to upload. If you believe this is incorrect run command with "--disable-filters"')

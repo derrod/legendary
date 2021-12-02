@@ -76,6 +76,10 @@ class Game:
         return self.metadata and (self.metadata.get('customAttributes', {}).get('CloudSaveFolder') is not None)
 
     @property
+    def supports_mac_cloud_saves(self):
+        return self.metadata and (self.metadata.get('customAttributes', {}).get('CloudSaveFolder_MAC') is not None)
+
+    @property
     def catalog_item_id(self):
         if not self.metadata:
             return None
