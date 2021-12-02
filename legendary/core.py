@@ -669,7 +669,7 @@ class LegendaryCore:
             if '.manifest' not in fname:
                 continue
             f_parts = fname.split('/')
-            _saves.append(SaveGameFile(app_name=f_parts[2], filename=fname, manifest=f_parts[4],
+            _saves.append(SaveGameFile(app_name=f_parts[2], filename=fname, manifest_name=f_parts[4],
                                        datetime=datetime.fromisoformat(f['lastModified'][:-1])))
 
         return _saves
