@@ -266,7 +266,6 @@ class LegendaryCLI:
         versions = dict()
         for game in games:
             try:
-                print(f'{game.title} (App name: {game.app_name}, platform: {game.platform})')
                 versions[game.app_name] = self.core.get_asset(game.app_name, platform=game.platform).build_version
             except ValueError:
                 logger.warning(f'Metadata for "{game.app_name}" is missing, the game may have been removed from '
@@ -276,9 +275,10 @@ class LegendaryCLI:
         if args.csv or args.tsv:
             writer = csv.writer(stdout, dialect='excel-tab' if args.tsv else 'excel', lineterminator='\n')
             writer.writerow(['App name', 'App title', 'Installed version', 'Available version',
-                             'Update available', 'Install size', 'Install path'])
+                             'Update available', 'Install size', 'Install path', 'Platform'])
             writer.writerows((game.app_name, game.title, game.version, versions[game.app_name],
-                              versions[game.app_name] != game.version, game.install_size, game.install_path)
+                              versions[game.app_name] != game.version, game.install_size, game.install_path,
+                              game.platform)
                              for game in games if game.app_name in versions)
             return
 
@@ -307,7 +307,7 @@ class LegendaryCLI:
                 self.core.install_game(game)
 
             print(f' * {game.title} (App name: {game.app_name} | Version: {game.version} | '
-                  f'{game.install_size / (1024*1024*1024):.02f} GiB)')
+                  f'Platform: {game.platform} | {game.install_size / (1024*1024*1024):.02f} GiB)')
             if args.include_dir:
                 print(f'  + Location: {game.install_path}')
             if not os.path.exists(game.install_path):
