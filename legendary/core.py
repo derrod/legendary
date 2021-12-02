@@ -704,9 +704,9 @@ class LegendaryCore:
             })
         elif sys_platform == 'darwin' and platform == 'Mac':
             path_vars.update({
-                '{appdata}': os.path.expandvars('~/Library/Application Support'),
-                '{userdir}': os.path.expandvars('~/Documents'),
-                '{userlibrary}': os.path.expandvars('~/Library')
+                '{appdata}': os.path.expanduser('~/Library/Application Support'),
+                '{userdir}': os.path.expanduser('~/Documents'),
+                '{userlibrary}': os.path.expanduser('~/Library')
             })
         else:
             # attempt to get WINE prefix from config
