@@ -423,7 +423,7 @@ class LegendaryCore:
     def _prune_metadata(self):
         # compile list of games without assets, then delete their metadata
         available_assets = set()
-        for platform in self.get_installed_platforms():
+        for platform in self.get_installed_platforms() | {'Windows'}:
             available_assets |= {i.app_name for i in self.get_assets(platform=platform)}
 
         for app_name in self.lgd.get_game_app_names():
