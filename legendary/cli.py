@@ -257,8 +257,8 @@ class LegendaryCLI:
                 logger.error('Login failed! Not checking for updates.')
             else:
                 # Update assets for all platforms currently installed
-                for platform in self.core.get_installed_platforms():
-                    self.core.get_assets(True, platform=platform)
+                for app_platform in self.core.get_installed_platforms():
+                    self.core.get_assets(True, platform=app_platform)
 
         games = sorted(self.core.get_installed_list(include_dlc=True),
                        key=lambda x: x.title.lower())
