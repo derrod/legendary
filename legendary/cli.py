@@ -218,7 +218,7 @@ class LegendaryCLI:
             writer.writerow(['App name', 'App title', 'Version', 'Is DLC'])
             for game in games:
                 writer.writerow((game.app_name, game.app_title, game.app_version(args.platform), False))
-                for dlc in dlc_list[game.asset_infos[args.platform].catalog_item_id]:
+                for dlc in dlc_list[game.catalog_item_id]:
                     writer.writerow((dlc.app_name, dlc.app_title, dlc.app_version(args.platform), True))
             return
 
@@ -226,7 +226,7 @@ class LegendaryCLI:
             _out = []
             for game in games:
                 _j = vars(game)
-                _j['dlcs'] = [vars(dlc) for dlc in dlc_list[game.asset_infos[args.platform].catalog_item_id]]
+                _j['dlcs'] = [vars(dlc) for dlc in dlc_list[game.catalog_item_id]]
                 _out.append(_j)
 
             return self._print_json(_out, args.pretty_json)
@@ -243,10 +243,10 @@ class LegendaryCLI:
                     print(f'  ! This game has to be installed through third-party store ({_store}, not supported)')
                 else:
                     print(f'  ! No version information (unknown cause)')
-            for dlc in dlc_list[game.asset_infos[args.platform].catalog_item_id]:
+            for dlc in dlc_list[game.catalog_item_id]:
                 print(f'  + {dlc.app_title} (App name: {dlc.app_name} | Version: {dlc.app_version(args.platform)})')
                 if not dlc.app_version(args.platform):
-                    print('   ! This DLC is included in the game does not have to be downloaded separately')
+                    print(f'   ! This DLC is either included in the base game, or not available for {args.platform}')
 
         print(f'\nTotal: {len(games)}')
 
@@ -1382,17 +1382,11 @@ class LegendaryCLI:
                 logger.info('Game not installed and offline mode enabled, cannot load manifest.')
         elif game:
             entitlements = self.core.egs.get_user_entitlements()
-            # get latest metadata and manifest
-            if game.asset_infos[args.platform].catalog_item_id:
-                egl_meta = self.core.egs.get_game_info(game.asset_infos[args.platform].namespace,
-                                                       game.asset_infos[args.platform].catalog_item_id)
-                game.metadata = egl_meta
+            egl_meta = self.core.egs.get_game_info(game.namespace, game.catalog_item_id)
+            game.metadata = egl_meta
+            # Get manifest if asset exists for current platform
+            if args.platform in game.asset_infos:
                 manifest_data, _ = self.core.get_cdn_manifest(game, args.platform)
-            else:
-                # Origin games do not have asset info, so fall back to info from metadata
-                egl_meta = self.core.egs.get_game_info(game.metadata['namespace'],
-                                                       game.metadata['id'])
-                game.metadata = egl_meta
 
         if game:
             game_infos = info_items['game']

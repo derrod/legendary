@@ -75,6 +75,18 @@ class Game:
     def supports_cloud_saves(self):
         return self.metadata and (self.metadata.get('customAttributes', {}).get('CloudSaveFolder') is not None)
 
+    @property
+    def catalog_item_id(self):
+        if not self.metadata:
+            return None
+        return self.metadata['id']
+
+    @property
+    def namespace(self):
+        if not self.metadata:
+            return None
+        return self.metadata['namespace']
+
     @classmethod
     def from_json(cls, json):
         tmp = cls(

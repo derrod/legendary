@@ -473,7 +473,7 @@ class LegendaryCore:
             return []
 
         _, dlcs = self.get_game_and_dlc_list(update_assets=False, platform=platform)
-        return dlcs[game.asset_infos[platform].catalog_item_id]
+        return dlcs[game.catalog_item_id]
 
     def get_installed_platforms(self):
         return {i.platform for i in self._get_installed_list(False)}
@@ -602,11 +602,8 @@ class LegendaryCore:
 
         if install.requires_ot and not offline:
             self.log.info('Getting ownership token.')
-            ovt = self.egs.get_ownership_token(game.asset_infos[install.platform].namespace,
-                                               game.asset_infos[install.platform].catalog_item_id)
-            ovt_path = os.path.join(self.lgd.get_tmp_path(),
-                                    f'{game.asset_infos[install.platform].namespace}'
-                                    f'{game.asset_infos[install.platform].catalog_item_id}.ovt')
+            ovt = self.egs.get_ownership_token(game.namespace, game.catalog_item_id)
+            ovt_path = os.path.join(self.lgd.get_tmp_path(), f'{game.namespace}{game.catalog_item_id}.ovt')
             with open(ovt_path, 'wb') as f:
                 f.write(ovt)
             params.egl_parameters.append(f'-epicovt={ovt_path}')
@@ -995,8 +992,7 @@ class LegendaryCore:
         return old_bytes, igame.base_urls
 
     def get_cdn_urls(self, game, platform='Windows'):
-        m_api_r = self.egs.get_game_manifest(game.asset_infos[platform].namespace,
-                                             game.asset_infos[platform].catalog_item_id,
+        m_api_r = self.egs.get_game_manifest(game.namespace, game.catalog_item_id,
                                              game.app_name, platform)
 
         # never seen this outside the launcher itself, but if it happens: PANIC!
@@ -1531,8 +1527,8 @@ class LegendaryCore:
             mf.write(manifest_data)
 
         mancpn = dict(FormatVersion=0, AppName=app_name,
-                      CatalogItemId=lgd_game.asset_infos['Windows'].catalog_item_id,
-                      CatalogNamespace=lgd_game.asset_infos['Windows'].namespace)
+                      CatalogItemId=lgd_game.catalog_item_id,
+                      CatalogNamespace=lgd_game.namespace)
         with open(os.path.join(egstore_folder, f'{egl_game.installation_guid}.mancpn', ), 'w') as mcpnf:
             json.dump(mancpn, mcpnf, indent=4, sort_keys=True)
 
