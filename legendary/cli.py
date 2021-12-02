@@ -443,9 +443,6 @@ class LegendaryCLI:
 
         # evaluate current save state for each game.
         for igame in igames:
-            if not igame.platform.startswith('Win'):
-                continue
-
             game = self.core.get_game(igame.app_name)
             if not game or not (game.supports_cloud_saves or game.supports_mac_cloud_saves):
                 if igame.app_name in latest_save:
