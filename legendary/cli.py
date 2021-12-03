@@ -1746,8 +1746,10 @@ class LegendaryCLI:
             ubi_account_id = ext_auth['externalAuthId']
             break
         else:
-            logger.error('No ubisoft account found! Please link your accounts via the following link: '
-                         'https://www.epicgames.com/id/link/ubisoft')
+            logger.error('No linked ubisoft account found! Please link your accounts via your browser and try again.')
+            webbrowser.open('https://www.epicgames.com/id/link/ubisoft')
+            print('If web page did not open automatically, please manually open the following URL: '
+                  'https://www.epicgames.com/id/link/ubisoft')
             return
 
         uplay_keys = self.core.egs.store_get_uplay_codes()
@@ -1756,15 +1758,17 @@ class LegendaryCLI:
 
         games = self.core.get_game_list()
         uplay_games = []
+        activated = 0
         for game in games:
             if game.metadata.get('customAttributes', {}).get('partnerLinkType', {}).get('value') != 'ubisoft':
                 continue
             if game.metadata.get('customAttributes', {}).get('partnerLinkId', {}).get('value') in redeemed:
+                activated += 1
                 continue
             uplay_games.append(game)
 
         if not uplay_games:
-            logger.info('No remaining games found.')
+            logger.info(f'All of your {activated} Uplay titles have already been activated on your Ubisoft account.')
             return
 
         logger.info(f'Found {len(uplay_games)} game(s) to redeem:')
