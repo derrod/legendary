@@ -373,7 +373,6 @@ class LegendaryCore:
                               force_refresh=False, skip_ue=True) -> (List[Game], Dict[str, List[Game]]):
         _ret = []
         _dlc = defaultdict(list)
-        assets = {}
         meta_updated = False
 
         # fetch asset information for Windows, all installed platforms, and the specified one
@@ -382,11 +381,15 @@ class LegendaryCore:
         platforms |= self.get_installed_platforms()
 
         for _platform in platforms:
-            for ga in self.get_assets(update_assets=update_assets, platform=_platform):
-                if ga.app_name not in assets:
-                    assets[ga.app_name] = {_platform: ga}
+            self.get_assets(update_assets=update_assets, platform=_platform)
+
+        assets = {}
+        for _platform, _assets in self.lgd.assets.items():
+            for _asset in _assets:
+                if _asset.app_name in assets:
+                    assets[_asset.app_name][_platform] = _asset
                 else:
-                    assets[ga.app_name][_platform] = ga
+                    assets[_asset.app_name] = {_platform: _asset}
 
         fetch_list = []
         games = {}
