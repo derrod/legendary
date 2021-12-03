@@ -1,6 +1,7 @@
 # !/usr/bin/env python
 # coding: utf-8
 
+import aiohttp
 import requests
 import logging
 
@@ -40,6 +41,13 @@ class EPCAPI:
 
         self.language_code = lc
         self.country_code = cc
+        self.aio_session = None
+
+    def init_aio_session(self):
+        self.aio_session = aiohttp.ClientSession(headers=self.session.headers)
+
+    async def close_aio_session(self):
+        return await self.aio_session.close()
 
     def update_egs_params(self, egs_params):
         # update user-agent
@@ -155,6 +163,17 @@ class EPCAPI:
                                          country=self.country_code, locale=self.language_code))
         r.raise_for_status()
         return r.json().get(catalog_item_id, None)
+
+    async def aio_get_game_info(self, namespace, catalog_item_id):
+        if not self.aio_session:
+            raise RuntimeError('No asiohttp session!')
+
+        async with self.aio_session.get(f'https://{self._catalog_host}/catalog/api/shared/namespace/'
+                                        f'{namespace}/bulk/items', raise_for_status=True,
+                                        params=dict(id=catalog_item_id, includeDLCDetails='true',
+                                                    includeMainGameDetails='true', country=self.country_code,
+                                                    locale=self.language_code)) as r:
+            return (await r.json()).get(catalog_item_id, None)
 
     def get_library_items(self, include_metadata=True):
         records = []
