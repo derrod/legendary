@@ -420,10 +420,11 @@ class LegendaryCore:
 
         # setup and teardown of thread pool takes some time, so only do it when it makes sense.
         use_threads = len(fetch_list) > 5
-        self.log.info(f'Fetching metadata for {len(fetch_list)} apps.')
-        if use_threads:
-            with ThreadPoolExecutor(max_workers=16) as executor:
-                executor.map(fetch_game_meta, fetch_list, timeout=60.0)
+        if fetch_list:
+            self.log.info(f'Fetching metadata for {len(fetch_list)} apps.')
+            if use_threads:
+                with ThreadPoolExecutor(max_workers=16) as executor:
+                    executor.map(fetch_game_meta, fetch_list, timeout=60.0)
 
         for app_name, app_assets in sorted(assets.items()):
             if skip_ue and any(v.namespace == 'ue' for v in app_assets.values()):
