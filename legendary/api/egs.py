@@ -7,10 +7,12 @@ import logging
 from requests.auth import HTTPBasicAuth
 
 from legendary.models.exceptions import InvalidCredentialsError
+from legendary.models.gql import *
 
 
 class EPCAPI:
     _user_agent = 'UELauncher/11.0.1-14907503+++Portal+Release-Live Windows/10.0.19041.1.256.64bit'
+    _store_user_agent = 'EpicGamesLauncher/11.0.1-14907503+++Portal+Release-Live'
     # required for the oauth request
     _user_basic = '34a02cf8f4414e29b15921876da36f9a'
     _pw_basic = 'daafbccc737745039dffe53d94fc76cf'
@@ -23,6 +25,7 @@ class EPCAPI:
     _ecommerce_host = 'ecommerceintegration-public-service-ecomprod02.ol.epicgames.com'
     _datastorage_host = 'datastorage-public-service-liveegs.live.use1a.on.epicgames.com'
     _library_host = 'library-service.live.use1a.on.epicgames.com'
+    _store_gql_host = 'store-launcher.epicgames.com'
 
     def __init__(self, lc='en', cc='US'):
         self.session = requests.session()
@@ -42,6 +45,7 @@ class EPCAPI:
         # update user-agent
         if version := egs_params['version']:
             self._user_agent = f'UELauncher/{version} Windows/10.0.19041.1.256.64bit'
+            self._user_agent = f'EpicGamesLauncher/{version}'
             self.session.headers['User-Agent'] = self._user_agent
             self.unauth_session.headers['User-Agent'] = self._user_agent
         # update label
@@ -111,6 +115,12 @@ class EPCAPI:
                               data=dict(nsCatalogItemId=f'{namespace}:{catalog_item_id}'))
         r.raise_for_status()
         return r.content
+
+    def get_external_auths(self):
+        user_id = self.user.get('account_id')
+        r = self.session.get(f'https://{self._oauth_host}/account/api/public/account/{user_id}/externalAuths')
+        r.raise_for_status()
+        return r.json()
 
     def get_game_assets(self, platform='Windows', label='Live'):
         r = self.session.get(f'https://{self._launcher_host}/launcher/api/public/assets/{platform}',
@@ -188,3 +198,30 @@ class EPCAPI:
         url = f'https://{self._datastorage_host}/api/v1/data/egstore/{path}'
         r = self.session.delete(url)
         r.raise_for_status()
+
+    def store_get_uplay_codes(self):
+        user_id = self.user.get('account_id')
+        r = self.session.post(f'https://{self._store_gql_host}/graphql',
+                              json=dict(query=uplay_codes_query,
+                                        variables=dict(accountId=user_id)))
+        r.raise_for_status()
+        return r.json()
+
+    def store_claim_uplay_code(self, uplay_id, game_id):
+        user_id = self.user.get('account_id')
+        r = self.session.post(f'https://{self._store_gql_host}/graphql',
+                              json=dict(query=uplay_claim_query,
+                                        variables=dict(accountId=user_id,
+                                                       uplayAccountId=uplay_id,
+                                                       gameId=game_id)))
+        r.raise_for_status()
+        return r.json()
+
+    def store_redeem_uplay_codes(self, uplay_id):
+        user_id = self.user.get('account_id')
+        r = self.session.post(f'https://{self._store_gql_host}/graphql',
+                              json=dict(query=uplay_redeem_query,
+                                        variables=dict(accountId=user_id,
+                                                       uplayAccountId=uplay_id)))
+        r.raise_for_status()
+        return r.json()

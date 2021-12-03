@@ -1730,6 +1730,63 @@ class LegendaryCLI:
         after = self.core.lgd.get_dir_size()
         logger.info(f'Cleanup complete! Removed {(before - after)/1024/1024:.02f} MiB.')
 
+    def activate(self, args):
+        if not args.uplay:
+            logger.error('Only Uplay is supported.')
+            return
+        if not self.core.login():
+            logger.error('Login failed!')
+            return
+
+        ubi_account_id = ''
+        ext_auths = self.core.egs.get_external_auths()
+        for ext_auth in ext_auths:
+            if ext_auth['type'] != 'ubisoft':
+                continue
+            ubi_account_id = ext_auth['externalAuthId']
+            break
+        else:
+            logger.error('No ubisoft account found! Please link your accounts via the following link: '
+                         'https://www.epicgames.com/id/link/ubisoft')
+            return
+
+        uplay_keys = self.core.egs.store_get_uplay_codes()
+        key_list = uplay_keys['data']['PartnerIntegration']['accountUplayCodes']
+        redeemed = {k['gameId'] for k in key_list if k['redeemedOnUplay']}
+
+        games = self.core.get_game_list()
+        uplay_games = []
+        for game in games:
+            if game.metadata.get('customAttributes', {}).get('partnerLinkType', {}).get('value') != 'ubisoft':
+                continue
+            if game.metadata.get('customAttributes', {}).get('partnerLinkId', {}).get('value') in redeemed:
+                continue
+            uplay_games.append(game)
+
+        if not uplay_games:
+            logger.info('No remaining games found.')
+            return
+
+        logger.info(f'Found {len(uplay_games)} games to redeem:')
+        for game in sorted(uplay_games, key=lambda g: g.app_title.lower()):
+            logger.info(f' - {game.app_title}')
+
+        if not args.yes:
+            y_n = get_boolean_choice('Do you want to redeem these games?')
+            if not y_n:
+                logger.info('Aborting.')
+                return
+
+        try:
+            for game in uplay_games:
+                game_id = game.metadata.get('customAttributes', {}).get('partnerLinkId', {}).get('value')
+                self.core.egs.store_claim_uplay_code(ubi_account_id, game_id)
+            self.core.egs.store_redeem_uplay_codes(ubi_account_id)
+        except Exception as e:
+            logger.error(f'Failed to redeem Uplay codes: {e!r}')
+        else:
+            logger.info('Redeemed all outstanding Uplay codes.')
+
 
 def main():
     parser = argparse.ArgumentParser(description=f'Legendary v{__version__} - "{__codename__}"')
@@ -1768,6 +1825,7 @@ def main():
     info_parser = subparsers.add_parser('info', help='Prints info about specified app name or manifest')
     alias_parser = subparsers.add_parser('alias', help='Manage aliases')
     clean_parser = subparsers.add_parser('cleanup', help='Remove old temporary, metadata, and manifest files')
+    activate_parser = subparsers.add_parser('activate', help='Activate games on third party launchers')
 
     install_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
     uninstall_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
@@ -2017,6 +2075,9 @@ def main():
                              default='Mac' if sys_platform == 'darwin' else 'Windows', type=str,
                              help='Platform to fetch info for (default: installed or Mac on macOS, Windows otherwise)')
 
+    activate_parser.add_argument('--uplay', dest='uplay', action='store_true',
+                                 help='Activate Uplay titles')
+
     args, extra = parser.parse_known_args()
 
     if args.version:
@@ -2027,7 +2088,7 @@ def main():
                                    'launch', 'download', 'uninstall', 'install', 'update',
                                    'repair', 'list-saves', 'download-saves', 'sync-saves',
                                    'clean-saves', 'verify-game', 'import-game', 'egl-sync',
-                                   'status', 'info', 'alias', 'cleanup'):
+                                   'status', 'info', 'alias', 'cleanup', 'activate'):
         print(parser.format_help())
 
         # Print the main help *and* the help for all of the subcommands. Thanks stackoverflow!
@@ -2094,6 +2155,8 @@ def main():
             cli.alias(args)
         elif args.subparser_name == 'cleanup':
             cli.cleanup(args)
+        elif args.subparser_name == 'activate':
+            cli.activate(args)
     except KeyboardInterrupt:
         logger.info('Command was aborted via KeyboardInterrupt, cleaning up...')
 
