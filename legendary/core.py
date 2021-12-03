@@ -322,7 +322,7 @@ class LegendaryCore:
                 return []
 
             if self.lgd.assets:
-                assets = self.lgd.assets.copy()
+                assets = self.lgd.assets
             else:
                 assets = dict()
 
