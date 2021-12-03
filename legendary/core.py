@@ -1309,25 +1309,38 @@ class LegendaryCore:
                                  f'"legendary uninstall -y {game.app_name}" first.')
 
         # check if the game actually ships the files or just a uplay installer + packed game files
+        uplay_required = False
         executables = [f for f in analysis.manifest_comparison.added if
                        f.lower().endswith('.exe') and not f.startswith('Installer/')]
         if not updating and not any('uplay' not in e.lower() for e in executables) and \
                 any('uplay' in e.lower() for e in executables):
+            uplay_required = True
             results.failures.add('This game requires installation via Uplay and does not ship executable game files.')
+
+        if install.prereq_info:
+            prereq_path = install.prereq_info['path'].lower()
+            if 'uplay' in prereq_path or 'ubisoft' in prereq_path:
+                uplay_required = True
 
         # check if the game launches via uplay
         if install.executable == 'UplayLaunch.exe':
-            results.warnings.add('This game requires launching via Uplay, it is recommended to install the game '
-                                 'via Uplay instead.')
+            uplay_required = True
 
         # check if the game requires linking to an external account first
         partner_link = game.metadata.get('customAttributes', {}).get('partnerLinkType', {}).get('value', None)
-        if partner_link == 'ubisoft':
-            results.warnings.add('This game requires linking to and activating on a Ubisoft account first, '
-                                 'this is not currently supported.')
-        elif partner_link:
+        if partner_link != 'ubisoft':
             results.warnings.add(f'This game requires linking to "{partner_link}", '
                                  f'this is currently unsupported and the game may not work.')
+
+        if uplay_required or partner_link == 'ubisoft':
+            if os.name == 'nt':
+                results.warnings.add('This game requires installation of Uplay/Ubisoft Connect, direct '
+                                     'installation via Uplay is recommended. '
+                                     'Use "legendary activate --uplay" and follow the instructions.')
+            else:
+                results.warnings.add('This game requires installation of Uplay/Ubisoft Connect, direct '
+                                     'installation via Uplay running in WINE (e.g. using Lutris) is recommended. '
+                                     'Use "legendary activate --uplay" and follow the instructions.')
 
         return results
 
