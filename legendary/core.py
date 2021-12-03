@@ -426,8 +426,12 @@ class LegendaryCore:
             await self.egs.close_aio_session()
             return res
 
+        import time
+        s_time = time.time()
         loop = asyncio.get_event_loop()
         results = loop.run_until_complete(fetch_remaining_infos(to_fetch))
+        e_time = time.time()
+        self.log.info(f'Fetched {len(results)} game infos in {e_time - s_time:.2f} seconds')
 
         for res in results:
             if isinstance(res, Exception):
