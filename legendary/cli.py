@@ -2117,6 +2117,14 @@ def main():
             if not is_windows_mac_or_pyi():
                 print('If you installed legendary via a package manager it may '
                       'take some time for the update to become available.')
+            elif 'downloads' in update_info:
+                dl_platform = 'windows'
+                if sys_platform == 'darwin':
+                    dl_platform = 'macos'
+                elif sys_platform == 'linux':
+                    dl_platform = 'linux'
+
+                print(f'\n- Download URL: {update_info["downloads"][dl_platform]}')
 
     cli.core.exit()
     ql.stop()
