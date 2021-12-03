@@ -1767,7 +1767,7 @@ class LegendaryCLI:
             logger.info('No remaining games found.')
             return
 
-        logger.info(f'Found {len(uplay_games)} games to redeem:')
+        logger.info(f'Found {len(uplay_games)} game(s) to redeem:')
         for game in sorted(uplay_games, key=lambda g: g.app_title.lower()):
             logger.info(f' - {game.app_title}')
 
