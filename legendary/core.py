@@ -1358,7 +1358,7 @@ class LegendaryCore:
 
         # check if the game requires linking to an external account first
         partner_link = game.metadata.get('customAttributes', {}).get('partnerLinkType', {}).get('value', None)
-        if partner_link != 'ubisoft':
+        if partner_link and partner_link != 'ubisoft':
             results.warnings.add(f'This game requires linking to "{partner_link}", '
                                  f'this is currently unsupported and the game may not work.')
 
