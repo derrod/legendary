@@ -4,29 +4,27 @@
 
 [![Discord](https://discordapp.com/api/guilds/695233346627698689/widget.png?style=shield)](https://legendary.gl/discord) [![Twitter Follow](https://img.shields.io/twitter/follow/legendary_gl?label=Follow%20us%20for%20updates%21&style=social)](https://twitter.com/legendary_gl)
 
-Legendary is an open-source game launcher that can download and install games from the Epic Games platform on Linux and Windows.
+Legendary is an open-source game launcher that can download and install games from the Epic Games platform on Linux, macOS, and Windows.
 Its name as a tongue-in-cheek play on tiers of [item rarity in many MMORPGs](https://wow.gamepedia.com/Quality).
 
-Right now Legendary is in beta and not feature-complete. You might run into some bugs or issues.
-If you do please [tell us on our Discord](https://legendary.gl/discord) or [create an issue on GitHub](https://github.com/derrod/legendary/issues/new/choose) so we can fix it!
-
 Please read the the [config file](#config-file) and [cli usage](#usage) sections before creating an issue to avoid invalid reports.
+
+If you run into any issues [talk to us on Discord](https://legendary.gl/discord) or [create an issue on GitHub](https://github.com/derrod/legendary/issues/new/choose) so we can fix it!
 
 **Note:** Legendary is currently a CLI (command-line interface) application without a graphical user interface,
 it has to be run from a terminal (e.g. PowerShell)
 
-**What works:**
+**Features:**
  - Authenticating with Epic's service
  - Downloading and installing your games and their DLC
  - Delta patching/updating of installed games
  - Launching games with online authentication (for multiplayer/DRM)
  - Syncing cloud saves (compatible with EGL)
- - Running games with WINE on Linux
- - Importing/Exporting installed games from/to the Epic Games Launcher
+ - Running games with WINE on Linux/macOS
+ - Importing/Exporting installed games from/to the Epic Games Launcher (unsupported for macOS version of EGL)
 
 **Planned:**
  - Simple GUI for managing/launching games
- - Better interfaces for other developers to use Legendary in their projects
  - Lots and lots of bug fixes, optimizations, and refactoring...
 
 ## Requirements
@@ -55,9 +53,9 @@ If you always want to have the latest features and fixes available then using th
 ### Standalone
 
 Download the `legendary` or `legendary.exe` binary from [the latest release](https://github.com/derrod/legendary/releases/latest)
-and move it to somewhere in your `$PATH`/`%PATH%`. Don't forget to `chmod +x` it on Linux.
+and move it to somewhere in your `$PATH`/`%PATH%`. Don't forget to `chmod +x` it on Linux/macOS.
 
-The Windows .exe and Linux executable were created with PyInstaller and will run standalone even without python being installed.
+The Windows .exe and Linux/macOS executable were created with PyInstaller and will run standalone even without python being installed.
 Note that on Linux glibc >= 2.25 is required, so older distributions such as Ubuntu 16.04 or Debian stretch will not work.
 
 ### Python package
@@ -66,7 +64,7 @@ Note that on Linux glibc >= 2.25 is required, so older distributions such as Ubu
 
 To prevent problems with permissions during installation, please upgrade your `pip` by running `python -m pip install -U pip --user`. 
 
-> **Tip:** You may need to replace `python` in the above command with `python3.8` on Linux, or `py -3.8` on Windows.
+> **Tip:** You may need to replace `python` in the above command with `python3.8` on Linux/macOS, or `py -3.8` on Windows.
 
 #### Installation from PyPI (recommended)
 
@@ -90,7 +88,7 @@ pip install legendary-gl[webview]
 Alternatively `pip install legendary-gl[webview_gtk]` or `pip install pywebview[gtk]` will work
 but may require manually installing dependencies needed to build `PyGObject`.
 
-**Note:** Using pywebview's Qt engine may not work correctly. 
+**Note:** Using pywebview's Qt engine may not work correctly. Using pywebview is currently unsupported on macOS.
 
 #### Manually from the repo
 
@@ -183,7 +181,7 @@ legendary -y egl-sync
 
 ````
 usage: legendary [-h] [-v] [-y] [-V] [-c <path/name>] [-J]
-                 {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,clean-saves,sync-saves,verify-game,import-game,egl-sync,status,info,alias,cleanup}
+                 {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,clean-saves,sync-saves,verify-game,import-game,egl-sync,status,info,alias,cleanup,activate}
                  ...
 
 Legendary v0.X.X - "Codename"
@@ -199,7 +197,7 @@ optional arguments:
   -J, --pretty-json     Pretty-print JSON
 
 Commands:
-  {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,clean-saves,sync-saves,verify-game,import-game,egl-sync,status,info,alias,cleanup}
+  {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,clean-saves,sync-saves,verify-game,import-game,egl-sync,status,info,alias,cleanup,activate}
     auth                Authenticate with EPIC
     install (download,update,repair)
                         Download a game
@@ -219,6 +217,7 @@ Commands:
     info                Prints info about specified app name or manifest
     alias               Manage aliases
     cleanup             Remove old temporary, metadata, and manifest files
+    activate            Activate games on third party launchers
 
 Individual command help:
 
@@ -366,8 +365,8 @@ usage: legendary list-games [-h] [--platform <Platform>] [--include-ue]
 optional arguments:
   -h, --help            show this help message and exit
   --platform <Platform>
-                        Override platform that games are shown for (e.g.
-                        Win32/Mac)
+                        Platform to fetch game list for (default: Mac on
+                        macOS, otherwise Windows)
   --include-ue          Also include Unreal Engine content
                         (Engine/Marketplace) in list
   --include-non-installable
@@ -405,7 +404,7 @@ optional arguments:
   -h, --help            show this help message and exit
   --force-download      Always download instead of using on-disk manifest
   --platform <Platform>
-                        Platform (default: Windows)
+                        Platform (default: Mac on macOS, otherwise Windows)
   --manifest <uri>      Manifest URL or path to use instead of the CDN one
   --csv                 Output in CSV format
   --tsv                 Output in TSV format
@@ -495,7 +494,8 @@ optional arguments:
                         game
   --skip-dlcs           Do not ask about importing DLCs.
   --platform <Platform>
-                        Platform override for import
+                        Platform for import (default: Mac on macOS, otherwise
+                        Windows)
 
 
 Command: egl-sync
@@ -544,8 +544,8 @@ optional arguments:
   --offline             Only print info available offline
   --json                Output information in JSON format
   --platform <Platform>
-                        Platform to fetch info for (default: installed or
-                        Windows)
+                        Platform to fetch info for (default: installed or Mac
+                        on macOS, Windows otherwise)
 
 
 Command: alias
@@ -570,6 +570,14 @@ usage: legendary cleanup [-h] [--keep-manifests]
 optional arguments:
   -h, --help        show this help message and exit
   --keep-manifests  Do not delete old manifests
+
+
+Command: activate
+usage: legendary activate [-h] [--uplay]
+
+optional arguments:
+  -h, --help  show this help message and exit
+  --uplay     Activate Uplay titles
 ````
 
 
@@ -615,6 +623,8 @@ disable_update_check = false
 disable_update_notice = false
 ; Disable automatically-generated aliases
 disable_auto_aliasing = false
+; Default application platform to use
+default_platform = Windows
 
 [Legendary.aliases]
 ; List of aliases for simpler CLI use
