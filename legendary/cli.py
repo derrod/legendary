@@ -153,7 +153,7 @@ class LegendaryCLI:
                     'https://www.epicgames.com/id/login?redirectUrl='
                     'https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect'
                 )
-                print('If web page did not open automatically, please manually open the following URL: '
+                print('If the web page did not open automatically, please manually open the following URL: '
                       'https://www.epicgames.com/id/login?redirectUrl=https://www.epicgames.com/id/api/redirect')
                 sid = input('Please enter the "sid" value from the JSON response: ')
                 sid = sid.strip()
@@ -1748,7 +1748,7 @@ class LegendaryCLI:
         else:
             logger.error('No linked ubisoft account found! Please link your accounts via your browser and try again.')
             webbrowser.open('https://www.epicgames.com/id/link/ubisoft')
-            print('If web page did not open automatically, please manually open the following URL: '
+            print('If the web page did not open automatically, please manually open the following URL: '
                   'https://www.epicgames.com/id/link/ubisoft')
             return
 
