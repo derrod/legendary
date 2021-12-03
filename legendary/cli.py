@@ -712,9 +712,6 @@ class LegendaryCLI:
                 logger.error(f'Update requested for "{args.app_name}", but app not installed!')
                 exit(1)
 
-        if args.platform not in ('Win32', 'Windows', 'Mac'):
-            logger.warning(f'Platform "{args.platform}" may be invalid. Valid ones are: Windows, Win32, Mac.')
-
         game = self.core.get_game(args.app_name, update_meta=True, platform=args.platform)
 
         if not game:
@@ -1898,8 +1895,7 @@ def main():
                                 help='Only update, do not do anything if specified app is not installed')
     install_parser.add_argument('--dlm-debug', dest='dlm_debug', action='store_true',
                                 help='Set download manager and worker processes\' loglevel to debug')
-    install_parser.add_argument('--platform', dest='platform', action='store', metavar='<Platform>',
-                                default='Mac' if sys_platform == 'darwin' else 'Windows', type=str,
+    install_parser.add_argument('--platform', dest='platform', action='store', metavar='<Platform>', type=str,
                                 help='Platform for install (default: installed or Windows)')
     install_parser.add_argument('--prefix', dest='file_prefix', action='append', metavar='<prefix>',
                                 help='Only fetch files whose path starts with <prefix> (case insensitive)')
@@ -1981,8 +1977,7 @@ def main():
         launch_parser.add_argument('--no-wine', dest='no_wine', help=argparse.SUPPRESS,
                                    action='store_true', default=True)
 
-    list_parser.add_argument('--platform', dest='platform', action='store', metavar='<Platform>',
-                             default='Mac' if sys_platform == 'darwin' else 'Windows', type=str,
+    list_parser.add_argument('--platform', dest='platform', action='store', metavar='<Platform>', type=str,
                              help='Platform to fetch game list for (default: Mac on macOS, otherwise Windows)')
     list_parser.add_argument('--include-ue', dest='include_ue', action='store_true',
                              help='Also include Unreal Engine content (Engine/Marketplace) in list')
@@ -2008,8 +2003,7 @@ def main():
     list_files_parser.add_argument('--force-download', dest='force_download', action='store_true',
                                    help='Always download instead of using on-disk manifest')
     list_files_parser.add_argument('--platform', dest='platform', action='store', metavar='<Platform>',
-                                   type=str, help='Platform (default: Mac on macOS, otherwise Windows)',
-                                   default='Mac' if sys_platform == 'darwin' else 'Windows')
+                                   type=str, help='Platform (default: Mac on macOS, otherwise Windows)')
     list_files_parser.add_argument('--manifest', dest='override_manifest', action='store', metavar='<uri>',
                                    help='Manifest URL or path to use instead of the CDN one')
     list_files_parser.add_argument('--csv', dest='csv', action='store_true', help='Output in CSV format')
@@ -2043,9 +2037,8 @@ def main():
                                help='Automatically attempt to import all DLCs with the base game')
     import_parser.add_argument('--skip-dlcs', dest='skip_dlcs', action='store_true',
                                help='Do not ask about importing DLCs.')
-    import_parser.add_argument('--platform', dest='platform', action='store', metavar='<Platform>',
-                               type=str, help='Platform for import (default: Mac on macOS, otherwise Windows)',
-                               default='Mac' if sys_platform == 'darwin' else 'Windows')
+    import_parser.add_argument('--platform', dest='platform', action='store', metavar='<Platform>', type=str,
+                               help='Platform for import (default: Mac on macOS, otherwise Windows)')
 
     egl_sync_parser.add_argument('--egl-manifest-path', dest='egl_manifest_path', action='store',
                                  help='Path to the Epic Games Launcher\'s Manifests folder, should '
@@ -2077,8 +2070,7 @@ def main():
                              help='Only print info available offline')
     info_parser.add_argument('--json', dest='json', action='store_true',
                              help='Output information in JSON format')
-    info_parser.add_argument('--platform', dest='platform', action='store', metavar='<Platform>',
-                             default='Mac' if sys_platform == 'darwin' else 'Windows', type=str,
+    info_parser.add_argument('--platform', dest='platform', action='store', metavar='<Platform>', type=str,
                              help='Platform to fetch info for (default: installed or Mac on macOS, Windows otherwise)')
 
     activate_parser.add_argument('--uplay', dest='uplay', action='store_true',
@@ -2116,6 +2108,13 @@ def main():
         # keep requests quiet
         logging.getLogger('requests').setLevel(logging.WARNING)
         logging.getLogger('urllib3').setLevel(logging.WARNING)
+
+    if hasattr(args, 'platform'):
+        if not args.platform:
+            os_default = 'Mac' if sys_platform == 'darwin' else 'Windows'
+            args.platform = cli.core.lgd.config.get('Legendary', 'default_platform', fallback=os_default)
+        elif args.platform not in ('Win32', 'Windows', 'Mac'):
+            logger.warning(f'Platform "{args.platform}" may be invalid. Valid ones are: Windows, Win32, Mac.')
 
     # if --yes is used as part of the subparsers arguments manually set the flag in the main parser.
     if '-y' in extra or '--yes' in extra:
