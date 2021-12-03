@@ -2,6 +2,7 @@
 # coding: utf-8
 
 import requests
+import requests.adapters
 import logging
 
 from requests.auth import HTTPBasicAuth
@@ -28,11 +29,16 @@ class EPCAPI:
     _store_gql_host = 'store-launcher.epicgames.com'
 
     def __init__(self, lc='en', cc='US'):
-        self.session = requests.session()
         self.log = logging.getLogger('EPCAPI')
-        self.unauth_session = requests.session()
+
+        self.session = requests.session()
         self.session.headers['User-Agent'] = self._user_agent
+        # increase maximum pool size for multithreaded metadata requests
+        self.session.mount('https://', requests.adapters.HTTPAdapter(pool_maxsize=16))
+
+        self.unauth_session = requests.session()
         self.unauth_session.headers['User-Agent'] = self._user_agent
+
         self._oauth_basic = HTTPBasicAuth(self._user_basic, self._pw_basic)
 
         self.access_token = None
@@ -149,10 +155,11 @@ class EPCAPI:
         r.raise_for_status()
         return r.json()
 
-    def get_game_info(self, namespace, catalog_item_id):
+    def get_game_info(self, namespace, catalog_item_id, timeout=None):
         r = self.session.get(f'https://{self._catalog_host}/catalog/api/shared/namespace/{namespace}/bulk/items',
                              params=dict(id=catalog_item_id, includeDLCDetails=True, includeMainGameDetails=True,
-                                         country=self.country_code, locale=self.language_code))
+                                         country=self.country_code, locale=self.language_code),
+                             timeout=timeout)
         r.raise_for_status()
         return r.json().get(catalog_item_id, None)
 

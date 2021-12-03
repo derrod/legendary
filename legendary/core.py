@@ -8,6 +8,7 @@ import shutil
 
 from base64 import b64decode
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from datetime import timezone
 from locale import getdefaultlocale
 from multiprocessing import Queue
@@ -387,6 +388,9 @@ class LegendaryCore:
                 else:
                     assets[ga.app_name][_platform] = ga
 
+        fetch_list = []
+        games = {}
+
         for app_name, app_assets in sorted(assets.items()):
             if skip_ue and any(v.namespace == 'ue' for v in app_assets.values()):
                 continue
@@ -395,19 +399,41 @@ class LegendaryCore:
             asset_updated = False
             if game:
                 asset_updated = any(game.app_version(_p) != app_assets[_p].build_version for _p in app_assets.keys())
+                games[app_name] = game
 
             if update_assets and (not game or force_refresh or (game and asset_updated)):
-                if game and asset_updated:
-                    self.log.info(f'Updating meta for {game.app_name} due to build version mismatch')
-
+                self.log.debug(f'Scheduling metadata update for {app_name}')
                 # namespace/catalog item are the same for all platforms, so we can just use the first one
                 _ga = next(iter(app_assets.values()))
-                eg_meta = self.egs.get_game_info(_ga.namespace, _ga.catalog_item_id)
-                game = Game(app_name=app_name, app_title=eg_meta['title'], metadata=eg_meta,
-                            asset_infos=app_assets)
-
+                fetch_list.append((app_name, _ga.namespace, _ga.catalog_item_id))
                 meta_updated = True
-                self.lgd.set_game_meta(game.app_name, game)
+
+        def fetch_game_meta(args):
+            app_name, namespace, catalog_item_id = args
+            eg_meta = self.egs.get_game_info(namespace, catalog_item_id, timeout=10.0)
+            game = Game(app_name=app_name, app_title=eg_meta['title'], metadata=eg_meta, asset_infos=assets[app_name])
+            self.lgd.set_game_meta(game.app_name, game)
+            games[app_name] = game
+
+        # setup and teardown of thread pool takes some time, so only do it when it makes sense.
+        use_threads = len(fetch_list) > 5
+        self.log.info(f'Fetching metadata for {len(fetch_list)} apps.')
+        if use_threads:
+            with ThreadPoolExecutor(max_workers=16) as executor:
+                executor.map(fetch_game_meta, fetch_list, timeout=60.0)
+
+        for app_name, app_assets in sorted(assets.items()):
+            if skip_ue and any(v.namespace == 'ue' for v in app_assets.values()):
+                continue
+
+            game = games.get(app_name)
+            # retry if metadata is still missing/threaded loading wasn't used
+            if not game:
+                if use_threads:
+                    self.log.warning(f'Fetching metadata for {app_name} failed, retrying')
+                _ga = next(iter(app_assets.values()))
+                fetch_game_meta((app_name, _ga.namespace, _ga.catalog_item_id))
+                game = games[app_name]
 
             if game.is_dlc:
                 _dlc[game.metadata['mainGameItem']['id']].append(game)
