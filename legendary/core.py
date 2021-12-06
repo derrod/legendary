@@ -1357,12 +1357,11 @@ class LegendaryCore:
             uplay_required = True
 
         # check if the game requires linking to an external account first
-        partner_link = game.metadata.get('customAttributes', {}).get('partnerLinkType', {}).get('value', None)
-        if partner_link and partner_link != 'ubisoft':
-            results.warnings.add(f'This game requires linking to "{partner_link}", '
+        if game.partner_link_type and game.partner_link_type != 'ubisoft':
+            results.warnings.add(f'This game requires linking to "{game.partner_link_type}", '
                                  f'this is currently unsupported and the game may not work.')
 
-        if uplay_required or partner_link == 'ubisoft':
+        if uplay_required or game.partner_link_type == 'ubisoft':
             if os.name == 'nt':
                 results.warnings.add('This game requires installation of Uplay/Ubisoft Connect, direct '
                                      'installation via Uplay is recommended. '

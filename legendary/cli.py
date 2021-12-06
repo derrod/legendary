@@ -1759,9 +1759,9 @@ class LegendaryCLI:
         uplay_games = []
         activated = 0
         for game in games:
-            if game.metadata.get('customAttributes', {}).get('partnerLinkType', {}).get('value') != 'ubisoft':
+            if game.partner_link_type != 'ubisoft':
                 continue
-            if game.metadata.get('customAttributes', {}).get('partnerLinkId', {}).get('value') in redeemed:
+            if game.partner_link_id in redeemed:
                 activated += 1
                 continue
             uplay_games.append(game)
@@ -1782,8 +1782,7 @@ class LegendaryCLI:
 
         try:
             for game in uplay_games:
-                game_id = game.metadata.get('customAttributes', {}).get('partnerLinkId', {}).get('value')
-                self.core.egs.store_claim_uplay_code(ubi_account_id, game_id)
+                self.core.egs.store_claim_uplay_code(ubi_account_id, game.partner_link_id)
             self.core.egs.store_redeem_uplay_codes(ubi_account_id)
         except Exception as e:
             logger.error(f'Failed to redeem Uplay codes: {e!r}')
