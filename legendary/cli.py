@@ -1730,64 +1730,116 @@ class LegendaryCLI:
         logger.info(f'Cleanup complete! Removed {(before - after)/1024/1024:.02f} MiB.')
 
     def activate(self, args):
-        if not args.uplay:
-            logger.error('Only Uplay is supported.')
-            return
         if not self.core.login():
             logger.error('Login failed!')
             return
 
-        ubi_account_id = ''
-        ext_auths = self.core.egs.get_external_auths()
-        for ext_auth in ext_auths:
-            if ext_auth['type'] != 'ubisoft':
-                continue
-            ubi_account_id = ext_auth['externalAuthId']
-            break
-        else:
-            logger.error('No linked ubisoft account found! Please link your accounts via your browser and try again.')
-            webbrowser.open('https://www.epicgames.com/id/link/ubisoft')
-            print('If the web page did not open automatically, please manually open the following URL: '
-                  'https://www.epicgames.com/id/link/ubisoft')
-            return
-
-        uplay_keys = self.core.egs.store_get_uplay_codes()
-        key_list = uplay_keys['data']['PartnerIntegration']['accountUplayCodes']
-        redeemed = {k['gameId'] for k in key_list if k['redeemedOnUplay']}
-
-        games = self.core.get_game_list()
-        uplay_games = []
-        activated = 0
-        for game in games:
-            if game.partner_link_type != 'ubisoft':
-                continue
-            if game.partner_link_id in redeemed:
-                activated += 1
-                continue
-            uplay_games.append(game)
-
-        if not uplay_games:
-            logger.info(f'All of your {activated} Uplay titles have already been activated on your Ubisoft account.')
-            return
-
-        logger.info(f'Found {len(uplay_games)} game(s) to redeem:')
-        for game in sorted(uplay_games, key=lambda g: g.app_title.lower()):
-            logger.info(f' - {game.app_title}')
-
-        if not args.yes:
-            y_n = get_boolean_choice('Do you want to redeem these games?')
-            if not y_n:
-                logger.info('Aborting.')
+        if args.uplay:
+            ubi_account_id = ''
+            ext_auths = self.core.egs.get_external_auths()
+            for ext_auth in ext_auths:
+                if ext_auth['type'] != 'ubisoft':
+                    continue
+                ubi_account_id = ext_auth['externalAuthId']
+                break
+            else:
+                logger.error('No linked ubisoft account found! Link your accounts via your browser and try again.')
+                webbrowser.open('https://www.epicgames.com/id/link/ubisoft')
+                print('If the web page did not open automatically, please manually open the following URL: '
+                      'https://www.epicgames.com/id/link/ubisoft')
                 return
 
-        try:
-            for game in uplay_games:
-                self.core.egs.store_claim_uplay_code(ubi_account_id, game.partner_link_id)
-            self.core.egs.store_redeem_uplay_codes(ubi_account_id)
-        except Exception as e:
-            logger.error(f'Failed to redeem Uplay codes: {e!r}')
-        else:
-            logger.info('Redeemed all outstanding Uplay codes.')
+            uplay_keys = self.core.egs.store_get_uplay_codes()
+            key_list = uplay_keys['data']['PartnerIntegration']['accountUplayCodes']
+            redeemed = {k['gameId'] for k in key_list if k['redeemedOnUplay']}
+
+            games = self.core.get_game_list()
+            uplay_games = []
+            activated = 0
+            for game in games:
+                if game.partner_link_type != 'ubisoft':
+                    continue
+                if game.partner_link_id in redeemed:
+                    activated += 1
+                    continue
+                uplay_games.append(game)
+
+            if not uplay_games:
+                logger.info(f'All of your {activated} titles have already been activated on your Ubisoft account.')
+                return
+
+            logger.info(f'Found {len(uplay_games)} game(s) to redeem:')
+            for game in sorted(uplay_games, key=lambda g: g.app_title.lower()):
+                logger.info(f' - {game.app_title}')
+
+            if not args.yes:
+                y_n = get_boolean_choice('Do you want to redeem these games?')
+                if not y_n:
+                    logger.info('Aborting.')
+                    return
+
+            try:
+                for game in uplay_games:
+                    self.core.egs.store_claim_uplay_code(ubi_account_id, game.partner_link_id)
+                self.core.egs.store_redeem_uplay_codes(ubi_account_id)
+            except Exception as e:
+                logger.error(f'Failed to redeem Uplay codes: {e!r}')
+            else:
+                logger.info('Redeemed all outstanding Uplay codes.')
+        elif args.origin:
+            na_games, _ = self.core.get_non_asset_library_items(skip_ue=True)
+            origin_games = [game for game in na_games if game.third_party_store == 'Origin']
+
+            logger.info(f'Found {len(origin_games)} game(s) to redeem:')
+            for game in origin_games:
+                logger.info(f' - {game.app_title}')
+
+            logger.info('Note: Legendary does not know which of these have already been activated. '
+                        'Proceeding will result in it attempting to activate all of them.')
+            logger.info('If Origin asks you to install the title rather than to activate, '
+                        'it has already been activated, and the dialog can be dismissed.')
+            logger.info('After one title has been processed, hit enter to proceed with the next one.')
+
+            y_n = get_boolean_choice('Do you want to redeem these games?')
+            if not y_n:
+                logger.info('Aborting...')
+                return
+
+            last_game = origin_games[-1]
+            for game in origin_games:
+                origin_uri = self.core.get_origin_uri(game.app_name)
+                logger.info(f'Opening Origin to activate "{game.app_title}"')
+
+                if os.name == 'nt':
+                    logger.debug(f'Opening Origin URI: {origin_uri}')
+                    webbrowser.open(origin_uri)
+                else:
+                    # on linux, require users to specify at least the wine binary and prefix in config or command line
+                    command = self.core.get_app_launch_command(args.app_name, wrapper=args.wrapper,
+                                                               wine_binary=args.wine_bin,
+                                                               disable_wine=args.no_wine)
+                    env = self.core.get_app_environment(args.app_name, wine_pfx=args.wine_pfx)
+                    full_env = os.environ.copy()
+                    full_env.update(env)
+
+                    if not command:
+                        logger.error(f'In order to launch Origin correctly you must specify a prefix and wine binary or '
+                                     f'wrapper in the configuration file or command line. See the README for details.')
+                        return
+
+                    command.append(origin_uri)
+                    logger.debug(f'Opening Origin URI with command: {shlex.join(command)}')
+                    subprocess.Popen(command, env=full_env)
+
+                if game == last_game:
+                    break
+
+                y_n = get_boolean_choice('Do you want to proceed with the next title?')
+                if not y_n:
+                    logger.info('User requested abort.')
+                    return
+
+            logger.info('Origin activation process completed.')
 
 
 def main():
@@ -2073,8 +2125,13 @@ def main():
     info_parser.add_argument('--platform', dest='platform', action='store', metavar='<Platform>', type=str,
                              help='Platform to fetch info for (default: installed or Mac on macOS, Windows otherwise)')
 
-    activate_parser.add_argument('-U', '--uplay', '--ubisoft', dest='uplay', action='store_true',
-                                 help='Activate Uplay titles')
+    store_group = activate_parser.add_mutually_exclusive_group(required=True)
+    store_group.add_argument('-U', '--uplay', dest='uplay', action='store_true',
+                             help='Activate Uplay/Ubisoft Connect titles on your Ubisoft account '
+                                  '(Uplay install not required)')
+    store_group.add_argument('-O', '--origin', dest='origin', action='store_true',
+                             help='Activate Origin/EA App managed titles on your EA account '
+                                  '(requires Origin to be installed)')
 
     args, extra = parser.parse_known_args()
 
