@@ -2073,7 +2073,7 @@ def main():
     info_parser.add_argument('--platform', dest='platform', action='store', metavar='<Platform>', type=str,
                              help='Platform to fetch info for (default: installed or Mac on macOS, Windows otherwise)')
 
-    activate_parser.add_argument('--uplay', dest='uplay', action='store_true',
+    activate_parser.add_argument('-U', '--uplay', '--ubisoft', dest='uplay', action='store_true',
                                  help='Activate Uplay titles')
 
     args, extra = parser.parse_known_args()
