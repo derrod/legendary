@@ -233,16 +233,29 @@ class LegendaryCLI:
 
         print('\nAvailable games:')
         for game in games:
-            print(f' * {game.app_title.strip()} (App name: {game.app_name} | Version: {game.app_version(args.platform)})')
-            if not game.app_version(args.platform):
+            version = game.app_version(args.platform)
+            print(f' * {game.app_title.strip()} (App name: {game.app_name} | Version: {version})')
+            # Games that "require" launching through EGL/Legendary, but have to be installed and managed through
+            # a third-party application (such as Origin).
+            if not version:
                 _store = game.third_party_store
                 if _store == 'Origin':
                     print(f'  - This game has to be activated, installed, and launched via Origin, use '
                           f'"legendary launch --origin {game.app_name}" to activate and/or run the game.')
                 elif _store:
-                    print(f'  ! This game has to be installed through third-party store ({_store}, not supported)')
+                    print(f'  ! This game has to be installed through a third-party store ({_store}, not supported)')
                 else:
                     print(f'  ! No version information (unknown cause)')
+            # Games that have assets, but only require a one-time activation before they can be independently installed
+            # via a third-party platform (e.g. Uplay)
+            if game.partner_link_type:
+                _type = game.partner_link_type
+                if _type == 'ubisoft':
+                    print('  - This game can be activated directly on your Ubisoft account and does not require '
+                          'legendary to install/run. Use "legendary activate --uplay" and follow the instructions.')
+                else:
+                    print(f'  ! This app requires linking to a third-party account (name: "{_type}", not supported)')
+
             for dlc in dlc_list[game.catalog_item_id]:
                 print(f'  + {dlc.app_title} (App name: {dlc.app_name} | Version: {dlc.app_version(args.platform)})')
                 if not dlc.app_version(args.platform):
