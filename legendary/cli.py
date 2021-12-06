@@ -635,7 +635,7 @@ class LegendaryCLI:
     def _launch_origin(self, args):
         game = self.core.get_game(app_name=args.app_name)
         if not game:
-            logger.error(f'Unknown game "{args.app_name}", run "legendary list-games --include-non-installable" '
+            logger.error(f'Unknown game "{args.app_name}", run "legendary list-games --third-party" '
                          f'to fetch data for Origin titles before using this command.')
             return
 
@@ -1980,7 +1980,8 @@ def main():
                              help='Platform to fetch game list for (default: Mac on macOS, otherwise Windows)')
     list_parser.add_argument('--include-ue', dest='include_ue', action='store_true',
                              help='Also include Unreal Engine content (Engine/Marketplace) in list')
-    list_parser.add_argument('--include-non-installable', dest='include_noasset', action='store_true',
+    list_parser.add_argument('-T', '--third-party', '--include-non-installable',
+                             dest='include_noasset', action='store_true', default=False,
                              help='Include apps that are not installable (e.g. that have to be activated on Origin)')
     list_parser.add_argument('--csv', dest='csv', action='store_true', help='List games in CSV format')
     list_parser.add_argument('--tsv', dest='tsv', action='store_true', help='List games in TSV format')
