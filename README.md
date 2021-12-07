@@ -358,9 +358,8 @@ optional arguments:
 
 
 Command: list-games
-usage: legendary list-games [-h] [--platform <Platform>] [--include-ue]
-                            [--include-non-installable] [--csv] [--tsv]
-                            [--json] [--force-refresh]
+usage: legendary list-games [-h] [--platform <Platform>] [--include-ue] [-T]
+                            [--csv] [--tsv] [--json] [--force-refresh]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -369,7 +368,7 @@ optional arguments:
                         macOS, otherwise Windows)
   --include-ue          Also include Unreal Engine content
                         (Engine/Marketplace) in list
-  --include-non-installable
+  -T, --third-party, --include-non-installable
                         Include apps that are not installable (e.g. that have
                         to be activated on Origin)
   --csv                 List games in CSV format
@@ -573,11 +572,14 @@ optional arguments:
 
 
 Command: activate
-usage: legendary activate [-h] [--uplay]
+usage: legendary activate [-h] (-U | -O)
 
 optional arguments:
-  -h, --help  show this help message and exit
-  --uplay     Activate Uplay titles
+  -h, --help    show this help message and exit
+  -U, --uplay   Activate Uplay/Ubisoft Connect titles on your Ubisoft account
+                (Uplay install not required)
+  -O, --origin  Activate Origin/EA App managed titles on your EA account
+                (requires Origin to be installed)
 ````
 
 
