@@ -1141,7 +1141,7 @@ class LegendaryCLI:
             logger.info(f'DLC "{game.app_title}" ("{game.app_name}") does not appear to be installed.')
             return
 
-        if not game.is_dlc and not os.path.exists(exe_path and not args.disable_check):
+        if not game.is_dlc and not os.path.exists(exe_path) and not args.disable_check:
             logger.error(f'Game executable could not be found at "{exe_path}", '
                          f'please verify that the specified path is correct.')
             return
