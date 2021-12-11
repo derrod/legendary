@@ -1137,8 +1137,15 @@ class LegendaryCLI:
                     for f in manifest.file_manifest_list.elements)
         ratio = found / total
 
-        if not found and game.is_dlc:
-            logger.info(f'DLC "{game.app_title}" ("{game.app_name}") does not appear to be installed.')
+        if not found:
+            logger.error(f'No files belonging to {"DLC" if game.is_dlc else "Game"} "{game.app_title}" '
+                         f'({game.app_name}) found in the specified location, please verify that the path is correct.')
+            if not game.is_dlc:
+                # check if game folder is in path, suggest alternative
+                folder = game.metadata.get('customAttributes', {}).get('FolderName', {}).get('value', game.app_name)
+                if folder and folder not in args.app_path:
+                    new_path = os.path.join(args.app_path, folder)
+                    logger.info(f'Did you mean "{new_path}"?')
             return
 
         if not game.is_dlc and not os.path.exists(exe_path) and not args.disable_check:
