@@ -21,7 +21,7 @@ from sys import exit, stdout, platform as sys_platform
 from legendary import __version__, __codename__
 from legendary.core import LegendaryCore
 from legendary.models.exceptions import InvalidCredentialsError
-from legendary.models.game import SaveGameStatus, VerifyResult
+from legendary.models.game import SaveGameStatus, VerifyResult, Game
 from legendary.utils.cli import get_boolean_choice, sdl_prompt
 from legendary.utils.custom_parser import AliasedSubParsersAction
 from legendary.utils.env import is_windows_mac_or_pyi
@@ -1778,9 +1778,28 @@ class LegendaryCLI:
             redeemed = {k['gameId'] for k in key_list if k['redeemedOnUplay']}
 
             games = self.core.get_game_list()
+            entitlements = self.core.egs.get_user_entitlements()
+            owned_entitlements = {i['entitlementName'] for i in entitlements}
+
             uplay_games = []
             activated = 0
             for game in games:
+                for dlc_data in game.metadata.get('dlcItemList', []):
+                    if dlc_data['entitlementName'] not in owned_entitlements:
+                        continue
+
+                    try:
+                        app_name = dlc_data['releaseInfo'][0]['appId']
+                    except (IndexError, KeyError):
+                        app_name = 'unknown'
+
+                    dlc_game = Game(app_name=app_name, app_title=dlc_data['title'], metadata=dlc_data)
+                    if dlc_game.partner_link_type != 'ubisoft':
+                        continue
+                    if dlc_game.partner_link_id in redeemed:
+                        continue
+                    uplay_games.append(dlc_game)
+
                 if game.partner_link_type != 'ubisoft':
                     continue
                 if game.partner_link_id in redeemed:
