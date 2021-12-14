@@ -1736,7 +1736,7 @@ class LegendaryCLI:
         before = self.core.lgd.get_dir_size()
         # delete metadata
         logger.debug('Removing app metadata...')
-        app_names = {}
+        app_names = set()
         for _platform in self.core.get_installed_platforms():
             app_names |= set(g.app_name for g in self.core.get_assets(update_assets=False, platform=_platform))
         self.core.lgd.clean_metadata(app_names)
