@@ -33,6 +33,9 @@ games = {
 
 def get_sdl_appname(app_name):
     for k in games.keys():
+        if k.endswith('_Mac'):
+            continue
+        
         if app_name.startswith(k):
             return k
     return None

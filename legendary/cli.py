@@ -787,13 +787,9 @@ class LegendaryCLI:
         elif config_disable_sdl or args.disable_sdl:
             sdl_enabled = False
 
-        # Disable SDL for non-Windows (for now, as no Mac SDL files are available right now)
-        if args.platform not in ('Win32', 'Windows'):
-            sdl_enabled = False
-
         if sdl_enabled and ((sdl_name := get_sdl_appname(game.app_name)) is not None):
             if not self.core.is_installed(game.app_name) or config_tags is None or args.reset_sdl:
-                sdl_data = self.core.get_sdl_data(sdl_name)
+                sdl_data = self.core.get_sdl_data(sdl_name, platform=args.platform)
                 if sdl_data:
                     if args.skip_sdl:
                         args.install_tag = ['']

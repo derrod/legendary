@@ -287,7 +287,10 @@ class LegendaryCore:
     def get_update_info(self):
         return self.lgd.get_cached_version()['data'].get('release_info')
 
-    def get_sdl_data(self, app_name):
+    def get_sdl_data(self, app_name, platform='Windows'):
+        if platform not in ('Win32', 'Windows'):
+            app_name = f'{app_name}_{platform}'
+
         if app_name not in sdl_games:
             return None
         # load hardcoded data as fallback
