@@ -1205,7 +1205,7 @@ class LegendaryCore:
         self.log.info(f'Install path: {install_path}')
 
         if repair:
-            if not repair_use_latest:
+            if not repair_use_latest and old_manifest:
                 # use installed manifest for repairs instead of updating
                 new_manifest = old_manifest
                 old_manifest = None
