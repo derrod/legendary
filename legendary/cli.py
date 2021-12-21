@@ -1430,6 +1430,11 @@ class LegendaryCLI:
             game_infos.append(InfoItem('Cloud save folder (Mac)', 'cloud_save_folder_mac', cs_dir, cs_dir))
 
             game_infos.append(InfoItem('Is DLC', 'is_dlc', game.is_dlc, game.is_dlc))
+
+            external_activation = game.third_party_store or game.partner_link_type
+            game_infos.append(InfoItem('Activates on external platform', 'external_activation',
+                                       external_activation or 'No', external_activation))
+
             # Find custom launch options, if available
             launch_options = []
             i = 1
