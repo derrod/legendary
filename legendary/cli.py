@@ -1837,6 +1837,15 @@ class LegendaryCLI:
                         'Proceeding will result in it attempting to activate all of them.')
             logger.info('If Origin asks you to install the title rather than to activate, '
                         'it has already been activated, and the dialog can be dismissed.')
+
+            if os.name != 'nt':
+                logger.info('On non-Windows systems the automatic portion of this process does not work yet, '
+                            'please use the launch commands listed below together with --wine/--wine-prefix to '
+                            'specify the wine binary to use and the prefix where Origin is installed.')
+                for idx, game in enumerate(origin_games, start=1):
+                    logger.info(f'{idx}. legendary launch --origin {game.app_name}')
+                return
+
             logger.info('After one title has been processed, hit enter to proceed with the next one.')
 
             y_n = get_boolean_choice('Do you want to redeem these games?')
@@ -1848,27 +1857,8 @@ class LegendaryCLI:
             for game in origin_games:
                 origin_uri = self.core.get_origin_uri(game.app_name)
                 logger.info(f'Opening Origin to activate "{game.app_title}"')
-
-                if os.name == 'nt':
-                    logger.debug(f'Opening Origin URI: {origin_uri}')
-                    webbrowser.open(origin_uri)
-                else:
-                    # on linux, require users to specify at least the wine binary and prefix in config or command line
-                    command = self.core.get_app_launch_command(args.app_name, wrapper=args.wrapper,
-                                                               wine_binary=args.wine_bin,
-                                                               disable_wine=args.no_wine)
-                    env = self.core.get_app_environment(args.app_name, wine_pfx=args.wine_pfx)
-                    full_env = os.environ.copy()
-                    full_env.update(env)
-
-                    if not command:
-                        logger.error(f'In order to launch Origin correctly you must specify a prefix and wine binary or '
-                                     f'wrapper in the configuration file or command line. See the README for details.')
-                        return
-
-                    command.append(origin_uri)
-                    logger.debug(f'Opening Origin URI with command: {shlex.join(command)}')
-                    subprocess.Popen(command, env=full_env)
+                logger.debug(f'Opening Origin URI: {origin_uri}')
+                webbrowser.open(origin_uri)
 
                 if game == last_game:
                     break
