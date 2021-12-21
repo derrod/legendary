@@ -1870,6 +1870,20 @@ class LegendaryCLI:
 
             logger.info('Origin activation process completed.')
 
+    def get_token(self, args):
+        if not self.core.login():
+            logger.error('Login failed!')
+            return
+
+        token = self.core.egs.get_game_token()
+        if args.json:
+            if args.pretty_json:
+                print(json.dumps(token, indent=2, sort_keys=True))
+            else:
+                print(json.dumps(token))
+            return
+        logger.info(f'Exchange code: {token["code"]}')
+
 
 def main():
     parser = argparse.ArgumentParser(description=f'Legendary v{__version__} - "{__codename__}"')
@@ -1909,6 +1923,7 @@ def main():
     alias_parser = subparsers.add_parser('alias', help='Manage aliases')
     clean_parser = subparsers.add_parser('cleanup', help='Remove old temporary, metadata, and manifest files')
     activate_parser = subparsers.add_parser('activate', help='Activate games on third party launchers')
+    get_token_parser = subparsers.add_parser('get-token')
 
     install_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
     uninstall_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
@@ -2162,6 +2177,9 @@ def main():
                              help='Activate Origin/EA App managed titles on your EA account '
                                   '(requires Origin to be installed)')
 
+    get_token_parser.add_argument('--json', dest='json', action='store_true',
+                                  help='Output information in JSON format')
+
     args, extra = parser.parse_known_args()
 
     if args.version:
@@ -2172,14 +2190,14 @@ def main():
                                    'launch', 'download', 'uninstall', 'install', 'update',
                                    'repair', 'list-saves', 'download-saves', 'sync-saves',
                                    'clean-saves', 'verify-game', 'import-game', 'egl-sync',
-                                   'status', 'info', 'alias', 'cleanup', 'activate'):
+                                   'status', 'info', 'alias', 'cleanup', 'activate', 'get-token'):
         print(parser.format_help())
 
         # Print the main help *and* the help for all of the subcommands. Thanks stackoverflow!
         print('Individual command help:')
         subparsers = next(a for a in parser._actions if isinstance(a, argparse._SubParsersAction))
         for choice, subparser in subparsers.choices.items():
-            if choice in ('download', 'update', 'repair'):
+            if choice in ('download', 'update', 'repair', 'get-token'):
                 continue
             print(f'\nCommand: {choice}')
             print(subparser.format_help())
@@ -2248,6 +2266,8 @@ def main():
             cli.cleanup(args)
         elif args.subparser_name == 'activate':
             cli.activate(args)
+        elif args.subparser_name == 'get-token':
+            cli.get_token(args)
     except KeyboardInterrupt:
         logger.info('Command was aborted via KeyboardInterrupt, cleaning up...')
 
