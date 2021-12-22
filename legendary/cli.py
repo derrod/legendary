@@ -1902,10 +1902,12 @@ def main():
                         help='Specify custom config file or name for the config file in the default directory.')
     parser.add_argument('-J', '--pretty-json', dest='pretty_json', action='store_true',
                         help='Pretty-print JSON')
+    parser.add_argument('-H', '--full-help', dest='full_help', action='store_true',
+                        help='Show full help (including individual command help)')
 
     # all the commands
-    subparsers = parser.add_subparsers(title='Commands', dest='subparser_name')
-    auth_parser = subparsers.add_parser('auth', help='Authenticate with EPIC')
+    subparsers = parser.add_subparsers(title='Commands', dest='subparser_name', metavar='<command>')
+    auth_parser = subparsers.add_parser('auth', help='Authenticate with the Epic Games Store')
     install_parser = subparsers.add_parser('install', help='Download a game',
                                            aliases=('download', 'update', 'repair'),
                                            usage='%(prog)s <App Name> [options]',
@@ -2191,21 +2193,20 @@ def main():
         print(f'legendary version "{__version__}", codename "{__codename__}"')
         exit(0)
 
-    if args.subparser_name not in ('auth', 'list-games', 'list-installed', 'list-files',
-                                   'launch', 'download', 'uninstall', 'install', 'update',
-                                   'repair', 'list-saves', 'download-saves', 'sync-saves',
-                                   'clean-saves', 'verify-game', 'import-game', 'egl-sync',
-                                   'status', 'info', 'alias', 'cleanup', 'activate', 'get-token'):
+    if not args.subparser_name or args.full_help:
         print(parser.format_help())
 
-        # Print the main help *and* the help for all of the subcommands. Thanks stackoverflow!
-        print('Individual command help:')
-        subparsers = next(a for a in parser._actions if isinstance(a, argparse._SubParsersAction))
-        for choice, subparser in subparsers.choices.items():
-            if choice in ('download', 'update', 'repair', 'get-token'):
-                continue
-            print(f'\nCommand: {choice}')
-            print(subparser.format_help())
+        if args.full_help:
+            # Commands that should not be shown in full help/list of commands (e.g. aliases)
+            _hidden_commands = {'download', 'update', 'repair', 'get-token'}
+            # Print the help for all of the subparsers. Thanks stackoverflow!
+            print('Individual command help:')
+            subparsers = next(a for a in parser._actions if isinstance(a, argparse._SubParsersAction))
+            for choice, subparser in subparsers.choices.items():
+                if choice in _hidden_commands:
+                    continue
+                print(f'\nCommand: {choice}')
+                print(subparser.format_help())
         return
 
     cli = LegendaryCLI(override_config=args.config_file)
