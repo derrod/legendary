@@ -1899,7 +1899,7 @@ def main():
     parser.add_argument('-y', '--yes', dest='yes', action='store_true', help='Default to yes for all prompts')
     parser.add_argument('-V', '--version', dest='version', action='store_true', help='Print version and exit')
     parser.add_argument('-c', '--config-file', dest='config_file', action='store', metavar='<path/name>',
-                        help='Specify custom config file or name for the config file in the default directory.')
+                        help=argparse.SUPPRESS)
     parser.add_argument('-J', '--pretty-json', dest='pretty_json', action='store_true',
                         help='Pretty-print JSON')
     parser.add_argument('-H', '--full-help', dest='full_help', action='store_true',
