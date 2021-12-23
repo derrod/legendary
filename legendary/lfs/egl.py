@@ -34,13 +34,13 @@ class EPCLFS:
         if not self.appdata_path:
             raise ValueError('EGS AppData path is not set')
 
-        self.config.read(os.path.join(self.appdata_path, 'GameUserSettings.ini'))
+        self.config.read(os.path.join(self.appdata_path, 'GameUserSettings.ini'), encoding='utf-8')
 
     def save_config(self):
         if not self.appdata_path:
             raise ValueError('EGS AppData path is not set')
 
-        with open(os.path.join(self.appdata_path, 'GameUserSettings.ini'), 'w') as f:
+        with open(os.path.join(self.appdata_path, 'GameUserSettings.ini'), 'w', encoding='utf-8') as f:
             self.config.write(f, space_around_delimiters=False)
 
     def read_manifests(self):
@@ -49,7 +49,7 @@ class EPCLFS:
 
         for f in os.listdir(self.programdata_path):
             if f.endswith('.item'):
-                data = json.load(open(os.path.join(self.programdata_path, f)))
+                data = json.load(open(os.path.join(self.programdata_path, f), encoding='utf-8'))
                 self.manifests[data['AppName']] = data
 
     def get_manifests(self) -> List[EGLManifest]:
@@ -73,7 +73,8 @@ class EPCLFS:
 
         manifest_data = manifest.to_json()
         self.manifests[manifest.app_name] = manifest_data
-        with open(os.path.join(self.programdata_path, f'{manifest.installation_guid}.item'), 'w') as f:
+        _path = os.path.join(self.programdata_path, f'{manifest.installation_guid}.item')
+        with open(_path, 'w', encoding='utf-8') as f:
             json.dump(manifest_data, f, indent=4, sort_keys=True)
 
     def delete_manifest(self, app_name):
