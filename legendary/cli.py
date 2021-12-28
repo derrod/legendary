@@ -1385,13 +1385,16 @@ class LegendaryCLI:
         InfoItem = namedtuple('InfoItem', ['name', 'json_name', 'value', 'json_value'])
 
         if self.core.is_installed(app_name):
-            args.platform = self.core.get_installed_game(app_name).platform
+            installed_platform = self.core.get_installed_game(app_name).platform
+            if installed_platform != args.platform:
+                logger.warning(f'Game is installed for platform "{installed_platform}", '
+                               f'but requested metadata is for "{args.platform}", this may '
+                               f'lead to unexpected results.')
 
         game = self.core.get_game(app_name, update_meta=not args.offline, platform=args.platform)
         if game and not self.core.asset_available(game, platform=args.platform):
-            logger.warning(f'Asset information for "{game.app_name}" is missing, the game may have been removed from '
-                           f'your account or you may be logged in with a different account than the one used to build '
-                           f'legendary\'s metadata database.')
+            logger.warning(f'Asset information for "{game.app_name}" is missing, this may be due to the game '
+                           f'not being available on the selected platform or currently logged-in account.')
             args.offline = True
 
         manifest_data = None
