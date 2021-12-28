@@ -2474,6 +2474,11 @@ def main():
 
                 print(f'\n- Download URL: {update_info["downloads"][dl_platform]}')
 
+    if not disable_update_message and cli.core.overlay_update_available:
+        version_info = cli.core.lgd.get_cached_overlay_version()
+        print(f'\nEOS Overlay update available ({version_info["data"]["buildVersion"]}).')
+        print('Run "legendary eos-overlay update" to update to the latest version.')
+
     cli.core.exit()
     ql.stop()
     exit(0)

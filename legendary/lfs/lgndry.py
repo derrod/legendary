@@ -34,6 +34,8 @@ class LGDLFS:
         self._game_metadata = dict()
         # Legendary update check info
         self._update_info = None
+        # EOS Overlay update check info
+        self._overlay_update_info = None
         # Config with game specific settings (e.g. start parameters, env variables)
         self.config = LGDConf(comment_prefixes='/', allow_no_value=True)
 
@@ -362,6 +364,25 @@ class LGDLFS:
             return
         json.dump(dict(version=sdl_version, data=sdl_data),
                   open(os.path.join(self.path, 'tmp', f'{app_name}.json'), 'w'),
+                  indent=2, sort_keys=True)
+
+    def get_cached_overlay_version(self):
+        if self._overlay_update_info:
+            return self._overlay_update_info
+
+        try:
+            self._overlay_update_info = json.load(open(
+                os.path.join(self.path, 'overlay_version.json')))
+        except Exception as e:
+            self.log.debug(f'Failed to load cached Overlay update data: {e!r}')
+            self._overlay_update_info = dict(last_update=0, data=None)
+
+        return self._overlay_update_info
+
+    def set_cached_overlay_version(self, version_data):
+        self._overlay_update_info = dict(last_update=time(), data=version_data)
+        json.dump(self._overlay_update_info,
+                  open(os.path.join(self.path, 'overlay_version.json'), 'w'),
                   indent=2, sort_keys=True)
 
     def get_overlay_install_info(self):

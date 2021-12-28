@@ -89,6 +89,7 @@ class LegendaryCore:
         self.update_available = False
         self.force_show_update = False
         self.webview_killswitch = False
+        self.overlay_update_available = False
         self.logged_in = False
 
     def auth(self, username, password):
@@ -202,6 +203,13 @@ class LegendaryCore:
                 self.log.warning(f'Checking for Legendary updates failed: {e!r}')
         else:
             self.apply_lgd_config()
+
+        # check for overlay updates
+        if self.is_overlay_installed():
+            try:
+                self.check_for_overlay_updates()
+            except Exception as e:
+                self.log.warning(f'Checking for EOS Overlay updates failed: {e!r}')
 
         if self.lgd.userdata['expires_at'] and not force_refresh:
             dt_exp = datetime.fromisoformat(self.lgd.userdata['expires_at'][:-1])
@@ -1676,6 +1684,23 @@ class LegendaryCore:
     @property
     def egl_sync_enabled(self):
         return self.lgd.config.getboolean('Legendary', 'egl_sync', fallback=False)
+
+    def check_for_overlay_updates(self):
+        cached = self.lgd.get_cached_overlay_version()
+        version_info = cached['data']
+        if not version_info or (datetime.now().timestamp() - cached['last_update']) > 24*3600:
+            # start anoymous session for update check if we're not logged in yet
+            if not self.logged_in:
+                self.egs.start_session(client_credentials=True)
+
+            manifest_response = self.egs.get_game_manifest(EOSOverlayApp.namespace,
+                                                           EOSOverlayApp.catalog_item_id,
+                                                           EOSOverlayApp.app_name)
+            version_info = manifest_response['elements'][0]
+            self.lgd.set_cached_overlay_version(version_info)
+
+        installed = self.lgd.get_overlay_install_info()
+        self.overlay_update_available = version_info['buildVersion'] != installed.version
 
     def is_overlay_installed(self):
         return self.lgd.get_overlay_install_info() is not None
