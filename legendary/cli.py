@@ -24,6 +24,7 @@ from legendary.models.game import SaveGameStatus, VerifyResult, Game
 from legendary.utils.cli import get_boolean_choice, sdl_prompt, strtobool
 from legendary.utils.custom_parser import AliasedSubParsersAction
 from legendary.utils.env import is_windows_mac_or_pyi
+from legendary.utils.eos import add_registry_entries, query_registry_entries, remove_registry_entries
 from legendary.utils.lfs import validate_files
 from legendary.utils.selective_dl import get_sdl_appname
 from legendary.utils.wine_helpers import read_registry, get_shell_folders
@@ -1906,6 +1907,139 @@ class LegendaryCLI:
             return
         logger.info(f'Exchange code: {token["code"]}')
 
+    def manage_eos_overlay(self, args):
+        if os.name != 'nt':
+            logger.fatal('This command is only supported on Windows.')
+            return
+
+        if args.action == 'info':
+            reg_paths = query_registry_entries()
+            available_installs = self.core.search_overlay_installs()
+            igame = self.core.lgd.get_overlay_install_info()
+            if not igame:
+                logger.info('No Legendary-managed installation found.')
+            else:
+                logger.info(f'Installed version: {igame.version}')
+                logger.info(f'Installed path: {igame.install_path}')
+
+            logger.info('Found available Overlay installations in:')
+            for install in available_installs:
+                logger.info(f' - {install}')
+
+            # check if overlay path is in registry, and if it is valid
+            overlay_enabled = False
+            if reg_paths['overlay_path'] and self.core.is_overlay_install(reg_paths['overlay_path']):
+                overlay_enabled = True
+
+            logger.info(f'Overlay enabled: {"Yes" if overlay_enabled else "No"}')
+            logger.info(f'Enabled Overlay path: {reg_paths["overlay_path"]}')
+
+            # Also log Vulkan overlays
+            vulkan_overlays = set(reg_paths['vulkan_hkcu']) | set(reg_paths['vulkan_hklm'])
+            if vulkan_overlays:
+                logger.info('Enabled Vulkan layers:')
+                for vk_overlay in sorted(vulkan_overlays):
+                    logger.info(f' - {vk_overlay}')
+            else:
+                logger.info('No enabled Vulkan layers.')
+
+        elif args.action == 'enable':
+            if not args.path:
+                igame = self.core.lgd.get_overlay_install_info()
+                if igame:
+                    args.path = igame.install_path
+                else:
+                    available_installs = self.core.search_overlay_installs()
+                    args.path = available_installs[0]
+
+            if not self.core.is_overlay_install(args.path):
+                logger.error(f'Not a valid Overlay installation: {args.path}')
+                return
+
+            args.path = os.path.normpath(args.path)
+            # Check for existing entries
+            reg_paths = query_registry_entries()
+            if old_path := reg_paths["overlay_path"]:
+                if os.path.normpath(old_path) == args.path:
+                    logger.info(f'Overlay already enabled, nothing to do.')
+                    return
+                else:
+                    logger.info(f'Updating overlay registry entries from "{old_path}" to "{args.path}"')
+                remove_registry_entries()
+            add_registry_entries(args.path)
+            logger.info(f'Enabled overlay at: {args.path}')
+
+        elif args.action == 'disable':
+            logger.info('Disabling overlay (removing registry keys)..')
+            reg_paths = query_registry_entries()
+            old_path = reg_paths["overlay_path"]
+            remove_registry_entries()
+            # if the install is not managed by legendary, specify the command including the path
+            if self.core.is_overlay_installed():
+                logger.info(f'To re-enable the overlay, run: legendary eos-overlay enable')
+            else:
+                logger.info(f'To re-enable the overlay, run: legendary eos-overlay enable --path "{old_path}"')
+
+        elif args.action == 'remove':
+            if not self.core.is_overlay_installed():
+                logger.error('No legendary-managed overlay installation found.')
+                return
+
+            if not args.yes:
+                if not get_boolean_choice('Do you want to uninstall the overlay?', default=False):
+                    print('Aborting...')
+                    return
+
+            logger.info('Removing registry entries...')
+            remove_registry_entries()
+            logger.info('Deleting overlay installation...')
+            self.core.remove_overlay_install()
+            logger.info('Done.')
+
+        elif args.action in {'install', 'update'}:
+            if args.action == 'update' and not self.core.is_overlay_installed():
+                logger.error(f'Overlay not installed, nothing to update.')
+                return
+            logger.info('Preparing to start overlay install...')
+            dlm, ares, igame = self.core.prepare_overlay_install(args.path)
+
+            if old_install := self.core.lgd.get_overlay_install_info():
+                if old_install.version == igame.version:
+                    logger.info('Installed version is up to date, nothing to do.')
+                    return
+
+            logger.info(f'Install directory: {igame.install_path}')
+            logger.info(f'Install size: {ares.install_size / 1024 / 1024:.2f} MiB')
+            logger.info(f'Download size: {ares.dl_size / 1024 / 1024:.2f} MiB')
+
+            if not args.yes:
+                if not get_boolean_choice('Do you want to install the overlay?'):
+                    print('Aborting...')
+                    return
+
+            try:
+                # set up logging stuff (should be moved somewhere else later)
+                dlm.logging_queue = self.logging_queue
+                dlm.start()
+                dlm.join()
+            except Exception as e:
+                logger.warning(f'The following exception occurred while waiting for the downloader to finish: {e!r}. '
+                               f'Try restarting the process, the resume file will be used to start where it failed. '
+                               f'If it continues to fail please open an issue on GitHub.')
+            else:
+                logger.info('Finished downloading, setting up overlay...')
+                self.core.finish_overlay_install(igame)
+
+                # Check for existing registry entries, and remove them if necessary
+                install_path = os.path.normpath(igame.install_path)
+                reg_paths = query_registry_entries()
+                if old_path := reg_paths["overlay_path"]:
+                    if os.path.normpath(old_path) != args.path:
+                        logger.info(f'Updating overlay registry entries from "{old_path}" to "{args.path}"')
+                        remove_registry_entries()
+                add_registry_entries(install_path)
+                logger.info('Done.')
+
 
 def main():
     parser = argparse.ArgumentParser(description=f'Legendary v{__version__} - "{__codename__}"')
@@ -1948,6 +2082,7 @@ def main():
     clean_parser = subparsers.add_parser('cleanup', help='Remove old temporary, metadata, and manifest files')
     activate_parser = subparsers.add_parser('activate', help='Activate games on third party launchers')
     get_token_parser = subparsers.add_parser('get-token')
+    eos_overlay_parser = subparsers.add_parser('eos-overlay', help='Manage EOS Overlay install')
 
     install_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
     uninstall_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
@@ -2207,6 +2342,17 @@ def main():
     get_token_parser.add_argument('--bearer', dest='bearer', action='store_true',
                                   help='Return fresh bearer token rather than an exchange code')
 
+    eos_overlay_parser.add_argument('action', help='Action: install, remove, enable, disable, '
+                                                   'or print info about the overlay',
+                                    choices=['install', 'update', 'remove', 'enable', 'disable', 'info'],
+                                    metavar='<install|update|remove|enable|disable|info>')
+    eos_overlay_parser.add_argument('--path', dest='path', action='store',
+                                    help='Path to the EOS overlay folder to be enabled/installed to.')
+    # eos_overlay_parser.add_argument('--prefix', dest='prefix', action='store',
+    #                                 help='WINE prefix to install the overlay in')
+    # eos_overlay_parser.add_argument('--app', dest='app', action='store',
+    #                                 help='Use this app\'s wine prefix (if configured in config)')
+
     args, extra = parser.parse_known_args()
 
     if args.version:
@@ -2294,6 +2440,8 @@ def main():
             cli.activate(args)
         elif args.subparser_name == 'get-token':
             cli.get_token(args)
+        elif args.subparser_name == 'eos-overlay':
+            cli.manage_eos_overlay(args)
     except KeyboardInterrupt:
         logger.info('Command was aborted via KeyboardInterrupt, cleaning up...')
 

@@ -35,6 +35,7 @@ from legendary.models.manifest import Manifest, ManifestMeta
 from legendary.models.chunk import Chunk
 from legendary.utils.egl_crypt import decrypt_epic_data
 from legendary.utils.env import is_windows_mac_or_pyi
+from legendary.utils.eos import EOSOverlayApp, query_registry_entries
 from legendary.utils.game_workarounds import is_opt_enabled, update_workarounds
 from legendary.utils.savegame_helper import SaveGameHelper
 from legendary.utils.selective_dl import games as sdl_games
@@ -1675,6 +1676,82 @@ class LegendaryCore:
     @property
     def egl_sync_enabled(self):
         return self.lgd.config.getboolean('Legendary', 'egl_sync', fallback=False)
+
+    def is_overlay_installed(self):
+        return self.lgd.get_overlay_install_info() is not None
+
+    @staticmethod
+    def is_overlay_install(path):
+        return os.path.exists(os.path.join(path, 'EOSOVH-Win64-Shipping.dll'))
+
+    def search_overlay_installs(self):
+        locations = []
+        install_info = self.lgd.get_overlay_install_info()
+        if install_info:
+            locations.append(install_info.install_path)
+
+        # Launcher path
+        locations.append(os.path.expandvars(r'%programfiles(x86)%\Epic Games\Launcher\Portal\Extras\Overlay'))
+        # EOSH path
+        locations.append(os.path.expandvars(f'%programfiles(x86)%\\Epic Games\\Epic Online Services'
+                                            f'\\managedArtifacts\\{EOSOverlayApp.app_name}'))
+
+        # normalise all paths
+        locations = [os.path.normpath(x) for x in locations]
+
+        paths = query_registry_entries()
+        if paths['overlay_path']:
+            reg_path = os.path.normpath(paths['overlay_path'])
+            if reg_path not in locations:
+                locations.append(paths['overlay_path'])
+
+        found = []
+        for location in locations:
+            if self.is_overlay_install(location):
+                found.append(location)
+
+        return found
+
+    def prepare_overlay_install(self, path=None):
+        # start anoymous session for update check if we're not logged in yet
+        if not self.logged_in:
+            self.egs.start_session(client_credentials=True)
+
+        _manifest, base_urls = self.get_cdn_manifest(EOSOverlayApp)
+        manifest = self.load_manifest(_manifest)
+
+        path = path or os.path.join(self.get_default_install_dir(), 'EOS_Overlay')
+        dlm = DLManager(path, base_urls[0])
+        analysis_result = dlm.run_analysis(manifest=manifest)
+
+        install_size = analysis_result.install_size
+        if os.path.exists(path):
+            current_size = get_dir_size(path)
+            install_size = min(0, install_size - current_size)
+
+        parent_dir = path
+        while not os.path.exists(parent_dir):
+            parent_dir, _ = os.path.split(parent_dir)
+
+        _, _, free = shutil.disk_usage(parent_dir)
+        if free < install_size:
+            raise ValueError(f'Not enough space to install overlay: {free / 1024 / 1024:.02f} '
+                             f'MiB < {install_size / 1024 / 1024:.02f} MiB')
+
+        igame = InstalledGame(app_name=EOSOverlayApp.app_name, title=EOSOverlayApp.app_title,
+                              version=manifest.meta.build_version, base_urls=base_urls,
+                              install_path=path, install_size=analysis_result.install_size)
+
+        return dlm, analysis_result, igame
+
+    def finish_overlay_install(self, igame):
+        self.lgd.set_overlay_install_info(igame)
+
+    def remove_overlay_install(self):
+        igame = self.lgd.get_overlay_install_info()
+        if os.path.exists(igame.install_path):
+            delete_folder(igame.install_path, recursive=True)
+        self.lgd.remove_overlay_install_info()
 
     def exit(self):
         """

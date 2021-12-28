@@ -364,6 +364,24 @@ class LGDLFS:
                   open(os.path.join(self.path, 'tmp', f'{app_name}.json'), 'w'),
                   indent=2, sort_keys=True)
 
+    def get_overlay_install_info(self):
+        try:
+            data = json.load(open(os.path.join(self.path, f'overlay_install.json')))
+            return InstalledGame.from_json(data)
+        except Exception as e:
+            self.log.debug(f'Failed to load overlay install data: {e!r}')
+            return None
+
+    def set_overlay_install_info(self, igame: InstalledGame):
+        json.dump(vars(igame), open(os.path.join(self.path, 'overlay_install.json'), 'w'),
+                  indent=2, sort_keys=True)
+
+    def remove_overlay_install_info(self):
+        try:
+            os.remove(os.path.join(self.path, 'overlay_install.json'))
+        except Exception as e:
+            self.log.debug(f'Failed to delete overlay install data: {e!r}')
+
     def generate_aliases(self):
         self.log.debug('Generating list of aliases...')
 
