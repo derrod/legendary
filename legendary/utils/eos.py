@@ -55,13 +55,16 @@ def query_registry_entries(prefix=None):
 
 def add_registry_entries(overlay_path, prefix=None):
     if os.name == 'nt':
+        logger.debug(f'Settings HKCU EOS Overlay Path: {overlay_path}')
         set_registry_value(HKEY_CURRENT_USER, EOS_OVERLAY_KEY, EOS_OVERLAY_VALUE,
                            overlay_path.replace('\\', '/'), TYPE_STRING)
         vk_32_path = os.path.join(overlay_path, 'EOSOverlayVkLayer-Win32.json').replace('/', '\\')
         vk_64_path = os.path.join(overlay_path, 'EOSOverlayVkLayer-Win64.json').replace('/', '\\')
         # the launcher only sets those in HKCU, th e service sets them in HKLM,
         # but it's not in use yet, so just do HKCU for now
+        logger.debug(f'Settings HKCU 32-bit Vulkan Layer: {vk_32_path}')
         set_registry_value(HKEY_CURRENT_USER, VULKAN_OVERLAY_KEY, vk_32_path, 0, TYPE_DWORD)
+        logger.debug(f'Settings HKCU 64-bit Vulkan Layer: {vk_32_path}')
         set_registry_value(HKEY_CURRENT_USER, VULKAN_OVERLAY_KEY, vk_64_path, 0, TYPE_DWORD)
     else:
         raise NotImplementedError
