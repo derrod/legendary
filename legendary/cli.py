@@ -2034,8 +2034,8 @@ class LegendaryCLI:
                 install_path = os.path.normpath(igame.install_path)
                 reg_paths = query_registry_entries()
                 if old_path := reg_paths["overlay_path"]:
-                    if os.path.normpath(old_path) != args.path:
-                        logger.info(f'Updating overlay registry entries from "{old_path}" to "{args.path}"')
+                    if os.path.normpath(old_path) != install_path:
+                        logger.info(f'Updating overlay registry entries from "{old_path}" to "{install_path}"')
                         remove_registry_entries()
                 add_registry_entries(install_path)
                 logger.info('Done.')
