@@ -739,6 +739,16 @@ class LegendaryCLI:
                             f'activate and/or run the game.')
             exit(0)
 
+        if args.platform not in game.asset_infos:
+            if not args.no_install:
+                logger.error(f'No app asset found for platform "{args.platform}", run '
+                             f'"legendary list-games --platform {args.platform}" and make '
+                             f'sure the app is available for the specified platform.')
+                exit(1)
+            else:
+                logger.warning(f'No asset found for platform "{args.platform}", '
+                               f'trying anyway since --no-install is set.')
+
         if game.is_dlc:
             logger.info('Install candidate is DLC')
             app_name = game.metadata['mainGameItem']['releaseInfo'][0]['appId']
