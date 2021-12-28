@@ -1,7 +1,7 @@
 from copy import deepcopy
-from distutils.util import strtobool
 
 from legendary.models.game import InstalledGame, Game
+from legendary.utils.cli import strtobool
 
 
 _template = {

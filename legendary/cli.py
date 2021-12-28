@@ -12,7 +12,6 @@ import time
 import webbrowser
 
 from collections import defaultdict, namedtuple
-from distutils.util import strtobool
 from logging.handlers import QueueListener
 from multiprocessing import freeze_support, Queue as MPQueue
 from platform import platform
@@ -22,7 +21,7 @@ from legendary import __version__, __codename__
 from legendary.core import LegendaryCore
 from legendary.models.exceptions import InvalidCredentialsError
 from legendary.models.game import SaveGameStatus, VerifyResult, Game
-from legendary.utils.cli import get_boolean_choice, sdl_prompt
+from legendary.utils.cli import get_boolean_choice, sdl_prompt, strtobool
 from legendary.utils.custom_parser import AliasedSubParsersAction
 from legendary.utils.env import is_windows_mac_or_pyi
 from legendary.utils.lfs import validate_files
