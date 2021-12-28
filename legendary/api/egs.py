@@ -79,7 +79,8 @@ class EPCAPI:
         self.user = session
         return self.user
 
-    def start_session(self, refresh_token: str = None, exchange_token: str = None) -> dict:
+    def start_session(self, refresh_token: str = None, exchange_token: str = None,
+                      client_credentials: bool = False) -> dict:
         if refresh_token:
             params = dict(grant_type='refresh_token',
                           refresh_token=refresh_token,
@@ -87,6 +88,9 @@ class EPCAPI:
         elif exchange_token:
             params = dict(grant_type='exchange_code',
                           exchange_code=exchange_token,
+                          token_type='eg1')
+        elif client_credentials:
+            params = dict(grant_type='client_credentials',
                           token_type='eg1')
         else:
             raise ValueError('At least one token type must be specified!')
@@ -102,9 +106,12 @@ class EPCAPI:
             self.log.warning(f'Login to EGS API failed with errorCode: {j["errorCode"]}')
             raise InvalidCredentialsError(j['errorCode'])
 
-        self.user = j
-        self.session.headers['Authorization'] = f'bearer {self.user["access_token"]}'
-        return self.user
+        self.session.headers['Authorization'] = f'bearer {j["access_token"]}'
+        # only set user info when using non-anonymous login
+        if not client_credentials:
+            self.user = j
+
+        return j
 
     def invalidate_session(self):  # unused
         r = self.session.delete(f'https://{self._oauth_host}/account/api/oauth/sessions/kill/{self.access_token}')
