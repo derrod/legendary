@@ -27,6 +27,7 @@ class EPCAPI:
     _datastorage_host = 'datastorage-public-service-liveegs.live.use1a.on.epicgames.com'
     _library_host = 'library-service.live.use1a.on.epicgames.com'
     _store_gql_host = 'store-launcher.epicgames.com'
+    _artifact_service_host = 'artifact-public-service-prod.beee.live.use1a.on.epicgames.com'
 
     def __init__(self, lc='en', cc='US'):
         self.log = logging.getLogger('EPCAPI')
@@ -169,6 +170,21 @@ class EPCAPI:
                              timeout=timeout)
         r.raise_for_status()
         return r.json().get(catalog_item_id, None)
+
+    def get_artifact_service_ticket(self, sandbox_id: str, artifact_id: str, label='Live', platform='Windows'):
+        # based on EOS windows service implementation, untested as it's not live yet (just 403s)
+        r = self.session.post(f'https://{self._artifact_service_host}/artifact-service/api/public/v1/dependency/'
+                              f'sandbox/{sandbox_id}/artifact/{artifact_id}/ticket',
+                              json=dict(label=label, expiresInSeconds=300, platform=platform),
+                              params=dict(useSandboxAwareLabel='false'))
+        r.raise_for_status()
+        return r.json()
+
+    def get_game_manifest_by_ticket(self, artifact_id: str, ticket: dict):
+        r = self.session.get(f'https://{self._launcher_host}/api/public/assets/v2/by-ticket/app/{artifact_id}',
+                             headers=dict(authorization=f'bearer {ticket["signedTicket"]}'))
+        r.raise_for_status()
+        return r.json()
 
     def get_library_items(self, include_metadata=True):
         records = []
