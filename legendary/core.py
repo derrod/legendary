@@ -1745,7 +1745,11 @@ class LegendaryCore:
         _manifest, base_urls = self.get_cdn_manifest(EOSOverlayApp)
         manifest = self.load_manifest(_manifest)
 
-        path = path or os.path.join(self.get_default_install_dir(), 'EOS_Overlay')
+        if igame := self.lgd.get_overlay_install_info():
+            path = igame.install_path
+        else:
+            path = path or os.path.join(self.get_default_install_dir(), 'EOS_Overlay')
+
         dlm = DLManager(path, base_urls[0])
         analysis_result = dlm.run_analysis(manifest=manifest)
 
