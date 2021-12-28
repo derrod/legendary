@@ -320,7 +320,7 @@ class LegendaryCLI:
                 self.core.install_game(game)
 
             print(f' * {game.title} (App name: {game.app_name} | Version: {game.version} | '
-                  f'Platform: {game.platform} | {game.install_size / (1024*1024*1024):.02f} GiB)')
+                  f'Platform: {game.platform} | {game.install_size / (1024 * 1024 * 1024):.02f} GiB)')
             if args.include_dir:
                 print(f'  + Location: {game.install_path}')
             if not os.path.exists(game.install_path):
@@ -329,7 +329,7 @@ class LegendaryCLI:
                 print(f'  -> Update available! Installed: {game.version}, Latest: {versions[game.app_name]}')
             for dlc in installed_dlcs[game.app_name]:
                 print(f'  + {dlc.title} (App name: {dlc.app_name} | Version: {dlc.version}) | '
-                      f'{dlc.install_size / (1024*1024*1024):.02f} GiB)')
+                      f'{dlc.install_size / (1024 * 1024 * 1024):.02f} GiB)')
                 if dlc.app_name in versions and versions[dlc.app_name] != dlc.version:
                     print(f'   -> Update available! Installed: {dlc.version}, Latest: {versions[dlc.app_name]}')
 
@@ -1426,7 +1426,7 @@ class LegendaryCLI:
             game_infos.append(InfoItem('Title', 'title', game.app_title, game.app_title))
             game_infos.append(InfoItem('Latest version', 'version', game.app_version(args.platform),
                                        game.app_version(args.platform)))
-            all_versions = {k: v.build_version for k,v in game.asset_infos.items()}
+            all_versions = {k: v.build_version for k, v in game.asset_infos.items()}
             game_infos.append(InfoItem('All versions', 'platform_versions', all_versions, all_versions))
             # Cloud save support for Mac and Windows
             game_infos.append(InfoItem('Cloud saves supported', 'cloud_saves_supported',
@@ -1627,7 +1627,7 @@ class LegendaryCLI:
                     tag_download_size.append(dict(tag=tag, size=tag_chunk_size, count=len(tag_chunk_guids)))
                     tag_chunk_size_human = '{:.02f} GiB'.format(tag_chunk_size / 1024 / 1024 / 1024)
                     tag_download_size_human.append(f'{human_tag.ljust(longest_tag)} - {tag_chunk_size_human} '
-                                               f'(Chunks: {len(tag_chunk_guids)})')
+                                                   f'(Chunks: {len(tag_chunk_guids)})')
 
             manifest_info.append(InfoItem('Disk size by install tag', 'tag_disk_size',
                                           tag_disk_size_human or 'N/A', tag_disk_size))
@@ -1765,7 +1765,7 @@ class LegendaryCLI:
         self.core.lgd.clean_tmp_data()
 
         after = self.core.lgd.get_dir_size()
-        logger.info(f'Cleanup complete! Removed {(before - after)/1024/1024:.02f} MiB.')
+        logger.info(f'Cleanup complete! Removed {(before - after) / 1024 / 1024:.02f} MiB.')
 
     def activate(self, args):
         if not self.core.login():
@@ -1975,12 +1975,12 @@ def main():
                              metavar='<App Name/Manifest URI>')
 
     alias_parser.add_argument('action', help='Action: Add, rename, remove, or list alias(es)',
-                             metavar='<add|rename|remove|list>')
+                              metavar='<add|rename|remove|list>')
     alias_parser.add_argument('app_or_alias', help='App name when using "add" or "list" action, '
                                                    'existing alias when using "rename" or "remove" action',
-                             metavar='App name/Old alias', nargs='?')
+                              metavar='App name/Old alias', nargs='?')
     alias_parser.add_argument('alias', help='New alias when using "add" action',
-                             metavar='New alias', nargs='?')
+                              metavar='New alias', nargs='?')
 
     auth_parser.add_argument('--import', dest='import_egs_auth', action='store_true',
                              help='Import Epic Games Launcher authentication data (logs out of EGL)')
