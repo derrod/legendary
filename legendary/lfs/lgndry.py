@@ -34,8 +34,9 @@ class LGDLFS:
         self._game_metadata = dict()
         # Legendary update check info
         self._update_info = None
-        # EOS Overlay update check info
+        # EOS Overlay install/update check info
         self._overlay_update_info = None
+        self._overlay_install_info = None
         # Config with game specific settings (e.g. start parameters, env variables)
         self.config = LGDConf(comment_prefixes='/', allow_no_value=True)
 
@@ -386,19 +387,23 @@ class LGDLFS:
                   indent=2, sort_keys=True)
 
     def get_overlay_install_info(self):
-        try:
-            data = json.load(open(os.path.join(self.path, f'overlay_install.json')))
-            return InstalledGame.from_json(data)
-        except Exception as e:
-            self.log.debug(f'Failed to load overlay install data: {e!r}')
-            return None
+        if not self._overlay_install_info:
+            try:
+                data = json.load(open(os.path.join(self.path, f'overlay_install.json')))
+                self._overlay_install_info = InstalledGame.from_json(data)
+            except Exception as e:
+                self.log.debug(f'Failed to load overlay install data: {e!r}')
+
+        return self._overlay_install_info
 
     def set_overlay_install_info(self, igame: InstalledGame):
+        self._overlay_install_info = igame
         json.dump(vars(igame), open(os.path.join(self.path, 'overlay_install.json'), 'w'),
                   indent=2, sort_keys=True)
 
     def remove_overlay_install_info(self):
         try:
+            self._overlay_install_info = None
             os.remove(os.path.join(self.path, 'overlay_install.json'))
         except Exception as e:
             self.log.debug(f'Failed to delete overlay install data: {e!r}')
