@@ -174,7 +174,7 @@ class LegendaryCore:
             self.log.error(f'Logging in failed with {e!r}, please try again.')
             return False
 
-    def login(self) -> bool:
+    def login(self, force_refresh=False) -> bool:
         """
         Attempts logging in with existing credentials.
 
@@ -202,7 +202,7 @@ class LegendaryCore:
         else:
             self.apply_lgd_config()
 
-        if self.lgd.userdata['expires_at']:
+        if self.lgd.userdata['expires_at'] and not force_refresh:
             dt_exp = datetime.fromisoformat(self.lgd.userdata['expires_at'][:-1])
             dt_now = datetime.utcnow()
             td = dt_now - dt_exp
