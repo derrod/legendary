@@ -356,7 +356,7 @@ class LGDLFS:
         try:
             return json.load(open(os.path.join(self.path, 'tmp', f'{app_name}.json')))
         except Exception as e:
-            self.log.debug(f'Failed to load cached update data: {e!r}')
+            self.log.debug(f'Failed to load cached SDL data: {e!r}')
             return None
 
     def set_cached_sdl_data(self, app_name, sdl_version, sdl_data):
