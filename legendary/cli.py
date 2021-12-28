@@ -1679,10 +1679,6 @@ class LegendaryCLI:
             return self._print_json(json_out, args.pretty_json)
 
     def alias(self, args):
-        if args.action not in ('add', 'rename', 'remove', 'list'):
-            logger.error(f'Invalid action "{args.action}"!')
-            return
-
         if args.action == 'add':
             alias = args.alias
             app_name = self._resolve_aliases(args.app_or_alias)
@@ -1975,6 +1971,7 @@ def main():
                              metavar='<App Name/Manifest URI>')
 
     alias_parser.add_argument('action', help='Action: Add, rename, remove, or list alias(es)',
+                              choices=['add', 'rename', 'remove', 'list'],
                               metavar='<add|rename|remove|list>')
     alias_parser.add_argument('app_or_alias', help='App name when using "add" or "list" action, '
                                                    'existing alias when using "rename" or "remove" action',
