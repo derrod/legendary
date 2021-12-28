@@ -173,6 +173,7 @@ class EPCAPI:
 
     def get_artifact_service_ticket(self, sandbox_id: str, artifact_id: str, label='Live', platform='Windows'):
         # based on EOS windows service implementation, untested as it's not live yet (just 403s)
+        # sandbox_id is the same as the namespace, artifact_id is the same as the app name
         r = self.session.post(f'https://{self._artifact_service_host}/artifact-service/api/public/v1/dependency/'
                               f'sandbox/{sandbox_id}/artifact/{artifact_id}/ticket',
                               json=dict(label=label, expiresInSeconds=300, platform=platform),
@@ -181,7 +182,9 @@ class EPCAPI:
         return r.json()
 
     def get_game_manifest_by_ticket(self, artifact_id: str, ticket: dict):
-        r = self.session.get(f'https://{self._launcher_host}/api/public/assets/v2/by-ticket/app/{artifact_id}',
+        # Untested as get_artifact_service_ticket is not working yet either
+        r = self.session.post(f'https://{self._launcher_host}/launcher/api/public/assets/v2/'
+                              f'by-ticket/app/{artifact_id}',
                              headers=dict(authorization=f'bearer {ticket["signedTicket"]}'))
         r.raise_for_status()
         return r.json()
