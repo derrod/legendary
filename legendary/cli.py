@@ -1889,11 +1889,20 @@ class LegendaryCLI:
             logger.info('Origin activation process completed.')
 
     def get_token(self, args):
-        if not self.core.login():
+        if not self.core.login(force_refresh=args.bearer):
             logger.error('Login failed!')
             return
 
-        token = self.core.egs.get_game_token()
+        if args.bearer:
+            args.json = True
+            token = dict(token_type='bearer',
+                         access_token=self.core.egs.user['access_token'],
+                         expires_in=self.core.egs.user['expires_in'],
+                         expires_at=self.core.egs.user['expires_at'],
+                         account_id=self.core.egs.user['account_id'])
+        else:
+            token = self.core.egs.get_game_token()
+
         if args.json:
             if args.pretty_json:
                 print(json.dumps(token, indent=2, sort_keys=True))
@@ -2199,6 +2208,8 @@ def main():
 
     get_token_parser.add_argument('--json', dest='json', action='store_true',
                                   help='Output information in JSON format')
+    get_token_parser.add_argument('--bearer', dest='bearer', action='store_true',
+                                  help='Return fresh bearer token rather than an exchange code')
 
     args, extra = parser.parse_known_args()
 
