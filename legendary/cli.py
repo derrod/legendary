@@ -742,7 +742,7 @@ class LegendaryCLI:
         if args.platform not in game.asset_infos:
             if not args.no_install:
                 logger.error(f'No app asset found for platform "{args.platform}", run '
-                             f'"legendary list-games --platform {args.platform}" and make '
+                             f'"legendary info --platform {args.platform}" and make '
                              f'sure the app is available for the specified platform.')
                 exit(1)
             else:
