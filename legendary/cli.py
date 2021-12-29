@@ -21,7 +21,8 @@ from legendary import __version__, __codename__
 from legendary.core import LegendaryCore
 from legendary.models.exceptions import InvalidCredentialsError
 from legendary.models.game import SaveGameStatus, VerifyResult, Game
-from legendary.utils.cli import get_boolean_choice, sdl_prompt, strtobool
+from legendary.utils.cli import get_boolean_choice, get_int_choice, sdl_prompt, strtobool
+from legendary.utils.crossover import mac_find_crossover_apps, mac_get_crossover_bottles, mac_is_valid_bottle
 from legendary.utils.custom_parser import AliasedSubParsersAction
 from legendary.utils.env import is_windows_mac_or_pyi
 from legendary.utils.eos import add_registry_entries, query_registry_entries, remove_registry_entries
@@ -568,6 +569,72 @@ class LegendaryCLI:
             self.core.lgd.config.remove_section(app_name)
             return
 
+        # Interactive CrossOver setup
+        if args.crossover and sys_platform == 'darwin':
+            logger.info('Looking for CrossOver installs...')
+            apps = mac_find_crossover_apps()
+            if len(apps) > 1:
+                print('Found multiple CrossOver installs, please select one:')
+                for i, (ver, path) in enumerate(apps, start=1):
+                    print(f'\t{i:2d}. {ver} ({path})')
+                choice = get_int_choice(f'Select a CrossOver install', 1, 1, len(apps))
+                if choice is None:
+                    logger.error(f'No valid choice made, aborting.')
+                    exit(1)
+
+                cx_version, args.crossover_app = apps[choice-1]
+            elif len(apps) == 1:
+                cx_version, args.crossover_app = apps[0]
+                logger.info(f'Found CrossOver {cx_version} at {args.crossover_app}')
+            else:
+                logger.error(f'No CrossOver installs found, see https://legendary.gl/crossover-setup '
+                             f'for setup instructions')
+                return
+
+            bottles = mac_get_crossover_bottles()
+            if 'Legendary' not in bottles:
+                logger.info('It is recommended to set up a bottle specifically for Legendary, see '
+                            'https://legendary.gl/crossover-setup for setup instructions.')
+
+            if len(bottles) > 1:
+                print('Found multiple CrossOver bottles, please select one:')
+
+                if 'Legendary' in bottles:
+                    default_choice = bottles.index('Legendary') + 1
+                elif 'Heroic' in bottles:
+                    default_choice = bottles.index('Heroic') + 1
+                elif 'default' in bottles:
+                    default_choice = bottles.index('default') + 1
+                else:
+                    default_choice = 1
+
+                for i, bottle in enumerate(bottles, start=1):
+                    if i == default_choice:
+                        print(f'\t{i:2d}. {bottle} (default)')
+                    else:
+                        print(f'\t{i:2d}. {bottle}')
+
+                choice = get_int_choice(f'Select a bottle', default_choice, 1, len(bottles))
+                if choice is None:
+                    logger.error(f'No valid choice made, aborting.')
+                    exit(1)
+
+                args.crossover_bottle = bottles[choice-1]
+            elif len(bottles) == 1:
+                logger.info(f'Found only one bottle: {bottles[0]}')
+                args.crossover_bottle = bottles[0]
+            else:
+                logger.error('No Bottles found, see https://legendary.gl/crossover-setup for setup instructions.')
+                return
+
+            logger.info(f'Current launch configuration: '
+                        f'--crossover-bottle "{args.crossover_bottle}" '
+                        f'--crossover-app "{args.crossover_app}" ')
+            y_n = get_boolean_choice('Would you like to save these choices for this application?')
+            if y_n:
+                self.core.lgd.config.set(app_name, 'crossover_app', args.crossover_app)
+                self.core.lgd.config.set(app_name, 'crossover_bottle', args.crossover_bottle)
+
         # override with config value
         args.offline = self.core.is_offline_game(app_name) or args.offline
         if not args.offline:
@@ -593,7 +660,9 @@ class LegendaryCLI:
                                                  wine_bin=args.wine_bin, wine_pfx=args.wine_pfx,
                                                  language=args.language, wrapper=args.wrapper,
                                                  disable_wine=args.no_wine,
-                                                 executable_override=args.executable_override)
+                                                 executable_override=args.executable_override,
+                                                 crossover_app=args.crossover_app,
+                                                 crossover_bottle=args.crossover_bottle)
 
         if args.set_defaults:
             self.core.lgd.config[app_name] = dict()
@@ -615,6 +684,11 @@ class LegendaryCLI:
                 self.core.lgd.config[app_name]['language'] = args.language
             if args.wrapper:
                 self.core.lgd.config[app_name]['wrapper'] = args.wrapper
+            if sys_platform == 'darwin':
+                if args.crossover_app:
+                    self.core.lgd.config[app_name]['crossover_app'] = args.crossover_app
+                if args.crossover_bottle:
+                    self.core.lgd.config[app_name]['crossover_bottle'] = args.crossover_bottle
 
         if args.json:
             return self._print_json(vars(params), args.pretty_json)
@@ -628,6 +702,19 @@ class LegendaryCLI:
         # Copying existing env vars is required on Windows, probably a good idea on Linux
         full_env = os.environ.copy()
         full_env.update(params.environment)
+
+        if 'CX_BOTTLE' in full_env:
+            # if using crossover, unset WINEPREFIX
+            full_env.pop('WINEPREFIX', None)
+            # check that bottle is valid, show error otherwise
+            bottle_name = full_env["CX_BOTTLE"].strip()
+            if not mac_is_valid_bottle(bottle_name):
+                if bottle_name == 'Legendary':
+                    logger.error('Attempted to use default CrossOver bottle ("Legendary"), but it does not exist, '
+                                 'see https://legendary.gl/crossover-setup for setup instructions.')
+                else:
+                    logger.error(f'Specified CrossOver bottle {bottle_name} does not exist, cannot launch.')
+                exit(1)
 
         if args.dry_run:
             logger.info(f'Not Launching {app_name} (dry run)')
@@ -2231,6 +2318,21 @@ def main():
         launch_parser.add_argument('--wine-prefix', help=argparse.SUPPRESS, dest='wine_pfx')
         launch_parser.add_argument('--no-wine', dest='no_wine', help=argparse.SUPPRESS,
                                    action='store_true', default=True)
+
+    if sys_platform == 'darwin':
+        launch_parser.add_argument('--crossover', dest='crossover', action='store_true',
+                                   help='Interactively configure CrossOver for this application.')
+        launch_parser.add_argument('--crossover-app', dest='crossover_app', action='store',
+                                   help='Specify which App to use for CrossOver (e.g. "/Applications/CrossOver.app")')
+        launch_parser.add_argument('--crossover-bottle', dest='crossover_bottle', action='store',
+                                   help='Specify which bottle to use for CrossOver')
+    else:
+        launch_parser.add_argument('--crossover', dest='crossover', action='store_true',
+                                   help=argparse.SUPPRESS)
+        launch_parser.add_argument('--crossover-app', dest='crossover_app', action='store',
+                                   help=argparse.SUPPRESS)
+        launch_parser.add_argument('--crossover-bottle', dest='crossover_bottle', action='store',
+                                   help=argparse.SUPPRESS)
 
     list_parser.add_argument('--platform', dest='platform', action='store', metavar='<Platform>', type=str,
                              help='Platform to fetch game list for (default: Mac on macOS, otherwise Windows)')
