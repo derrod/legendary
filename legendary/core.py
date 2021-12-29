@@ -33,6 +33,7 @@ from legendary.models.game import *
 from legendary.models.json_manifest import JSONManifest
 from legendary.models.manifest import Manifest, ManifestMeta
 from legendary.models.chunk import Chunk
+from legendary.utils.crossover import mac_find_crossover_apps, mac_get_crossover_version
 from legendary.utils.egl_crypt import decrypt_epic_data
 from legendary.utils.env import is_windows_mac_or_pyi
 from legendary.utils.eos import EOSOverlayApp, query_registry_entries
@@ -561,7 +562,7 @@ class LegendaryCore:
     def _get_installed_game(self, app_name) -> InstalledGame:
         return self.lgd.get_installed_game(app_name)
 
-    def get_app_environment(self, app_name, wine_pfx=None) -> dict:
+    def get_app_environment(self, app_name, wine_pfx=None, cx_bottle=None, disable_wine=False) -> dict:
         # get environment overrides from config
         env = dict()
         if 'default.env' in self.lgd.config:
@@ -569,7 +570,22 @@ class LegendaryCore:
         if f'{app_name}.env' in self.lgd.config:
             env.update({k: v for k, v in self.lgd.config[f'{app_name}.env'].items() if v and not k.startswith(';')})
 
+        if disable_wine:
+            return env
+
         # override wine prefix if necessary
+        if sys_platform == 'darwin':
+            if cx_bottle:
+                env['CX_BOTTLE'] = cx_bottle
+            elif 'CX_BOTTLE' not in os.environ:  # Only fall back to config is not already set in env
+                cx_bottle = self.lgd.config.get('default', 'crossover_bottle', fallback='Legendary')
+                cx_bottle = self.lgd.config.get(app_name, 'crossover_bottle', fallback=cx_bottle)
+                if cx_bottle:
+                    env['CX_BOTTLE'] = cx_bottle
+            else:
+                cx_bottle = os.environ['CX_BOTTLE']
+            self.log.info(f'Using CrossOver Bottle "{cx_bottle}"')
+
         if wine_pfx:
             env['WINEPREFIX'] = wine_pfx
         elif 'WINEPREFIX' not in os.environ:
@@ -579,7 +595,8 @@ class LegendaryCore:
 
         return env
 
-    def get_app_launch_command(self, app_name, wrapper=None, wine_binary=None, disable_wine=False):
+    def get_app_launch_command(self, app_name, wrapper=None, wine_binary=None,
+                               crossover_app=None, disable_wine=False):
         _cmd = []
         if wrapper or (wrapper := self.lgd.config.get(app_name, 'wrapper',
                                                       fallback=self.lgd.config.get('default', 'wrapper',
@@ -587,15 +604,32 @@ class LegendaryCore:
             _cmd.extend(shlex.split(wrapper))
 
         if os.name != 'nt' and not disable_wine:
+            if sys_platform == 'darwin' and not crossover_app and not wine_binary:
+                crossover_app = self.lgd.config.get('default', 'crossover_app', fallback=None)
+                crossover_app = self.lgd.config.get(app_name, 'crossover_app', fallback=crossover_app)
+                # on Mac we use CrossOver by default if we can
+                if not crossover_app and not self.lgd.config.getboolean('Legendary', 'disable_auto_crossover',
+                                                                        fallback=False):
+                    cx_apps = mac_find_crossover_apps()
+                    cx_version, crossover_app = cx_apps[0]
+                    self.log.debug(f'Default CrossOver found: {crossover_app} ({cx_version})')
+
+            if sys_platform == 'darwin' and crossover_app:
+                wine_path = os.path.join(crossover_app, 'Contents', 'SharedSupport', 'CrossOver', 'bin', 'wine')
+                if os.path.exists(wine_path):
+                    wine_binary = wine_path
+                    cx_version = mac_get_crossover_version(crossover_app)
+                    self.log.info(f'Using CrossOver {cx_version} ({crossover_app})')
+                else:
+                    self.log.warning(f'Specified CrossOver app not valid (no wine binary): {crossover_app}')
+
             if not wine_binary:
                 # check if there's a default override
                 wine_binary = self.lgd.config.get('default', 'wine_executable', fallback='wine')
                 # check if there's a game specific override
                 wine_binary = self.lgd.config.get(app_name, 'wine_executable', fallback=wine_binary)
 
-            if not self.lgd.config.getboolean(app_name, 'no_wine',
-                                              fallback=self.lgd.config.get('default', 'no_wine', fallback=False)):
-                _cmd.append(wine_binary)
+            _cmd.append(wine_binary)
 
         return _cmd
 
@@ -604,7 +638,9 @@ class LegendaryCore:
                               wine_bin: str = None, wine_pfx: str = None,
                               language: str = None, wrapper: str = None,
                               disable_wine: bool = False,
-                              executable_override: str = None) -> LaunchParameters:
+                              executable_override: str = None,
+                              crossover_app: str = None,
+                              crossover_bottle: str = None) -> LaunchParameters:
         install = self.lgd.get_installed_game(app_name)
         game = self.lgd.get_game_meta(app_name)
 
@@ -612,6 +648,10 @@ class LegendaryCore:
         if not install.platform.startswith('Win'):
             disable_wine = True
             wine_pfx = wine_bin = None
+
+        disable_wine = disable_wine or self.lgd.config.getboolean(
+            app_name, 'no_wine', fallback=self.lgd.config.get('default', 'no_wine', fallback=False)
+        )
 
         if executable_override or (executable_override := self.lgd.config.get(app_name, 'override_exe', fallback=None)):
             game_exe = executable_override.replace('\\', '/')
@@ -626,8 +666,10 @@ class LegendaryCore:
 
         params = LaunchParameters(
             game_executable=game_exe, game_directory=install.install_path, working_directory=working_dir,
-            launch_command=self.get_app_launch_command(app_name, wrapper, wine_bin, disable_wine),
-            environment=self.get_app_environment(app_name, wine_pfx=wine_pfx)
+            launch_command=self.get_app_launch_command(app_name=app_name, wrapper=wrapper, wine_binary=wine_bin,
+                                                       crossover_app=crossover_app, disable_wine=disable_wine),
+            environment=self.get_app_environment(app_name=app_name, wine_pfx=wine_pfx,
+                                                 cx_bottle=crossover_bottle, disable_wine=disable_wine)
         )
 
         if install.launch_parameters:
