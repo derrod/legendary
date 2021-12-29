@@ -2322,10 +2322,10 @@ def main():
     if sys_platform == 'darwin':
         launch_parser.add_argument('--crossover', dest='crossover', action='store_true',
                                    help='Interactively configure CrossOver for this application.')
-        launch_parser.add_argument('--crossover-app', dest='crossover_app', action='store',
+        launch_parser.add_argument('--crossover-app', dest='crossover_app', action='store', metavar='<path to .app>',
                                    help='Specify which App to use for CrossOver (e.g. "/Applications/CrossOver.app")')
         launch_parser.add_argument('--crossover-bottle', dest='crossover_bottle', action='store',
-                                   help='Specify which bottle to use for CrossOver')
+                                   help='Specify which bottle to use for CrossOver', metavar='<bottle name>')
     else:
         launch_parser.add_argument('--crossover', dest='crossover', action='store_true',
                                    help=argparse.SUPPRESS)
