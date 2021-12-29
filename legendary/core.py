@@ -335,7 +335,7 @@ class LegendaryCore:
                 return []
 
             if self.lgd.assets:
-                assets = self.lgd.assets
+                assets = self.lgd.assets.copy()
             else:
                 assets = dict()
 
@@ -346,7 +346,9 @@ class LegendaryCore:
                 ]
             })
 
-            self.lgd.assets = assets
+            # only save (and write to disk) if there were changes
+            if self.lgd.assets != assets:
+                self.lgd.assets = assets
 
         return self.lgd.assets[platform]
 
