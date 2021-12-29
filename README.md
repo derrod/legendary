@@ -180,9 +180,7 @@ legendary -y egl-sync
 ## Usage
 
 ````
-usage: legendary [-h] [-v] [-y] [-V] [-c <path/name>] [-J]
-                 {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,clean-saves,sync-saves,verify-game,import-game,egl-sync,status,info,alias,cleanup,activate}
-                 ...
+usage: legendary [-h] [-v] [-y] [-V] [-J] [-H] <command> ...
 
 Legendary v0.X.X - "Codename"
 
@@ -191,14 +189,12 @@ optional arguments:
   -v, --debug           Set loglevel to debug
   -y, --yes             Default to yes for all prompts
   -V, --version         Print version and exit
-  -c <path/name>, --config-file <path/name>
-                        Specify custom config file or name for the config file
-                        in the default directory.
   -J, --pretty-json     Pretty-print JSON
+  -H, --full-help       Show full help (including individual command help)
 
 Commands:
-  {auth,install,download,update,repair,uninstall,launch,list-games,list-installed,list-files,list-saves,download-saves,clean-saves,sync-saves,verify-game,import-game,egl-sync,status,info,alias,cleanup,activate}
-    auth                Authenticate with EPIC
+  <command>
+    auth                Authenticate with the Epic Games Store
     install (download,update,repair)
                         Download a game
     uninstall           Uninstall (delete) a game
@@ -218,6 +214,7 @@ Commands:
     alias               Manage aliases
     cleanup             Remove old temporary, metadata, and manifest files
     activate            Activate games on third party launchers
+    eos-overlay         Manage EOS Overlay install
 
 Individual command help:
 
@@ -355,6 +352,13 @@ optional arguments:
   --wine-prefix <wine pfx path>
                         Set WINE prefix to use
   --no-wine             Do not run game with WINE (e.g. if a wrapper is used)
+  --crossover           Interactively configure CrossOver for this
+                        application.
+  --crossover-app <path to .app>
+                        Specify which App to use for CrossOver (e.g.
+                        "/Applications/CrossOver.app")
+  --crossover-bottle <bottle name>
+                        Specify which bottle to use for CrossOver
 
 
 Command: list-games
@@ -580,6 +584,21 @@ optional arguments:
                 (Uplay install not required)
   -O, --origin  Activate Origin/EA App managed titles on your EA account
                 (requires Origin to be installed)
+
+
+Command: eos-overlay
+usage: legendary eos-overlay [-h] [--path PATH]
+                             <install|update|remove|enable|disable|info>
+
+positional arguments:
+  <install|update|remove|enable|disable|info>
+                        Action: install, remove, enable, disable, or print
+                        info about the overlay
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --path PATH           Path to the EOS overlay folder to be enabled/installed
+                        to.
 ````
 
 
@@ -627,6 +646,8 @@ disable_update_notice = false
 disable_auto_aliasing = false
 ; Default application platform to use
 default_platform = Windows
+; (macOS) Disable automatic CrossOver use
+disable_auto_crossover = false
 
 [Legendary.aliases]
 ; List of aliases for simpler CLI use
@@ -639,6 +660,9 @@ gtav = 9d2d0eb64d5c44529cece33fe2a46482
 wine_executable = wine
 ; wine prefix (alternative to using environment variable)
 wine_prefix = /home/user/.wine
+; (macOS) CrossOver options
+crossover_app = /Applications/CrossOver.app
+crossover_bottle = Legendary
 
 ; default environment variables to set (overridden by game specific ones)
 [default.env]
@@ -671,4 +695,8 @@ no_wine = true
 override_exe = relative/path/to/file.exe
 ; Disable selective downloading for this title
 disable_sdl = true
+
+[AppName3]
+; (macOS) override crossover bottle
+crossover_bottle = SomethingElse
 ````
