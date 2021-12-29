@@ -641,7 +641,7 @@ class LegendaryCLI:
             logger.debug(f'Launch parameters: {shlex.join(full_params)}')
             logger.debug(f'Working directory: {params.working_directory}')
             if params.environment:
-                logger.info('Environment overrides: {}'.format(', '.join(
+                logger.debug('Environment overrides: {}'.format(', '.join(
                     f'{k}={v}' for k, v in params.environment.items())))
             subprocess.Popen(full_params, cwd=params.working_directory, env=full_env)
 
