@@ -13,6 +13,36 @@ def get_boolean_choice(prompt, default=True):
         return False
 
 
+def get_int_choice(prompt, default=None, min_choice=None, max_choice=None, return_on_invalid=False):
+    if default is not None:
+        prompt = f'{prompt} [{default}]: '
+    else:
+        prompt = f'{prompt}: '
+
+    while True:
+        try:
+            choice = int(input(prompt))
+        except ValueError:
+            if default is not None:
+                return default
+            else:
+                continue
+        else:
+            if min_choice is not None and choice < min_choice:
+                print(f'Number must be greater than {min_choice}')
+                if return_on_invalid:
+                    return None
+                return_on_invalid = True
+                continue
+            if max_choice is not None and choice > max_choice:
+                print(f'Number must be less than {max_choice}')
+                if return_on_invalid:
+                    return None
+                return_on_invalid = True
+                continue
+            return choice
+
+
 def sdl_prompt(sdl_data, title):
     tags = ['']
     if '__required' in sdl_data:
