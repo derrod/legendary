@@ -235,6 +235,7 @@ class EPCAPI:
     def store_get_uplay_codes(self):
         user_id = self.user.get('account_id')
         r = self.session.post(f'https://{self._store_gql_host}/graphql',
+                              headers={'user-agent': self._store_user_agent},
                               json=dict(query=uplay_codes_query,
                                         variables=dict(accountId=user_id)))
         r.raise_for_status()
@@ -243,6 +244,7 @@ class EPCAPI:
     def store_claim_uplay_code(self, uplay_id, game_id):
         user_id = self.user.get('account_id')
         r = self.session.post(f'https://{self._store_gql_host}/graphql',
+                              headers={'user-agent': self._store_user_agent},
                               json=dict(query=uplay_claim_query,
                                         variables=dict(accountId=user_id,
                                                        uplayAccountId=uplay_id,
@@ -253,6 +255,7 @@ class EPCAPI:
     def store_redeem_uplay_codes(self, uplay_id):
         user_id = self.user.get('account_id')
         r = self.session.post(f'https://{self._store_gql_host}/graphql',
+                              headers={'user-agent': self._store_user_agent},
                               json=dict(query=uplay_redeem_query,
                                         variables=dict(accountId=user_id,
                                                        uplayAccountId=uplay_id)))
