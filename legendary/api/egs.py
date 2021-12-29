@@ -52,7 +52,7 @@ class EPCAPI:
         # update user-agent
         if version := egs_params['version']:
             self._user_agent = f'UELauncher/{version} Windows/10.0.19041.1.256.64bit'
-            self._user_agent = f'EpicGamesLauncher/{version}'
+            self._store_user_agent = f'EpicGamesLauncher/{version}'
             self.session.headers['User-Agent'] = self._user_agent
             self.unauth_session.headers['User-Agent'] = self._user_agent
         # update label
