@@ -21,15 +21,15 @@ def get_int_choice(prompt, default=None, min_choice=None, max_choice=None, retur
 
     while True:
         try:
-            choice = int(input(prompt))
-        except ValueError:
-            if default is not None:
+            inp = input(prompt)
+            if not inp:
                 return default
-            else:
-                if return_on_invalid:
-                    return None
-                return_on_invalid = True
-                continue
+            choice = int(inp)
+        except ValueError:
+            if return_on_invalid:
+                return None
+            return_on_invalid = True
+            continue
         else:
             if min_choice is not None and choice < min_choice:
                 print(f'Number must be greater than {min_choice}')
