@@ -2607,7 +2607,7 @@ def main():
             cli.get_token(args)
         elif args.subparser_name == 'eos-overlay':
             cli.manage_eos_overlay(args)
-        elif args.subparser_name == 'crossover-setup':
+        elif args.subparser_name == 'crossover':
             cli.crossover_setup(args)
     except KeyboardInterrupt:
         logger.info('Command was aborted via KeyboardInterrupt, cleaning up...')
