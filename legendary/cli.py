@@ -22,7 +22,9 @@ from legendary.core import LegendaryCore
 from legendary.models.exceptions import InvalidCredentialsError
 from legendary.models.game import SaveGameStatus, VerifyResult, Game
 from legendary.utils.cli import get_boolean_choice, get_int_choice, sdl_prompt, strtobool
-from legendary.utils.crossover import mac_find_crossover_apps, mac_get_crossover_bottles, mac_is_valid_bottle
+from legendary.utils.crossover import (
+    mac_find_crossover_apps, mac_get_crossover_bottles, mac_is_valid_bottle, mac_is_crossover_running
+)
 from legendary.utils.custom_parser import AliasedSubParsersAction
 from legendary.utils.env import is_windows_mac_or_pyi
 from legendary.utils.eos import add_registry_entries, query_registry_entries, remove_registry_entries
@@ -551,7 +553,7 @@ class LegendaryCLI:
 
         # Interactive CrossOver setup
         if args.crossover and sys_platform == 'darwin':
-            args.reset = False
+            args.reset = args.download = False
             self.crossover_setup(args)
 
         if args.origin:
@@ -2125,12 +2127,82 @@ class LegendaryCLI:
                          f'for setup instructions')
             return
 
+        forced_selection = None
         bottles = mac_get_crossover_bottles()
-        if 'Legendary' not in bottles:
+        # todo support names other than Legendary for downloaded bottles
+        if 'Legendary' not in bottles and not args.download:
             logger.info('It is recommended to set up a bottle specifically for Legendary, see '
                         'https://legendary.gl/crossover-setup for setup instructions.')
+        elif 'Legendary' in bottles and args.download:
+            logger.info('Legendary is already installed in a bottle, skipping download.')
+            forced_selection = 'Legendary'
+        elif args.download:
+            if mac_is_crossover_running():
+                logger.error('CrossOver is still running, please quit it before proceeding.')
+                return
 
-        if len(bottles) > 1:
+            logger.info('Checking available bottles...')
+            available_bottles = self.core.get_available_bottles()
+            usable_bottles = [b for b in available_bottles if b['cx_version'] == cx_version]
+            logger.info(f'Found {len(usable_bottles)} bottles usable with the selected CrossOver version. '
+                        f'(Total: {len(available_bottles)})')
+
+            if len(usable_bottles) == 0:
+                logger.info(f'No usable bottles found, see https://legendary.gl/crossover-setup for '
+                            f'manual setup instructions.')
+                install_candidate = None
+            elif len(usable_bottles) == 1:
+                install_candidate = usable_bottles[0]
+            else:
+                print('Found multiple available bottles, please select one:')
+
+                default_choice = None
+                for i, bottle in enumerate(usable_bottles, start=1):
+                    if bottle['is_default']:
+                        default_choice = i
+                        print(f'\t{i:2d}. {bottle["name"]} ({bottle["description"]}) [default]')
+                    else:
+                        print(f'\t{i:2d}. {bottle["name"]} ({bottle["description"]})')
+
+                choice = get_int_choice(f'Select a bottle', default_choice, 1, len(usable_bottles))
+                if choice is None:
+                    logger.error(f'No valid choice made, aborting.')
+                    return
+
+                install_candidate = usable_bottles[choice - 1]
+
+            if install_candidate:
+                logger.info(f'Preparing to download "{install_candidate["name"]}" '
+                            f'({install_candidate["description"]})...')
+                dlm, ares, path = self.core.prepare_bottle_download(install_candidate['name'],
+                                                                    install_candidate['manifest'])
+
+                logger.info(f'Bottle install directory: {path}')
+                logger.info(f'Bottle size: {ares.install_size / 1024 / 1024:.2f} MiB')
+                logger.info(f'Download size: {ares.dl_size / 1024 / 1024:.2f} MiB')
+
+                if not args.yes:
+                    if not get_boolean_choice('Do you want to download the selected bottle?'):
+                        print('Aborting...')
+                        return
+
+                try:
+                    # set up logging stuff (should be moved somewhere else later)
+                    dlm.logging_queue = self.logging_queue
+                    dlm.start()
+                    dlm.join()
+                except Exception as e:
+                    logger.error(f'The following exception occurred while waiting for the downloader: {e!r}. '
+                                 f'Try restarting the process, if it continues to fail please open an issue on GitHub.')
+                    # delete the unfinished bottle
+                    self.core.remove_bottle(install_candidate['name'])
+                    return
+                else:
+                    logger.info('Finished downloading, finalising bottle setup...')
+                    self.core.finish_bottle_setup(install_candidate['name'])
+                    forced_selection = install_candidate['name']
+
+        if len(bottles) > 1 and not forced_selection:
             print('Found multiple CrossOver bottles, please select one:')
 
             if 'Legendary' in bottles:
@@ -2154,9 +2226,11 @@ class LegendaryCLI:
                 exit(1)
 
             args.crossover_bottle = bottles[choice - 1]
-        elif len(bottles) == 1:
+        elif len(bottles) == 1 and not forced_selection:
             logger.info(f'Found only one bottle: {bottles[0]}')
             args.crossover_bottle = bottles[0]
+        elif forced_selection:
+            args.crossover_bottle = forced_selection
         else:
             logger.error('No Bottles found, see https://legendary.gl/crossover-setup for setup instructions.')
             return
@@ -2516,6 +2590,8 @@ def main():
 
     cx_parser.add_argument('--reset', dest='reset', action='store_true',
                            help='Reset default/app-specific crossover configuration')
+    cx_parser.add_argument('--download', dest='download', action='store_true',
+                           help='Automatically download and set up a preconfigured bottle (experimental)')
 
     args, extra = parser.parse_known_args()
 

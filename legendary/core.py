@@ -33,7 +33,7 @@ from legendary.models.game import *
 from legendary.models.json_manifest import JSONManifest
 from legendary.models.manifest import Manifest, ManifestMeta
 from legendary.models.chunk import Chunk
-from legendary.utils.crossover import mac_find_crossover_apps, mac_get_crossover_version
+from legendary.utils.crossover import mac_find_crossover_apps, mac_get_crossover_version, EMPTY_BOTTLE_DIRECTORIES
 from legendary.utils.egl_crypt import decrypt_epic_data
 from legendary.utils.env import is_windows_mac_or_pyi
 from legendary.utils.eos import EOSOverlayApp, query_registry_entries
@@ -1827,6 +1827,76 @@ class LegendaryCore:
         if os.path.exists(igame.install_path):
             delete_folder(igame.install_path, recursive=True)
         self.lgd.remove_overlay_install_info()
+
+    def get_available_bottles(self):
+        self.check_for_updates(force=True)
+        lgd_version_data = self.lgd.get_cached_version()
+        return lgd_version_data.get('data', {}).get('cx_bottles', [])
+
+    def prepare_bottle_download(self, bottle_name, manifest_url):
+        r = self.egs.unauth_session.get(manifest_url)
+        r.raise_for_status()
+        manifest = self.load_manifest(r.content)
+        base_url = manifest_url.rpartition('/')[0]
+
+        bottles_dir = os.path.expanduser('~/Library/Application Support/CrossOver/Bottles')
+        path = os.path.join(bottles_dir, bottle_name)
+
+        if os.path.exists(path):
+            raise FileExistsError(f'Bottle {bottle_name} already exists')
+
+        dlm = DLManager(path, base_url)
+        analysis_result = dlm.run_analysis(manifest=manifest)
+
+        install_size = analysis_result.install_size
+
+        parent_dir = path
+        while not os.path.exists(parent_dir):
+            parent_dir, _ = os.path.split(parent_dir)
+
+        _, _, free = shutil.disk_usage(parent_dir)
+        if free < install_size:
+            raise ValueError(f'Not enough space to setup bottle: {free / 1024 / 1024:.02f} '
+                             f'MiB < {install_size / 1024 / 1024:.02f} MiB')
+
+        return dlm, analysis_result, path
+
+    def finish_bottle_setup(self, bottle_name):
+        bottles_dir = os.path.expanduser('~/Library/Application Support/CrossOver/Bottles')
+        path = os.path.join(bottles_dir, bottle_name)
+
+        self.log.info('Creating missing folders...')
+        os.makedirs(os.path.join(path, 'dosdevices'), exist_ok=True)
+        for _dir in EMPTY_BOTTLE_DIRECTORIES:
+            os.makedirs(os.path.join(path, 'drive_c', _dir), exist_ok=True)
+
+        self.log.info('Creating bottle symlinks...')
+        symlinks = [
+            ('dosdevices/c:', '../drive_c'),
+            ('dosdevices/y:', os.path.expanduser('~')),
+            ('dosdevices/z:', '/'),
+            ('drive_c/users/crossover/Desktop/My Mac Desktop', os.path.expanduser('~/Desktop')),
+            ('drive_c/users/crossover/Downloads', os.path.expanduser('~/Downloads')),
+            ('drive_c/users/crossover/My Documents', os.path.expanduser('~/Documents')),
+            ('drive_c/users/crossover/My Music', os.path.expanduser('~/Music')),
+            ('drive_c/users/crossover/My Pictures', os.path.expanduser('~/Pictures')),
+            ('drive_c/users/crossover/My Videos', os.path.expanduser('~/Movies')),
+            ('drive_c/users/crossover/Templates', os.path.join(path, 'dosdevices/c:/users/crossover/My Documents')),
+        ]
+
+        for link, target in symlinks:
+            _link = os.path.join(path, link)
+            try:
+                os.symlink(target, _link)
+            except Exception as e:
+                self.log.error(f'Failed to create symlink {_link} -> {target}: {e!r}')
+
+    @staticmethod
+    def remove_bottle(self, bottle_name):
+        bottles_dir = os.path.expanduser('~/Library/Application Support/CrossOver/Bottles')
+        path = os.path.join(bottles_dir, bottle_name)
+        if os.path.exists(path):
+            delete_folder(path, recursive=True)
 
     def exit(self):
         """
