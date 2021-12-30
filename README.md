@@ -180,43 +180,73 @@ legendary -y egl-sync
 ## Usage
 
 ````
-usage: legendary [-h] [-v] [-y] [-V] [-J] [-H] <command> ...
+usage: legendary [-h] [-H] [-v] [-y] [-V] [-J] [-T <seconds>] <command> ...
 
 Legendary v0.X.X - "Codename"
 
 optional arguments:
   -h, --help            show this help message and exit
+  -H, --full-help       Show full help (including individual command help)
   -v, --debug           Set loglevel to debug
   -y, --yes             Default to yes for all prompts
   -V, --version         Print version and exit
   -J, --pretty-json     Pretty-print JSON
-  -H, --full-help       Show full help (including individual command help)
+  -T <seconds>, --api-timeout <seconds>
+                        API HTTP request timeout (default: 10 seconds)
 
 Commands:
   <command>
+    activate            Activate games on third party launchers
+    alias               Manage aliases
     auth                Authenticate with the Epic Games Store
+    clean-saves         Clean cloud saves
+    cleanup             Remove old temporary, metadata, and manifest files
+    crossover           Setup CrossOver for game launching (macOS only)
+    download-saves      Download all cloud saves
+    egl-sync            Setup or run Epic Games Launcher sync
+    eos-overlay         Manage EOS Overlay install
+    import-game         Import an already installed game
+    info                Prints info about specified app name or manifest
     install (download,update,repair)
-                        Download a game
-    uninstall           Uninstall (delete) a game
+                        Install/download/update/repair an app
     launch              Launch a game
+    list-files          List files in manifest
     list-games          List available (installable) games
     list-installed      List installed games
-    list-files          List files in manifest
     list-saves          List available cloud saves
-    download-saves      Download all cloud saves
-    clean-saves         Clean cloud saves
-    sync-saves          Sync cloud saves
-    verify-game         Verify a game's local files
-    import-game         Import an already installed game
-    egl-sync            Setup or run Epic Games Launcher sync
     status              Show legendary status information
-    info                Prints info about specified app name or manifest
-    alias               Manage aliases
-    cleanup             Remove old temporary, metadata, and manifest files
-    activate            Activate games on third party launchers
-    eos-overlay         Manage EOS Overlay install
+    sync-saves          Sync cloud saves
+    uninstall           Uninstall (delete) a game
+    verify-game         Verify a game's local files
 
 Individual command help:
+
+Command: activate
+usage: legendary activate [-h] (-U | -O)
+
+optional arguments:
+  -h, --help    show this help message and exit
+  -U, --uplay   Activate Uplay/Ubisoft Connect titles on your Ubisoft account
+                (Uplay install not required)
+  -O, --origin  Activate Origin/EA App managed titles on your EA account
+                (requires Origin to be installed)
+
+
+Command: alias
+usage: legendary alias [-h]
+                       <add|rename|remove|list> [App name/Old alias]
+                       [New alias]
+
+positional arguments:
+  <add|rename|remove|list>
+                        Action: Add, rename, remove, or list alias(es)
+  App name/Old alias    App name when using "add" or "list" action, existing
+                        alias when using "rename" or "remove" action
+  New alias             New alias when using "add" action
+
+optional arguments:
+  -h, --help            show this help message and exit
+
 
 Command: auth
 usage: legendary auth [-h] [--import] [--code <exchange code>]
@@ -233,6 +263,127 @@ optional arguments:
                         authentication
   --delete              Remove existing authentication (log out)
   --disable-webview     Do not use embedded browser for login
+
+
+Command: clean-saves
+usage: legendary clean-saves [-h] [--delete-incomplete] [<App Name>]
+
+positional arguments:
+  <App Name>           Name of the app (optional)
+
+optional arguments:
+  -h, --help           show this help message and exit
+  --delete-incomplete  Delete incomplete save files
+
+
+Command: cleanup
+usage: legendary cleanup [-h] [--keep-manifests]
+
+optional arguments:
+  -h, --help        show this help message and exit
+  --keep-manifests  Do not delete old manifests
+
+
+Command: crossover
+usage: legendary crossover [-h] [--reset] [--download] [App Name]
+
+positional arguments:
+  App Name    App name to configure, will configure defaults if ommited
+
+optional arguments:
+  -h, --help  show this help message and exit
+  --reset     Reset default/app-specific crossover configuration
+  --download  Automatically download and set up a preconfigured bottle
+              (experimental)
+
+
+Command: download-saves
+usage: legendary download-saves [-h] [<App Name>]
+
+positional arguments:
+  <App Name>  Name of the app (optional)
+
+optional arguments:
+  -h, --help  show this help message and exit
+
+
+Command: egl-sync
+usage: legendary egl-sync [-h] [--egl-manifest-path EGL_MANIFEST_PATH]
+                          [--egl-wine-prefix EGL_WINE_PREFIX] [--enable-sync]
+                          [--disable-sync] [--one-shot] [--import-only]
+                          [--export-only] [--unlink]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --egl-manifest-path EGL_MANIFEST_PATH
+                        Path to the Epic Games Launcher's Manifests folder,
+                        should point to
+                        /ProgramData/Epic/EpicGamesLauncher/Data/Manifests
+  --egl-wine-prefix EGL_WINE_PREFIX
+                        Path to the WINE prefix the Epic Games Launcher is
+                        installed in
+  --enable-sync         Enable automatic EGL <-> Legendary sync
+  --disable-sync        Disable automatic sync and exit
+  --one-shot            Sync once, do not ask to setup automatic sync
+  --import-only         Only import games from EGL (no export)
+  --export-only         Only export games to EGL (no import)
+  --unlink              Disable sync and remove EGL metadata from installed
+                        games
+
+
+Command: eos-overlay
+usage: legendary eos-overlay [-h] [--path PATH]
+                             <install|update|remove|enable|disable|info>
+
+positional arguments:
+  <install|update|remove|enable|disable|info>
+                        Action: install, remove, enable, disable, or print
+                        info about the overlay
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --path PATH           Path to the EOS overlay folder to be enabled/installed
+                        to.
+
+
+Command: import-game
+usage: legendary import-game [-h] [--disable-check] [--with-dlcs]
+                             [--skip-dlcs] [--platform <Platform>]
+                             <App Name> <Installation directory>
+
+positional arguments:
+  <App Name>            Name of the app
+  <Installation directory>
+                        Path where the game is installed
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --disable-check       Disables completeness check of the to-be-imported game
+                        installation (useful if the imported game is a much
+                        older version or missing files)
+  --with-dlcs           Automatically attempt to import all DLCs with the base
+                        game
+  --skip-dlcs           Do not ask about importing DLCs.
+  --platform <Platform>
+                        Platform for import (default: Mac on macOS, otherwise
+                        Windows)
+
+
+Command: info
+usage: legendary info [-h] [--offline] [--json] [--platform <Platform>]
+                      <App Name/Manifest URI>
+
+positional arguments:
+  <App Name/Manifest URI>
+                        App name or manifest path/URI
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --offline             Only print info available offline
+  --json                Output information in JSON format
+  --platform <Platform>
+                        Platform to fetch info for (default: installed or Mac
+                        on macOS, Windows otherwise)
 
 
 Command: install
@@ -307,17 +458,6 @@ optional arguments:
   --skip-dlcs           Do not ask about installing DLCs.
 
 
-Command: uninstall
-usage: legendary uninstall [-h] [--keep-files] <App Name>
-
-positional arguments:
-  <App Name>    Name of the app
-
-optional arguments:
-  -h, --help    show this help message and exit
-  --keep-files  Keep files but remove game from Legendary database
-
-
 Command: launch
 usage: legendary launch <App Name> [options]
 
@@ -361,6 +501,29 @@ optional arguments:
                         Specify which bottle to use for CrossOver
 
 
+Command: list-files
+usage: legendary list-files [-h] [--force-download] [--platform <Platform>]
+                            [--manifest <uri>] [--csv] [--tsv] [--json]
+                            [--hashlist] [--install-tag <tag>]
+                            [<App Name>]
+
+positional arguments:
+  <App Name>            Name of the app (optional)
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --force-download      Always download instead of using on-disk manifest
+  --platform <Platform>
+                        Platform (default: Mac on macOS, otherwise Windows)
+  --manifest <uri>      Manifest URL or path to use instead of the CDN one
+  --csv                 Output in CSV format
+  --tsv                 Output in TSV format
+  --json                Output in JSON format
+  --hashlist            Output file hash list in hashcheck/sha1sum -c
+                        compatible format
+  --install-tag <tag>   Show only files with specified install tag
+
+
 Command: list-games
 usage: legendary list-games [-h] [--platform <Platform>] [--include-ue] [-T]
                             [--csv] [--tsv] [--json] [--force-refresh]
@@ -394,29 +557,6 @@ optional arguments:
   --show-dirs      Print installation directory in output
 
 
-Command: list-files
-usage: legendary list-files [-h] [--force-download] [--platform <Platform>]
-                            [--manifest <uri>] [--csv] [--tsv] [--json]
-                            [--hashlist] [--install-tag <tag>]
-                            [<App Name>]
-
-positional arguments:
-  <App Name>            Name of the app (optional)
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --force-download      Always download instead of using on-disk manifest
-  --platform <Platform>
-                        Platform (default: Mac on macOS, otherwise Windows)
-  --manifest <uri>      Manifest URL or path to use instead of the CDN one
-  --csv                 Output in CSV format
-  --tsv                 Output in TSV format
-  --json                Output in JSON format
-  --hashlist            Output file hash list in hashcheck/sha1sum -c
-                        compatible format
-  --install-tag <tag>   Show only files with specified install tag
-
-
 Command: list-saves
 usage: legendary list-saves [-h] [<App Name>]
 
@@ -427,25 +567,13 @@ optional arguments:
   -h, --help  show this help message and exit
 
 
-Command: download-saves
-usage: legendary download-saves [-h] [<App Name>]
-
-positional arguments:
-  <App Name>  Name of the app (optional)
+Command: status
+usage: legendary status [-h] [--offline] [--json]
 
 optional arguments:
   -h, --help  show this help message and exit
-
-
-Command: clean-saves
-usage: legendary clean-saves [-h] [--delete-incomplete] [<App Name>]
-
-positional arguments:
-  <App Name>           Name of the app (optional)
-
-optional arguments:
-  -h, --help           show this help message and exit
-  --delete-incomplete  Delete incomplete save files
+  --offline   Only print offline status information, do not login
+  --json      Show status in JSON format
 
 
 Command: sync-saves
@@ -468,6 +596,17 @@ optional arguments:
   --disable-filters   Disable save game file filtering
 
 
+Command: uninstall
+usage: legendary uninstall [-h] [--keep-files] <App Name>
+
+positional arguments:
+  <App Name>    Name of the app
+
+optional arguments:
+  -h, --help    show this help message and exit
+  --keep-files  Keep files but remove game from Legendary database
+
+
 Command: verify-game
 usage: legendary verify-game [-h] <App Name>
 
@@ -476,129 +615,6 @@ positional arguments:
 
 optional arguments:
   -h, --help  show this help message and exit
-
-
-Command: import-game
-usage: legendary import-game [-h] [--disable-check] [--with-dlcs]
-                             [--skip-dlcs] [--platform <Platform>]
-                             <App Name> <Installation directory>
-
-positional arguments:
-  <App Name>            Name of the app
-  <Installation directory>
-                        Path where the game is installed
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --disable-check       Disables completeness check of the to-be-imported game
-                        installation (useful if the imported game is a much
-                        older version or missing files)
-  --with-dlcs           Automatically attempt to import all DLCs with the base
-                        game
-  --skip-dlcs           Do not ask about importing DLCs.
-  --platform <Platform>
-                        Platform for import (default: Mac on macOS, otherwise
-                        Windows)
-
-
-Command: egl-sync
-usage: legendary egl-sync [-h] [--egl-manifest-path EGL_MANIFEST_PATH]
-                          [--egl-wine-prefix EGL_WINE_PREFIX] [--enable-sync]
-                          [--disable-sync] [--one-shot] [--import-only]
-                          [--export-only] [--unlink]
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --egl-manifest-path EGL_MANIFEST_PATH
-                        Path to the Epic Games Launcher's Manifests folder,
-                        should point to
-                        /ProgramData/Epic/EpicGamesLauncher/Data/Manifests
-  --egl-wine-prefix EGL_WINE_PREFIX
-                        Path to the WINE prefix the Epic Games Launcher is
-                        installed in
-  --enable-sync         Enable automatic EGL <-> Legendary sync
-  --disable-sync        Disable automatic sync and exit
-  --one-shot            Sync once, do not ask to setup automatic sync
-  --import-only         Only import games from EGL (no export)
-  --export-only         Only export games to EGL (no import)
-  --unlink              Disable sync and remove EGL metadata from installed
-                        games
-
-
-Command: status
-usage: legendary status [-h] [--offline] [--json]
-
-optional arguments:
-  -h, --help  show this help message and exit
-  --offline   Only print offline status information, do not login
-  --json      Show status in JSON format
-
-
-Command: info
-usage: legendary info [-h] [--offline] [--json] [--platform <Platform>]
-                      <App Name/Manifest URI>
-
-positional arguments:
-  <App Name/Manifest URI>
-                        App name or manifest path/URI
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --offline             Only print info available offline
-  --json                Output information in JSON format
-  --platform <Platform>
-                        Platform to fetch info for (default: installed or Mac
-                        on macOS, Windows otherwise)
-
-
-Command: alias
-usage: legendary alias [-h]
-                       <add|rename|remove|list> [App name/Old alias]
-                       [New alias]
-
-positional arguments:
-  <add|rename|remove|list>
-                        Action: Add, rename, remove, or list alias(es)
-  App name/Old alias    App name when using "add" or "list" action, existing
-                        alias when using "rename" or "remove" action
-  New alias             New alias when using "add" action
-
-optional arguments:
-  -h, --help            show this help message and exit
-
-
-Command: cleanup
-usage: legendary cleanup [-h] [--keep-manifests]
-
-optional arguments:
-  -h, --help        show this help message and exit
-  --keep-manifests  Do not delete old manifests
-
-
-Command: activate
-usage: legendary activate [-h] (-U | -O)
-
-optional arguments:
-  -h, --help    show this help message and exit
-  -U, --uplay   Activate Uplay/Ubisoft Connect titles on your Ubisoft account
-                (Uplay install not required)
-  -O, --origin  Activate Origin/EA App managed titles on your EA account
-                (requires Origin to be installed)
-
-
-Command: eos-overlay
-usage: legendary eos-overlay [-h] [--path PATH]
-                             <install|update|remove|enable|disable|info>
-
-positional arguments:
-  <install|update|remove|enable|disable|info>
-                        Action: install, remove, enable, disable, or print
-                        info about the overlay
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --path PATH           Path to the EOS overlay folder to be enabled/installed
-                        to.
 ````
 
 
