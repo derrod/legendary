@@ -585,6 +585,12 @@ class DLManager(Process):
                 if t.is_alive():
                     self.log.warning(f'Thread did not terminate! {repr(t)}')
 
+            # forcibly kill DL workers that are not actually dead yet
+            for child in self.children:
+                child.join(timeout=5.0)
+                if child.exitcode is None:
+                    child.terminate()
+
             # clean up all the queues, otherwise this process won't terminate properly
             for name, q in zip(('Download jobs', 'Writer jobs', 'Download results', 'Writer results'),
                                (self.dl_worker_queue, self.writer_queue, self.dl_result_q, self.writer_result_q)):
