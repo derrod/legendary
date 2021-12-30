@@ -5,50 +5,6 @@ import subprocess
 
 logger = logging.getLogger('CXHelpers')
 
-# all the empty folders found in a freshly created bottle that we will need to create
-EMPTY_BOTTLE_DIRECTORIES = [
-    'Program Files/Common Files/Microsoft Shared/TextConv',
-    'ProgramData/Microsoft/Windows/Start Menu/Programs/Administrative Tools',
-    'ProgramData/Microsoft/Windows/Start Menu/Programs/StartUp',
-    'ProgramData/Microsoft/Windows/Templates',
-    'users/crossover/AppData/LocalLow',
-    'users/crossover/Application Data/Microsoft/Windows/Themes',
-    'users/crossover/Contacts',
-    'users/crossover/Cookies',
-    'users/crossover/Desktop',
-    'users/crossover/Favorites',
-    'users/crossover/Links',
-    'users/crossover/Local Settings/Application Data/Microsoft',
-    'users/crossover/Local Settings/History',
-    'users/crossover/Local Settings/Temporary Internet Files',
-    'users/crossover/NetHood',
-    'users/crossover/PrintHood',
-    'users/crossover/Recent',
-    'users/crossover/Saved Games',
-    'users/crossover/Searches',
-    'users/crossover/SendTo',
-    'users/crossover/Start Menu/Programs/Administrative Tools',
-    'users/crossover/Start Menu/Programs/StartUp',
-    'users/crossover/Temp',
-    'users/Public/Desktop',
-    'users/Public/Documents',
-    'users/Public/Favorites',
-    'users/Public/Music',
-    'users/Public/Pictures',
-    'users/Public/Videos',
-    'windows/Fonts',
-    'windows/help',
-    'windows/logs',
-    'windows/Microsoft.NET/DirectX for Managed Code',
-    'windows/system32/mui',
-    'windows/system32/spool/printers',
-    'windows/system32/tasks',
-    'windows/syswow64/drivers',
-    'windows/syswow64/mui',
-    'windows/tasks',
-    'windows/temp'
-]
-
 
 def mac_get_crossover_version(app_path):
     try:

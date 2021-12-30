@@ -33,7 +33,7 @@ from legendary.models.game import *
 from legendary.models.json_manifest import JSONManifest
 from legendary.models.manifest import Manifest, ManifestMeta
 from legendary.models.chunk import Chunk
-from legendary.utils.crossover import mac_find_crossover_apps, mac_get_crossover_version, EMPTY_BOTTLE_DIRECTORIES
+from legendary.utils.crossover import mac_find_crossover_apps, mac_get_crossover_version
 from legendary.utils.egl_crypt import decrypt_epic_data
 from legendary.utils.env import is_windows_mac_or_pyi
 from legendary.utils.eos import EOSOverlayApp, query_registry_entries
@@ -1864,11 +1864,6 @@ class LegendaryCore:
     def finish_bottle_setup(self, bottle_name):
         bottles_dir = os.path.expanduser('~/Library/Application Support/CrossOver/Bottles')
         path = os.path.join(bottles_dir, bottle_name)
-
-        self.log.info('Creating missing folders...')
-        os.makedirs(os.path.join(path, 'dosdevices'), exist_ok=True)
-        for _dir in EMPTY_BOTTLE_DIRECTORIES:
-            os.makedirs(os.path.join(path, 'drive_c', _dir), exist_ok=True)
 
         self.log.info('Creating bottle symlinks...')
         symlinks = [
