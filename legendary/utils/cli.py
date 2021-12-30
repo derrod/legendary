@@ -26,6 +26,9 @@ def get_int_choice(prompt, default=None, min_choice=None, max_choice=None, retur
             if default is not None:
                 return default
             else:
+                if return_on_invalid:
+                    return None
+                return_on_invalid = True
                 continue
         else:
             if min_choice is not None and choice < min_choice:
