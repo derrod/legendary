@@ -47,7 +47,11 @@ class EPCAPI:
 
         self.language_code = lc
         self.country_code = cc
-        self.request_timeout = timeout
+
+        if timeout > 0:
+            self.request_timeout = timeout
+        else:
+            self.request_timeout = None
 
     def update_egs_params(self, egs_params):
         # update user-agent
