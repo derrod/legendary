@@ -2133,6 +2133,8 @@ def main():
     parser.register('action', 'parsers', AliasedSubParsersAction)
 
     # general arguments
+    parser.add_argument('-H', '--full-help', dest='full_help', action='store_true',
+                        help='Show full help (including individual command help)')
     parser.add_argument('-v', '--debug', dest='debug', action='store_true', help='Set loglevel to debug')
     parser.add_argument('-y', '--yes', dest='yes', action='store_true', help='Default to yes for all prompts')
     parser.add_argument('-V', '--version', dest='version', action='store_true', help='Print version and exit')
@@ -2140,39 +2142,39 @@ def main():
                         help=argparse.SUPPRESS)
     parser.add_argument('-J', '--pretty-json', dest='pretty_json', action='store_true',
                         help='Pretty-print JSON')
-    parser.add_argument('-H', '--full-help', dest='full_help', action='store_true',
-                        help='Show full help (including individual command help)')
     parser.add_argument('-T', '--api-timeout', dest='api_timeout', action='store',
                         type=float, default=10, metavar='<seconds>',
                         help='API HTTP request timeout (default: 10 seconds)')
 
     # all the commands
     subparsers = parser.add_subparsers(title='Commands', dest='subparser_name', metavar='<command>')
+    activate_parser = subparsers.add_parser('activate', help='Activate games on third party launchers')
+    alias_parser = subparsers.add_parser('alias', help='Manage aliases')
     auth_parser = subparsers.add_parser('auth', help='Authenticate with the Epic Games Store')
-    install_parser = subparsers.add_parser('install', help='Download a game',
+    clean_saves_parser = subparsers.add_parser('clean-saves', help='Clean cloud saves')
+    clean_parser = subparsers.add_parser('cleanup', help='Remove old temporary, metadata, and manifest files')
+    download_saves_parser = subparsers.add_parser('download-saves', help='Download all cloud saves')
+    egl_sync_parser = subparsers.add_parser('egl-sync', help='Setup or run Epic Games Launcher sync')
+    eos_overlay_parser = subparsers.add_parser('eos-overlay', help='Manage EOS Overlay install')
+    import_parser = subparsers.add_parser('import-game', help='Import an already installed game')
+    info_parser = subparsers.add_parser('info', help='Prints info about specified app name or manifest')
+    install_parser = subparsers.add_parser('install', help='Install/download/update/repair an app',
                                            aliases=('download', 'update', 'repair'),
                                            usage='%(prog)s <App Name> [options]',
                                            description='Aliases: download, update')
-    uninstall_parser = subparsers.add_parser('uninstall', help='Uninstall (delete) a game')
     launch_parser = subparsers.add_parser('launch', help='Launch a game', usage='%(prog)s <App Name> [options]',
                                           description='Note: additional arguments are passed to the game')
+    list_files_parser = subparsers.add_parser('list-files', help='List files in manifest')
     list_parser = subparsers.add_parser('list-games', help='List available (installable) games')
     list_installed_parser = subparsers.add_parser('list-installed', help='List installed games')
-    list_files_parser = subparsers.add_parser('list-files', help='List files in manifest')
     list_saves_parser = subparsers.add_parser('list-saves', help='List available cloud saves')
-    download_saves_parser = subparsers.add_parser('download-saves', help='Download all cloud saves')
-    clean_saves_parser = subparsers.add_parser('clean-saves', help='Clean cloud saves')
-    sync_saves_parser = subparsers.add_parser('sync-saves', help='Sync cloud saves')
-    verify_parser = subparsers.add_parser('verify-game', help='Verify a game\'s local files')
-    import_parser = subparsers.add_parser('import-game', help='Import an already installed game')
-    egl_sync_parser = subparsers.add_parser('egl-sync', help='Setup or run Epic Games Launcher sync')
     status_parser = subparsers.add_parser('status', help='Show legendary status information')
-    info_parser = subparsers.add_parser('info', help='Prints info about specified app name or manifest')
-    alias_parser = subparsers.add_parser('alias', help='Manage aliases')
-    clean_parser = subparsers.add_parser('cleanup', help='Remove old temporary, metadata, and manifest files')
-    activate_parser = subparsers.add_parser('activate', help='Activate games on third party launchers')
+    sync_saves_parser = subparsers.add_parser('sync-saves', help='Sync cloud saves')
+    uninstall_parser = subparsers.add_parser('uninstall', help='Uninstall (delete) a game')
+    verify_parser = subparsers.add_parser('verify-game', help='Verify a game\'s local files')
+
+    # hidden commands have no help text
     get_token_parser = subparsers.add_parser('get-token')
-    eos_overlay_parser = subparsers.add_parser('eos-overlay', help='Manage EOS Overlay install')
 
     install_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
     uninstall_parser.add_argument('app_name', help='Name of the app', metavar='<App Name>')
