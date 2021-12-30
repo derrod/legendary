@@ -1222,7 +1222,7 @@ class LegendaryCLI:
                 return
 
         # get everything needed for import from core, then run additional checks.
-        manifest, igame = self.core.import_game(game, args.app_path, args.platform)
+        manifest, igame = self.core.import_game(game, args.app_path, platform=args.platform)
         exe_path = os.path.join(args.app_path, manifest.meta.launch_exe.lstrip('/'))
         # check if most files at least exist or if user might have specified the wrong directory
         total = len(manifest.file_manifest_list.elements)
