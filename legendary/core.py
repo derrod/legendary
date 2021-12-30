@@ -56,9 +56,9 @@ class LegendaryCore:
     """
     _egl_version = '11.0.1-14907503+++Portal+Release-Live'
 
-    def __init__(self, override_config=None):
+    def __init__(self, override_config=None, timeout=10.0):
         self.log = logging.getLogger('Core')
-        self.egs = EPCAPI()
+        self.egs = EPCAPI(timeout=timeout)
         self.lgd = LGDLFS(config_file=override_config)
         self.egl = EPCLFS()
         self.lgdapi = LGDAPI()

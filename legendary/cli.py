@@ -39,8 +39,8 @@ logger = logging.getLogger('cli')
 
 
 class LegendaryCLI:
-    def __init__(self, override_config=None):
-        self.core = LegendaryCore(override_config)
+    def __init__(self, override_config=None, api_timeout=None):
+        self.core = LegendaryCore(override_config, timeout=api_timeout)
         self.logger = logging.getLogger('cli')
         self.logging_queue = None
 
@@ -2142,6 +2142,9 @@ def main():
                         help='Pretty-print JSON')
     parser.add_argument('-H', '--full-help', dest='full_help', action='store_true',
                         help='Show full help (including individual command help)')
+    parser.add_argument('-T', '--api-timeout', dest='api_timeout', action='store',
+                        type=float, default=10, metavar='<seconds>',
+                        help='API HTTP request timeout (default: 10 seconds)')
 
     # all the commands
     subparsers = parser.add_subparsers(title='Commands', dest='subparser_name', metavar='<command>')
@@ -2477,7 +2480,7 @@ def main():
                 print(subparser.format_help())
         return
 
-    cli = LegendaryCLI(override_config=args.config_file)
+    cli = LegendaryCLI(override_config=args.config_file, api_timeout=args.api_timeout)
     ql = cli.setup_threaded_logging()
 
     config_ll = cli.core.lgd.config.get('Legendary', 'log_level', fallback='info')

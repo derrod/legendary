@@ -29,7 +29,7 @@ class EPCAPI:
     _store_gql_host = 'store-launcher.epicgames.com'
     _artifact_service_host = 'artifact-public-service-prod.beee.live.use1a.on.epicgames.com'
 
-    def __init__(self, lc='en', cc='US'):
+    def __init__(self, lc='en', cc='US', timeout=10.0):
         self.log = logging.getLogger('EPCAPI')
 
         self.session = requests.session()
@@ -47,6 +47,7 @@ class EPCAPI:
 
         self.language_code = lc
         self.country_code = cc
+        self.request_timeout = timeout
 
     def update_egs_params(self, egs_params):
         # update user-agent
@@ -66,7 +67,8 @@ class EPCAPI:
 
     def resume_session(self, session):
         self.session.headers['Authorization'] = f'bearer {session["access_token"]}'
-        r = self.session.get(f'https://{self._oauth_host}/account/api/oauth/verify')
+        r = self.session.get(f'https://{self._oauth_host}/account/api/oauth/verify',
+                             timeout=self.request_timeout)
         if r.status_code >= 500:
             r.raise_for_status()
 
@@ -97,7 +99,8 @@ class EPCAPI:
             raise ValueError('At least one token type must be specified!')
 
         r = self.session.post(f'https://{self._oauth_host}/account/api/oauth/token',
-                              data=params, auth=self._oauth_basic)
+                              data=params, auth=self._oauth_basic,
+                              timeout=self.request_timeout)
         # Only raise HTTP exceptions on server errors
         if r.status_code >= 500:
             r.raise_for_status()
@@ -115,10 +118,12 @@ class EPCAPI:
         return j
 
     def invalidate_session(self):  # unused
-        r = self.session.delete(f'https://{self._oauth_host}/account/api/oauth/sessions/kill/{self.access_token}')
+        _ = self.session.delete(f'https://{self._oauth_host}/account/api/oauth/sessions/kill/{self.access_token}',
+                                timeout=self.request_timeout)
 
     def get_game_token(self):
-        r = self.session.get(f'https://{self._oauth_host}/account/api/oauth/exchange')
+        r = self.session.get(f'https://{self._oauth_host}/account/api/oauth/exchange',
+                             timeout=self.request_timeout)
         r.raise_for_status()
         return r.json()
 
@@ -126,32 +131,35 @@ class EPCAPI:
         user_id = self.user.get('account_id')
         r = self.session.post(f'https://{self._ecommerce_host}/ecommerceintegration/api/public/'
                               f'platforms/EPIC/identities/{user_id}/ownershipToken',
-                              data=dict(nsCatalogItemId=f'{namespace}:{catalog_item_id}'))
+                              data=dict(nsCatalogItemId=f'{namespace}:{catalog_item_id}'),
+                              timeout=self.request_timeout)
         r.raise_for_status()
         return r.content
 
     def get_external_auths(self):
         user_id = self.user.get('account_id')
-        r = self.session.get(f'https://{self._oauth_host}/account/api/public/account/{user_id}/externalAuths')
+        r = self.session.get(f'https://{self._oauth_host}/account/api/public/account/{user_id}/externalAuths',
+                             timeout=self.request_timeout)
         r.raise_for_status()
         return r.json()
 
     def get_game_assets(self, platform='Windows', label='Live'):
         r = self.session.get(f'https://{self._launcher_host}/launcher/api/public/assets/{platform}',
-                             params=dict(label=label))
+                             params=dict(label=label), timeout=self.request_timeout)
         r.raise_for_status()
         return r.json()
 
     def get_game_manifest(self, namespace, catalog_item_id, app_name, platform='Windows', label='Live'):
         r = self.session.get(f'https://{self._launcher_host}/launcher/api/public/assets/v2/platform'
                              f'/{platform}/namespace/{namespace}/catalogItem/{catalog_item_id}/app'
-                             f'/{app_name}/label/{label}')
+                             f'/{app_name}/label/{label}',
+                             timeout=self.request_timeout)
         r.raise_for_status()
         return r.json()
 
     def get_launcher_manifests(self, platform='Windows', label=None):
         r = self.session.get(f'https://{self._launcher_host}/launcher/api/public/assets/v2/platform/'
-                             f'{platform}/launcher',
+                             f'{platform}/launcher', timeout=self.request_timeout,
                              params=dict(label=label if label else self._label))
         r.raise_for_status()
         return r.json()
@@ -159,7 +167,7 @@ class EPCAPI:
     def get_user_entitlements(self):
         user_id = self.user.get('account_id')
         r = self.session.get(f'https://{self._entitlements_host}/entitlement/api/account/{user_id}/entitlements',
-                             params=dict(start=0, count=5000))
+                             params=dict(start=0, count=5000), timeout=self.request_timeout)
         r.raise_for_status()
         return r.json()
 
@@ -167,7 +175,7 @@ class EPCAPI:
         r = self.session.get(f'https://{self._catalog_host}/catalog/api/shared/namespace/{namespace}/bulk/items',
                              params=dict(id=catalog_item_id, includeDLCDetails=True, includeMainGameDetails=True,
                                          country=self.country_code, locale=self.language_code),
-                             timeout=timeout)
+                             timeout=timeout or self.request_timeout)
         r.raise_for_status()
         return r.json().get(catalog_item_id, None)
 
@@ -177,7 +185,8 @@ class EPCAPI:
         r = self.session.post(f'https://{self._artifact_service_host}/artifact-service/api/public/v1/dependency/'
                               f'sandbox/{sandbox_id}/artifact/{artifact_id}/ticket',
                               json=dict(label=label, expiresInSeconds=300, platform=platform),
-                              params=dict(useSandboxAwareLabel='false'))
+                              params=dict(useSandboxAwareLabel='false'),
+                              timeout=self.request_timeout)
         r.raise_for_status()
         return r.json()
 
@@ -185,14 +194,16 @@ class EPCAPI:
         # Untested as get_artifact_service_ticket is not working yet either
         r = self.session.post(f'https://{self._launcher_host}/launcher/api/public/assets/v2/'
                               f'by-ticket/app/{artifact_id}',
-                             headers=dict(authorization=f'bearer {ticket["signedTicket"]}'))
+                              headers=dict(authorization=f'bearer {ticket["signedTicket"]}'),
+                              timeout=self.request_timeout)
         r.raise_for_status()
         return r.json()
 
     def get_library_items(self, include_metadata=True):
         records = []
         r = self.session.get(f'https://{self._library_host}/library/api/public/items',
-                             params=dict(includeMetadata=include_metadata))
+                             params=dict(includeMetadata=include_metadata),
+                             timeout=self.request_timeout)
         r.raise_for_status()
         j = r.json()
         records.extend(j['records'])
@@ -200,7 +211,8 @@ class EPCAPI:
         # Fetch remaining library entries as long as there is a cursor
         while cursor := j['responseMetadata'].get('nextCursor', None):
             r = self.session.get(f'https://{self._library_host}/library/api/public/items',
-                                 params=dict(includeMetadata=include_metadata, cursor=cursor))
+                                 params=dict(includeMetadata=include_metadata, cursor=cursor),
+                                 timeout=self.request_timeout)
             r.raise_for_status()
             j = r.json()
             records.extend(j['records'])
@@ -217,19 +229,22 @@ class EPCAPI:
 
         if filenames:
             r = self.session.post(f'https://{self._datastorage_host}/api/v1/access/egstore/savesync/'
-                                  f'{user_id}/{app_name}', json=dict(files=filenames))
+                                  f'{user_id}/{app_name}',
+                                  json=dict(files=filenames),
+                                  timeout=self.request_timeout)
         else:
             r = self.session.get(f'https://{self._datastorage_host}/api/v1/access/egstore/savesync/'
-                                 f'{user_id}/{app_name}')
+                                 f'{user_id}/{app_name}',
+                                 timeout=self.request_timeout)
         r.raise_for_status()
         return r.json()
-    
+
     def create_game_cloud_saves(self, app_name, filenames):
         return self.get_user_cloud_saves(app_name, filenames=filenames)
 
     def delete_game_cloud_save_file(self, path):
         url = f'https://{self._datastorage_host}/api/v1/data/egstore/{path}'
-        r = self.session.delete(url)
+        r = self.session.delete(url, timeout=self.request_timeout)
         r.raise_for_status()
 
     def store_get_uplay_codes(self):
@@ -237,7 +252,8 @@ class EPCAPI:
         r = self.session.post(f'https://{self._store_gql_host}/graphql',
                               headers={'user-agent': self._store_user_agent},
                               json=dict(query=uplay_codes_query,
-                                        variables=dict(accountId=user_id)))
+                                        variables=dict(accountId=user_id)),
+                              timeout=self.request_timeout)
         r.raise_for_status()
         return r.json()
 
@@ -248,7 +264,8 @@ class EPCAPI:
                               json=dict(query=uplay_claim_query,
                                         variables=dict(accountId=user_id,
                                                        uplayAccountId=uplay_id,
-                                                       gameId=game_id)))
+                                                       gameId=game_id)),
+                              timeout=self.request_timeout)
         r.raise_for_status()
         return r.json()
 
@@ -258,6 +275,7 @@ class EPCAPI:
                               headers={'user-agent': self._store_user_agent},
                               json=dict(query=uplay_redeem_query,
                                         variables=dict(accountId=user_id,
-                                                       uplayAccountId=uplay_id)))
+                                                       uplayAccountId=uplay_id)),
+                              timeout=self.request_timeout)
         r.raise_for_status()
         return r.json()
