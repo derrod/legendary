@@ -765,10 +765,25 @@ class LegendaryCLI:
         # on linux, require users to specify at least the wine binary and prefix in config or command line
         command = self.core.get_app_launch_command(args.app_name, wrapper=args.wrapper,
                                                    wine_binary=args.wine_bin,
-                                                   disable_wine=args.no_wine)
-        env = self.core.get_app_environment(args.app_name, wine_pfx=args.wine_pfx)
+                                                   disable_wine=args.no_wine,
+                                                   crossover_app=args.crossover_app)
+        env = self.core.get_app_environment(args.app_name, wine_pfx=args.wine_pfx,
+                                            cx_bottle=args.crossover_bottle)
         full_env = os.environ.copy()
         full_env.update(env)
+
+        if 'CX_BOTTLE' in full_env:
+            # if using crossover, unset WINEPREFIX
+            full_env.pop('WINEPREFIX', None)
+            # check that bottle is valid, show error otherwise
+            bottle_name = full_env["CX_BOTTLE"].strip()
+            if not mac_is_valid_bottle(bottle_name):
+                if bottle_name == 'Legendary':
+                    logger.error('Attempted to use default CrossOver bottle ("Legendary"), but it does not exist, '
+                                 'see https://legendary.gl/crossover-setup for setup instructions.')
+                else:
+                    logger.error(f'Specified CrossOver bottle {bottle_name} does not exist, cannot launch.')
+                exit(1)
 
         if not command:
             logger.error(f'In order to launch Origin correctly you must specify a prefix and wine binary or '
