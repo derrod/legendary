@@ -1794,7 +1794,7 @@ class LegendaryCore:
         if igame := self.lgd.get_overlay_install_info():
             path = igame.install_path
         else:
-            path = path or os.path.join(self.get_default_install_dir(), 'EOS_Overlay')
+            path = path or os.path.join(self.get_default_install_dir(), '.overlay')
 
         dlm = DLManager(path, base_urls[0])
         analysis_result = dlm.run_analysis(manifest=manifest)
