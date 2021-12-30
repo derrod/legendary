@@ -2065,9 +2065,8 @@ class LegendaryCLI:
                 dlm.start()
                 dlm.join()
             except Exception as e:
-                logger.warning(f'The following exception occurred while waiting for the downloader to finish: {e!r}. '
-                               f'Try restarting the process, the resume file will be used to start where it failed. '
-                               f'If it continues to fail please open an issue on GitHub.')
+                logger.error(f'The following exception occurred while waiting for the downloader to finish: {e!r}. '
+                             f'Try restarting the process, if it continues to fail please open an issue on GitHub.')
             else:
                 logger.info('Finished downloading, setting up overlay...')
                 self.core.finish_overlay_install(igame)
