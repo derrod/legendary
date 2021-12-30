@@ -28,7 +28,7 @@ from legendary.utils.crossover import (
 from legendary.utils.custom_parser import AliasedSubParsersAction
 from legendary.utils.env import is_windows_mac_or_pyi
 from legendary.utils.eos import add_registry_entries, query_registry_entries, remove_registry_entries
-from legendary.utils.lfs import validate_files
+from legendary.utils.lfs import validate_files, clean_filename
 from legendary.utils.selective_dl import get_sdl_appname
 from legendary.utils.wine_helpers import read_registry, get_shell_folders
 
@@ -2129,13 +2129,10 @@ class LegendaryCLI:
 
         forced_selection = None
         bottles = mac_get_crossover_bottles()
-        # todo support names other than Legendary for downloaded bottles
+
         if 'Legendary' not in bottles and not args.download:
             logger.info('It is recommended to set up a bottle specifically for Legendary, see '
                         'https://legendary.gl/crossover-setup for setup instructions.')
-        elif 'Legendary' in bottles and args.download:
-            logger.info('Legendary is already installed in a bottle, skipping download.')
-            forced_selection = 'Legendary'
         elif args.download:
             if mac_is_crossover_running():
                 logger.error('CrossOver is still running, please quit it before proceeding.')
@@ -2144,27 +2141,33 @@ class LegendaryCLI:
             logger.info('Checking available bottles...')
             available_bottles = self.core.get_available_bottles()
             usable_bottles = [b for b in available_bottles if b['cx_version'] == cx_version]
-            logger.info(f'Found {len(usable_bottles)} bottles usable with the selected CrossOver version. '
+            logger.info(f'Found {len(usable_bottles)} bottle(s) usable with the selected CrossOver version. '
                         f'(Total: {len(available_bottles)})')
 
-            if len(usable_bottles) == 0:
+            if not usable_bottles:
                 logger.info(f'No usable bottles found, see https://legendary.gl/crossover-setup for '
                             f'manual setup instructions.')
                 install_candidate = None
-            elif len(usable_bottles) == 1:
-                install_candidate = usable_bottles[0]
             else:
-                print('Found multiple available bottles, please select one:')
+                print('Found available bottle(s), please select one:')
 
                 default_choice = None
                 for i, bottle in enumerate(usable_bottles, start=1):
+                    extra = []
                     if bottle['is_default']:
                         default_choice = i
-                        print(f'\t{i:2d}. {bottle["name"]} ({bottle["description"]}) [default]')
+                        extra.append('default')
+                    if bottle['name'] in bottles:
+                        extra.append('installed')
+
+                    if extra:
+                        print(f'\t{i:2d}. {bottle["name"]} ({bottle["description"]}) [{", ".join(extra)}]')
                     else:
                         print(f'\t{i:2d}. {bottle["name"]} ({bottle["description"]})')
 
-                choice = get_int_choice(f'Select a bottle', default_choice, 1, len(usable_bottles))
+                choice = get_int_choice(f'Select a bottle (CTRL+C to abort)',
+                                        default_choice, 1, len(usable_bottles),
+                                        return_on_invalid=True)
                 if choice is None:
                     logger.error(f'No valid choice made, aborting.')
                     return
@@ -2172,10 +2175,18 @@ class LegendaryCLI:
                 install_candidate = usable_bottles[choice - 1]
 
             if install_candidate:
-                logger.info(f'Preparing to download "{install_candidate["name"]}" '
-                            f'({install_candidate["description"]})...')
-                dlm, ares, path = self.core.prepare_bottle_download(install_candidate['name'],
-                                                                    install_candidate['manifest'])
+                bottle_name = install_candidate["name"]
+                logger.info(f'Preparing to download "{bottle_name}" ({install_candidate["description"]})...')
+
+                if bottle_name in bottles:
+                    logger.warning(f'Bottle with the same name already exists!')
+                    new_name = input('Please provide a new name for the bottle [CTRL-C or empty to abort]: ')
+                    if not new_name:
+                        logger.error('No new name provided, aborting.')
+                        return
+                    bottle_name = clean_filename(new_name).strip()
+
+                dlm, ares, path = self.core.prepare_bottle_download(bottle_name, install_candidate['manifest'])
 
                 logger.info(f'Bottle install directory: {path}')
                 logger.info(f'Bottle size: {ares.install_size / 1024 / 1024:.2f} MiB')
@@ -2195,12 +2206,12 @@ class LegendaryCLI:
                     logger.error(f'The following exception occurred while waiting for the downloader: {e!r}. '
                                  f'Try restarting the process, if it continues to fail please open an issue on GitHub.')
                     # delete the unfinished bottle
-                    self.core.remove_bottle(install_candidate['name'])
+                    self.core.remove_bottle(bottle_name)
                     return
                 else:
                     logger.info('Finished downloading, finalising bottle setup...')
-                    self.core.finish_bottle_setup(install_candidate['name'])
-                    forced_selection = install_candidate['name']
+                    self.core.finish_bottle_setup(bottle_name)
+                    forced_selection = bottle_name
 
         if len(bottles) > 1 and not forced_selection:
             print('Found multiple CrossOver bottles, please select one:')
