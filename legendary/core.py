@@ -1887,7 +1887,7 @@ class LegendaryCore:
                 self.log.error(f'Failed to create symlink {_link} -> {target}: {e!r}')
 
     @staticmethod
-    def remove_bottle(self, bottle_name):
+    def remove_bottle(bottle_name):
         bottles_dir = os.path.expanduser('~/Library/Application Support/CrossOver/Bottles')
         path = os.path.join(bottles_dir, bottle_name)
         if os.path.exists(path):
