@@ -2275,7 +2275,7 @@ def main():
                         help=argparse.SUPPRESS)
     parser.add_argument('-J', '--pretty-json', dest='pretty_json', action='store_true',
                         help='Pretty-print JSON')
-    parser.add_argument('-T', '--api-timeout', dest='api_timeout', action='store',
+    parser.add_argument('-A', '--api-timeout', dest='api_timeout', action='store',
                         type=float, default=10, metavar='<seconds>',
                         help='API HTTP request timeout (default: 10 seconds)')
 
