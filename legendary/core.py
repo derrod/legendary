@@ -1755,22 +1755,30 @@ class LegendaryCore:
     def is_overlay_install(path):
         return os.path.exists(os.path.join(path, 'EOSOVH-Win64-Shipping.dll'))
 
-    def search_overlay_installs(self):
+    def search_overlay_installs(self, prefix=None):
         locations = []
         install_info = self.lgd.get_overlay_install_info()
         if install_info:
             locations.append(install_info.install_path)
 
-        # Launcher path
-        locations.append(os.path.expandvars(r'%programfiles(x86)%\Epic Games\Launcher\Portal\Extras\Overlay'))
-        # EOSH path
-        locations.append(os.path.expandvars(f'%programfiles(x86)%\\Epic Games\\Epic Online Services'
-                                            f'\\managedArtifacts\\{EOSOverlayApp.app_name}'))
+        if os.name == 'nt':
+            # Launcher path
+            locations.append(os.path.expandvars(r'%programfiles(x86)%\Epic Games\Launcher\Portal\Extras\Overlay'))
+            # EOSH path
+            locations.append(os.path.expandvars(f'%programfiles(x86)%\\Epic Games\\Epic Online Services'
+                                                f'\\managedArtifacts\\{EOSOverlayApp.app_name}'))
+        else:
+            # Launcher path
+            locations.append(os.path.join(prefix, 'drive_c', 'Program Files (x86)',
+                                          'Epic Games/Launcher/Portal/Extras/Overlay'))
+            # EOSH path
+            locations.append(os.path.join(prefix, 'drive_c', 'Program Files (x86)',
+                                          f'Epic Games/Epic Online Services/managedArtifacts/{EOSOverlayApp.app_name}'))
 
         # normalise all paths
         locations = [os.path.normpath(x) for x in locations]
 
-        paths = query_registry_entries()
+        paths = query_registry_entries(prefix)
         if paths['overlay_path']:
             reg_path = os.path.normpath(paths['overlay_path'])
             if reg_path not in locations:

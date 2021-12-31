@@ -1950,13 +1950,41 @@ class LegendaryCLI:
         logger.info(f'Exchange code: {token["code"]}')
 
     def manage_eos_overlay(self, args):
+        prefix = None
         if os.name != 'nt':
-            logger.fatal('This command is only supported on Windows.')
-            return
+            if args.app:
+                app_name = self._resolve_aliases(args.app)
+                # try getting bottle/prefix from config
+                if sys_platform == 'darwin':
+                    args.bottle = self.core.lgd.config.get(app_name, 'crossover_bottle', fallback=None)
+
+                args.prefix = self.core.lgd.config.get(f'{app_name}.env', 'WINEPREFIX', fallback=None)
+                args.prefix = self.core.lgd.config.get(app_name, 'wine_prefix', fallback=args.prefix)
+            else:
+                # try using defaults if they exist
+                if sys_platform == 'darwin':
+                    args.bottle = self.core.lgd.config.get('default', 'crossover_bottle', fallback=None)
+
+                args.prefix = self.core.lgd.config.get('default.env', 'WINEPREFIX', fallback=None)
+                args.prefix = self.core.lgd.config.get('default', 'wine_prefix', fallback=args.prefix)
+
+            if sys_platform == 'darwin' and args.bottle:
+                if not mac_is_valid_bottle(args.bottle):
+                    logger.error('Invalid bottle specified.')
+                    return
+                prefix = mac_get_bottle_path(args.bottle)
+            elif args.prefix:
+                if not os.path.exists(args.prefix):
+                    logger.error(f'Prefix "{args.prefix}" does not exist.')
+                    return
+                prefix = args.prefix
+            else:
+                logger.error('Need either config default, --prefix, --bottle, or --app to install the overlay to.')
+                return
 
         if args.action == 'info':
-            reg_paths = query_registry_entries()
-            available_installs = self.core.search_overlay_installs()
+            reg_paths = query_registry_entries(prefix)
+            available_installs = self.core.search_overlay_installs(prefix)
             igame = self.core.lgd.get_overlay_install_info()
             if not igame:
                 logger.info('No Legendary-managed installation found.')
@@ -1991,7 +2019,7 @@ class LegendaryCLI:
                 if igame:
                     args.path = igame.install_path
                 else:
-                    available_installs = self.core.search_overlay_installs()
+                    available_installs = self.core.search_overlay_installs(prefix)
                     args.path = available_installs[0]
 
             if not self.core.is_overlay_install(args.path):
@@ -2000,22 +2028,22 @@ class LegendaryCLI:
 
             args.path = os.path.normpath(args.path)
             # Check for existing entries
-            reg_paths = query_registry_entries()
+            reg_paths = query_registry_entries(prefix)
             if old_path := reg_paths["overlay_path"]:
                 if os.path.normpath(old_path) == args.path:
                     logger.info(f'Overlay already enabled, nothing to do.')
                     return
                 else:
                     logger.info(f'Updating overlay registry entries from "{old_path}" to "{args.path}"')
-                remove_registry_entries()
-            add_registry_entries(args.path)
+                remove_registry_entries(prefix)
+            add_registry_entries(args.path, prefix)
             logger.info(f'Enabled overlay at: {args.path}')
 
         elif args.action == 'disable':
             logger.info('Disabling overlay (removing registry keys)..')
-            reg_paths = query_registry_entries()
+            reg_paths = query_registry_entries(prefix)
             old_path = reg_paths["overlay_path"]
-            remove_registry_entries()
+            remove_registry_entries(prefix)
             # if the install is not managed by legendary, specify the command including the path
             if self.core.is_overlay_installed():
                 logger.info(f'To re-enable the overlay, run: legendary eos-overlay enable')
@@ -2033,7 +2061,12 @@ class LegendaryCLI:
                     return
 
             logger.info('Removing registry entries...')
-            remove_registry_entries()
+            remove_registry_entries(prefix)
+
+            if os.name != 'nt':
+                logger.info(f'Registry entries in prefixes other than "{prefix}" were not removed. '
+                            f'This shoouldn\'t cause any issues as the overlay will simply fail to load.')
+
             logger.info('Deleting overlay installation...')
             self.core.remove_overlay_install()
             logger.info('Done.')
@@ -2073,15 +2106,15 @@ class LegendaryCLI:
 
                 # Check for existing registry entries, and remove them if necessary
                 install_path = os.path.normpath(igame.install_path)
-                reg_paths = query_registry_entries()
+                reg_paths = query_registry_entries(prefix)
                 if old_path := reg_paths["overlay_path"]:
                     if os.path.normpath(old_path) != install_path:
                         logger.info(f'Updating overlay registry entries from "{old_path}" to "{install_path}"')
-                        remove_registry_entries()
+                        remove_registry_entries(prefix)
                     else:
                         logger.info(f'Registry entries already exist. Done.')
                         return
-                add_registry_entries(install_path)
+                add_registry_entries(install_path, prefix)
                 logger.info('Done.')
 
     def crossover_setup(self, args):
@@ -2609,10 +2642,23 @@ def main():
                                     metavar='<install|update|remove|enable|disable|info>')
     eos_overlay_parser.add_argument('--path', dest='path', action='store',
                                     help='Path to the EOS overlay folder to be enabled/installed to.')
-    # eos_overlay_parser.add_argument('--prefix', dest='prefix', action='store',
-    #                                 help='WINE prefix to install the overlay in')
-    # eos_overlay_parser.add_argument('--app', dest='app', action='store',
-    #                                 help='Use this app\'s wine prefix (if configured in config)')
+
+    if os.name != 'nt':
+        eos_overlay_parser.add_argument('--prefix', dest='prefix', action='store',
+                                        help='WINE prefix to install the overlay in')
+        eos_overlay_parser.add_argument('--app', dest='app', action='store',
+                                        help='Use this app\'s wine prefix (if configured in config)')
+
+        if sys_platform == 'darwin':
+            eos_overlay_parser.add_argument('--bottle', dest='bottle', action='store',
+                                            help='WINE prefix to install the overlay in')
+        else:
+            eos_overlay_parser.add_argument('--bottle', dest='prefix', action='store', help=argparse.SUPPRESS)
+    else:
+        eos_overlay_parser.add_argument('--prefix', dest='prefix', action='store', help=argparse.SUPPRESS)
+        eos_overlay_parser.add_argument('--bottle', dest='prefix', action='store', help=argparse.SUPPRESS)
+        eos_overlay_parser.add_argument('--app', dest='app', action='store', help=argparse.SUPPRESS)
+
 
     cx_parser.add_argument('--reset', dest='reset', action='store_true',
                            help='Reset default/app-specific crossover configuration')

@@ -59,6 +59,11 @@ def query_registry_entries(prefix=None):
         else:
             overlay_path = None
 
+        if overlay_path.startswith('C:'):
+            overlay_path = os.path.join(prefix, 'drive_c', overlay_path[3:])
+        elif overlay_path.startswith('Z:'):
+            overlay_path = overlay_path[2:]
+
         return dict(overlay_path=overlay_path,
                     vulkan_hkcu=list(),
                     vulkan_hklm=list())
@@ -87,7 +92,11 @@ def add_registry_entries(overlay_path, prefix=None):
 
         reg_lines = open(use_reg_file, 'r', encoding='utf-8').readlines()
 
-        overlay_line = f'"{EOS_OVERLAY_VALUE}"="Z:{overlay_path}"\n'
+        overlay_path = overlay_path.replace('\\', '/')
+        if overlay_path.startswith('/'):
+            overlay_path = f'Z:{overlay_path}'
+
+        overlay_line = f'"{EOS_OVERLAY_VALUE}"="{overlay_path}"\n'
         overlay_idx = None
         section_idx = None
 
@@ -110,9 +119,9 @@ def add_registry_entries(overlay_path, prefix=None):
 
 
 def remove_registry_entries(prefix=None):
-    if os.name == 'nt':
-        entries = query_registry_entries()
+    entries = query_registry_entries(prefix)
 
+    if os.name == 'nt':
         if entries['overlay_path']:
             logger.debug('Removing HKCU EOS OverlayPath')
             remove_registry_value(HKEY_CURRENT_USER, EOS_OVERLAY_KEY, EOS_OVERLAY_VALUE)
@@ -129,8 +138,9 @@ def remove_registry_entries(prefix=None):
         if not os.path.exists(use_reg_file):
             raise ValueError('No user.reg file, invalid path')
 
-        reg_lines = open(use_reg_file, 'r', encoding='utf-8').readlines()
-        filtered_lines = [line for line in reg_lines if EOS_OVERLAY_VALUE not in line]
-        open(use_reg_file, 'w', encoding='utf-8').writelines(filtered_lines)
+        if entries['overlay_path']:
+            reg_lines = open(use_reg_file, 'r', encoding='utf-8').readlines()
+            filtered_lines = [line for line in reg_lines if EOS_OVERLAY_VALUE not in line]
+            open(use_reg_file, 'w', encoding='utf-8').writelines(filtered_lines)
     else:
         raise ValueError('No prefix specified on non-Windows platform')
