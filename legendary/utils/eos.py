@@ -59,10 +59,11 @@ def query_registry_entries(prefix=None):
         else:
             overlay_path = None
 
-        if overlay_path.startswith('C:'):
-            overlay_path = os.path.join(prefix, 'drive_c', overlay_path[3:])
-        elif overlay_path.startswith('Z:'):
-            overlay_path = overlay_path[2:]
+        if overlay_path:
+            if overlay_path.startswith('C:'):
+                overlay_path = os.path.join(prefix, 'drive_c', overlay_path[3:])
+            elif overlay_path.startswith('Z:'):
+                overlay_path = overlay_path[2:]
 
         return dict(overlay_path=overlay_path,
                     vulkan_hkcu=list(),
