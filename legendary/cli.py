@@ -2078,6 +2078,9 @@ class LegendaryCLI:
                     if os.path.normpath(old_path) != install_path:
                         logger.info(f'Updating overlay registry entries from "{old_path}" to "{install_path}"')
                         remove_registry_entries()
+                    else:
+                        logger.info(f'Registry entries already exist. Done.')
+                        return
                 add_registry_entries(install_path)
                 logger.info('Done.')
 
