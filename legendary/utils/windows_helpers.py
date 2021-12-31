@@ -1,7 +1,7 @@
 import logging
 import winreg
 
-logger = logging.getLogger('WindowsHelpers')
+_logger = logging.getLogger('WindowsHelpers')
 
 HKEY_CURRENT_USER = winreg.HKEY_CURRENT_USER
 HKEY_LOCAL_MACHINE = winreg.HKEY_LOCAL_MACHINE
@@ -14,12 +14,12 @@ def query_registry_value(hive, key, value):
     try:
         k = winreg.OpenKey(hive, key, reserved=0, access=winreg.KEY_READ)
     except FileNotFoundError:
-        logger.debug(f'Registry key "{key}" not found')
+        _logger.debug(f'Registry key "{key}" not found')
     else:
         try:
             ret, _ = winreg.QueryValueEx(k, value)
         except FileNotFoundError:
-            logger.debug(f'Registry value "{key}":"{value}" not found')
+            _logger.debug(f'Registry value "{key}":"{value}" not found')
         winreg.CloseKey(k)
 
     return ret
@@ -35,7 +35,7 @@ def list_registry_values(hive, key, use_32bit_view=False):
     try:
         k = winreg.OpenKey(hive, key, reserved=0, access=access)
     except FileNotFoundError:
-        logger.debug(f'Registry key "{key}" not found')
+        _logger.debug(f'Registry key "{key}" not found')
     else:
         idx = 0
         while True:
@@ -56,12 +56,12 @@ def remove_registry_value(hive, key, value, use_32bit_view=False):
     try:
         k = winreg.OpenKey(hive, key, reserved=0, access=access)
     except FileNotFoundError:
-        logger.debug(f'Registry key "{key}" not found')
+        _logger.debug(f'Registry key "{key}" not found')
     else:
         try:
             winreg.DeleteValue(k, value)
         except Exception as e:
-            logger.debug(f'Deleting "{key}":"{value}" failed with {repr(e)}')
+            _logger.debug(f'Deleting "{key}":"{value}" failed with {repr(e)}')
         winreg.CloseKey(k)
 
 
@@ -73,10 +73,10 @@ def set_registry_value(hive, key, value, data, reg_type=winreg.REG_SZ, use_32bit
     try:
         k = winreg.CreateKeyEx(hive, key, reserved=0, access=access)
     except Exception as e:
-        logger.debug(f'Failed creating/opening registry key "{key}" with {repr(e)}')
+        _logger.debug(f'Failed creating/opening registry key "{key}" with {repr(e)}')
     else:
         try:
             winreg.SetValueEx(k, value, 0, reg_type, data)
         except Exception as e:
-            logger.debug(f'Setting "{key}":"{value}" to "{data}" failed with {repr(e)}')
+            _logger.debug(f'Setting "{key}":"{value}" to "{data}" failed with {repr(e)}')
         winreg.CloseKey(k)
