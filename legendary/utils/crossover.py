@@ -40,14 +40,17 @@ def mac_get_crossover_bottles():
     bottles_path = os.path.expanduser('~/Library/Application Support/CrossOver/Bottles')
     if not os.path.exists(bottles_path):
         return []
-    return sorted(p for p in os.listdir(bottles_path) if
-                  os.path.isdir(os.path.join(bottles_path, p)) and
-                  os.path.exists(os.path.join(bottles_path, p, 'cxbottle.conf')))
+    return sorted(p for p in os.listdir(bottles_path) if mac_is_valid_bottle(p))
 
 
 def mac_is_valid_bottle(bottle_name):
     bottles_path = os.path.expanduser('~/Library/Application Support/CrossOver/Bottles')
     return os.path.exists(os.path.join(bottles_path, bottle_name, 'cxbottle.conf'))
+
+
+def mac_get_bottle_path(bottle_name):
+    bottles_path = os.path.expanduser('~/Library/Application Support/CrossOver/Bottles')
+    return os.path.join(bottles_path, bottle_name)
 
 
 def mac_is_crossover_running():
