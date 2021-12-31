@@ -1839,11 +1839,13 @@ class LegendaryCore:
         lgd_version_data = self.lgd.get_cached_version()
         return lgd_version_data.get('data', {}).get('cx_bottles', [])
 
-    def prepare_bottle_download(self, bottle_name, manifest_url):
+    def prepare_bottle_download(self, bottle_name, manifest_url, base_url=None):
         r = self.egs.unauth_session.get(manifest_url)
         r.raise_for_status()
         manifest = self.load_manifest(r.content)
-        base_url = manifest_url.rpartition('/')[0]
+
+        if not base_url:
+            base_url = manifest_url.rpartition('/')[0]
 
         path = mac_get_bottle_path(bottle_name)
         if os.path.exists(path):

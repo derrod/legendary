@@ -2240,7 +2240,8 @@ class LegendaryCLI:
                         return
                     bottle_name = clean_filename(new_name).strip()
 
-                dlm, ares, path = self.core.prepare_bottle_download(bottle_name, install_candidate['manifest'])
+                dlm, ares, path = self.core.prepare_bottle_download(bottle_name, install_candidate['manifest'],
+                                                                    base_url=install_candidate.get('base_url'))
 
                 logger.info(f'Bottle install directory: {path}')
                 logger.info(f'Bottle size: {ares.install_size / 1024 / 1024:.2f} MiB')
