@@ -2660,10 +2660,10 @@ def main():
             eos_overlay_parser.add_argument('--bottle', dest='bottle', action='store',
                                             help='WINE prefix to install the overlay in')
         else:
-            eos_overlay_parser.add_argument('--bottle', dest='prefix', action='store', help=argparse.SUPPRESS)
+            eos_overlay_parser.add_argument('--bottle', dest='bottle', action='store', help=argparse.SUPPRESS)
     else:
         eos_overlay_parser.add_argument('--prefix', dest='prefix', action='store', help=argparse.SUPPRESS)
-        eos_overlay_parser.add_argument('--bottle', dest='prefix', action='store', help=argparse.SUPPRESS)
+        eos_overlay_parser.add_argument('--bottle', dest='bottle', action='store', help=argparse.SUPPRESS)
         eos_overlay_parser.add_argument('--app', dest='app', action='store', help=argparse.SUPPRESS)
 
 
