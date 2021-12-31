@@ -1960,7 +1960,8 @@ class LegendaryCLI:
 
                 args.prefix = self.core.lgd.config.get(f'{app_name}.env', 'WINEPREFIX', fallback=None)
                 args.prefix = self.core.lgd.config.get(app_name, 'wine_prefix', fallback=args.prefix)
-            else:
+
+            if not args.prefix and not args.bottle:
                 # try using defaults if they exist
                 if sys_platform == 'darwin':
                     args.bottle = self.core.lgd.config.get('default', 'crossover_bottle', fallback=None)
