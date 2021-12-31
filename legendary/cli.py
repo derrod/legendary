@@ -1982,6 +1982,12 @@ class LegendaryCLI:
                 logger.error('Need either config default, --prefix, --bottle, or --app to install the overlay to.')
                 return
 
+            if not os.path.exists(prefix):
+                logger.error(f'Prefix "{prefix}" does not exist.')
+                return
+            else:
+                logger.info(f'Using prefix "{prefix}"')
+
         if args.action == 'info':
             reg_paths = query_registry_entries(prefix)
             available_installs = self.core.search_overlay_installs(prefix)
