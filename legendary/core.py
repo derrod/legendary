@@ -1747,8 +1747,6 @@ class LegendaryCore:
         self.overlay_update_available = version_info['buildVersion'] != installed.version
 
     def is_overlay_installed(self):
-        if os.name != 'nt':
-            return False
         return self.lgd.get_overlay_install_info() is not None
 
     @staticmethod
