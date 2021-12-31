@@ -22,9 +22,7 @@ from legendary.core import LegendaryCore
 from legendary.models.exceptions import InvalidCredentialsError
 from legendary.models.game import SaveGameStatus, VerifyResult, Game
 from legendary.utils.cli import get_boolean_choice, get_int_choice, sdl_prompt, strtobool
-from legendary.utils.crossover import (
-    mac_find_crossover_apps, mac_get_crossover_bottles, mac_is_valid_bottle, mac_is_crossover_running
-)
+from legendary.utils.crossover import *
 from legendary.utils.custom_parser import AliasedSubParsersAction
 from legendary.utils.env import is_windows_mac_or_pyi
 from legendary.utils.eos import add_registry_entries, query_registry_entries, remove_registry_entries

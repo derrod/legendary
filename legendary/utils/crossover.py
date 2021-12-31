@@ -3,7 +3,7 @@ import plistlib
 import os
 import subprocess
 
-logger = logging.getLogger('CXHelpers')
+_logger = logging.getLogger('CXHelpers')
 
 
 def mac_get_crossover_version(app_path):
@@ -11,7 +11,7 @@ def mac_get_crossover_version(app_path):
         plist = plistlib.load(open(os.path.join(app_path, 'Contents', 'Info.plist'), 'rb'))
         return plist['CFBundleShortVersionString']
     except Exception as e:
-        logger.debug(f'Failed to load plist for "{app_path}" with {e!r}')
+        _logger.debug(f'Failed to load plist for "{app_path}" with {e!r}')
         return None
 
 
@@ -21,7 +21,7 @@ def mac_find_crossover_apps():
         out = subprocess.check_output(['mdfind', 'kMDItemCFBundleIdentifier="com.codeweavers.CrossOver"'])
         paths.extend(out.decode('utf-8', 'replace').strip().split('\n'))
     except Exception as e:
-        logger.warning(f'Trying to find CrossOver installs via mdfind failed: {e!r}')
+        _logger.warning(f'Trying to find CrossOver installs via mdfind failed: {e!r}')
 
     valid = [p for p in paths if os.path.exists(os.path.join(p, 'Contents', 'Info.plist'))]
     found_tuples = set()
@@ -30,7 +30,7 @@ def mac_find_crossover_apps():
         version = mac_get_crossover_version(path)
         if not version:
             continue
-        logger.debug(f'Found Crossover {version} at "{path}"')
+        _logger.debug(f'Found Crossover {version} at "{path}"')
         found_tuples.add((version, path))
 
     return sorted(found_tuples, reverse=True)
@@ -55,5 +55,5 @@ def mac_is_crossover_running():
         out = subprocess.check_output(['launchctl', 'list'])
         return b'com.codeweavers.CrossOver' in out
     except Exception as e:
-        logger.warning(f'Getting list of running application bundles failed: {e!r}')
+        _logger.warning(f'Getting list of running application bundles failed: {e!r}')
         return True  # assume the worst
