@@ -2101,7 +2101,7 @@ class LegendaryCLI:
             else:
                 prompt = f'Reset "{game.app_title}" crossover configuration?'
 
-            y_n = get_boolean_choice(prompt, default=False)
+            y_n = args.yes or get_boolean_choice(prompt, default=False)
             if y_n:
                 self.core.lgd.config.remove_option(app_name, 'crossover_app')
                 self.core.lgd.config.remove_option(app_name, 'crossover_bottle')
@@ -2255,7 +2255,7 @@ class LegendaryCLI:
         else:
             prompt = f'Would you like to save these choices for "{game.app_title}"?'
 
-        y_n = get_boolean_choice(prompt)
+        y_n = args.yes or get_boolean_choice(prompt)
         if y_n:
             self.core.lgd.config.set(app_name, 'crossover_app', args.crossover_app)
             self.core.lgd.config.set(app_name, 'crossover_bottle', args.crossover_bottle)
