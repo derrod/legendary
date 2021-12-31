@@ -2105,30 +2105,43 @@ class LegendaryCLI:
                 self.core.lgd.config.remove_option(app_name, 'crossover_bottle')
             return
 
-        logger.info('Looking for CrossOver installs...')
-        apps = mac_find_crossover_apps()
-        if len(apps) > 1:
-            print('Found multiple CrossOver installs, please select one:')
-            for i, (ver, path) in enumerate(apps, start=1):
-                print(f'\t{i:2d}. {ver} ({path})')
-            choice = get_int_choice(f'Select a CrossOver install', 1, 1, len(apps))
-            if choice is None:
-                logger.error(f'No valid choice made, aborting.')
-                exit(1)
-
-            cx_version, args.crossover_app = apps[choice - 1]
-        elif len(apps) == 1:
-            cx_version, args.crossover_app = apps[0]
-            logger.info(f'Found CrossOver {cx_version} at {args.crossover_app}')
+        if args.crossover_app:
+            cx_version = mac_get_crossover_version(args.crossover_app)
+            if not cx_version:
+                logger.error(f'No valid CrossOver install specified!')
+                return
+            logger.info(f'Using CrossOver {cx_version} at {args.crossover_app}')
         else:
-            logger.error(f'No CrossOver installs found, see https://legendary.gl/crossover-setup '
-                         f'for setup instructions')
-            return
+            logger.info('Looking for CrossOver installs...')
+            apps = mac_find_crossover_apps()
+            if len(apps) > 1:
+                print('Found multiple CrossOver installs, please select one:')
+                for i, (ver, path) in enumerate(apps, start=1):
+                    print(f'\t{i:2d}. {ver} ({path})')
+                choice = get_int_choice(f'Select a CrossOver install', 1, 1, len(apps))
+                if choice is None:
+                    logger.error(f'No valid choice made, aborting.')
+                    exit(1)
+
+                cx_version, args.crossover_app = apps[choice - 1]
+            elif len(apps) == 1:
+                cx_version, args.crossover_app = apps[0]
+                logger.info(f'Found CrossOver {cx_version} at {args.crossover_app}')
+            else:
+                logger.error(f'No CrossOver installs found, see https://legendary.gl/crossover-setup '
+                             f'for setup instructions')
+                return
 
         forced_selection = None
         bottles = mac_get_crossover_bottles()
 
-        if 'Legendary' not in bottles and not args.download:
+        if args.crossover_bottle:
+            if args.crossover_bottle not in bottles:
+                logger.error(f'No valid CrossOver bottle specified!')
+                return
+            logger.info(f'Using Bottle "{args.crossover_bottle}"')
+            forced_selection = args.crossover_bottle
+        elif 'Legendary' not in bottles and not args.download:
             logger.info('It is recommended to set up a bottle specifically for Legendary, see '
                         'https://legendary.gl/crossover-setup for setup instructions.')
         elif args.download:
@@ -2257,6 +2270,7 @@ class LegendaryCLI:
         if y_n:
             self.core.lgd.config.set(app_name, 'crossover_app', args.crossover_app)
             self.core.lgd.config.set(app_name, 'crossover_bottle', args.crossover_bottle)
+            logger.info('Saved choices to configuration.')
 
 
 def main():
@@ -2601,6 +2615,10 @@ def main():
                            help='Reset default/app-specific crossover configuration')
     cx_parser.add_argument('--download', dest='download', action='store_true',
                            help='Automatically download and set up a preconfigured bottle (experimental)')
+    cx_parser.add_argument('--crossover-app', dest='crossover_app', action='store', metavar='<path to .app>',
+                           help='Specify app to skip interactive selection')
+    cx_parser.add_argument('--crossover-bottle', dest='crossover_bottle', action='store', metavar='<bottle name>',
+                           help='Specify bottle to skip interactive selection')
 
     args, extra = parser.parse_known_args()
 
