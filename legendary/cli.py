@@ -2188,6 +2188,8 @@ class LegendaryCLI:
             logger.info('It is recommended to set up a bottle specifically for Legendary, see '
                         'https://legendary.gl/crossover-setup for setup instructions.')
         elif args.download:
+            logger.warning('This feature is experimental, and may not work properly. This is not supported by '
+                           'CodeWeavers/CrossOver, please report issues only on the Legendary GitHub or Discord!')
             if mac_is_crossover_running():
                 logger.error('CrossOver is still running, please quit it before proceeding.')
                 return
@@ -2667,11 +2669,11 @@ def main():
         eos_overlay_parser.add_argument('--bottle', dest='bottle', action='store', help=argparse.SUPPRESS)
         eos_overlay_parser.add_argument('--app', dest='app', action='store', help=argparse.SUPPRESS)
 
-
     cx_parser.add_argument('--reset', dest='reset', action='store_true',
                            help='Reset default/app-specific crossover configuration')
     cx_parser.add_argument('--download', dest='download', action='store_true',
-                           help='Automatically download and set up a preconfigured bottle (experimental)')
+                           # help='Automatically download and set up a preconfigured bottle (experimental)')
+                           help=argparse.SUPPRESS)
     cx_parser.add_argument('--crossover-app', dest='crossover_app', action='store', metavar='<path to .app>',
                            help='Specify app to skip interactive selection')
     cx_parser.add_argument('--crossover-bottle', dest='crossover_bottle', action='store', metavar='<bottle name>',
