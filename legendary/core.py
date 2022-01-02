@@ -1372,15 +1372,8 @@ class LegendaryCore:
 
         base_path = os.path.split(install.install_path)[0]
         if os.path.exists(base_path):
-            # check if enough disk space is free (dl size is the approximate amount the installation will grow)
-            min_disk_space = analysis.install_size
-            if updating:
-                current_size = get_dir_size(install.install_path)
-                delta = max(0, analysis.install_size - current_size)
-                min_disk_space = delta + analysis.biggest_file_size
-            elif analysis.reuse_size:
-                min_disk_space -= analysis.reuse_size
-
+            # Ensure that we have enough disk space for the installation process, as calculated by the analyser
+            min_disk_space = analysis.disk_space_delta
             _, _, free = shutil.disk_usage(base_path)
             if free < min_disk_space:
                 free_mib = free / 1024 / 1024
