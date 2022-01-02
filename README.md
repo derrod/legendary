@@ -664,6 +664,8 @@ disable_auto_aliasing = false
 default_platform = Windows
 ; (macOS) Disable automatic CrossOver use
 disable_auto_crossover = false
+; Fallback to "Windows" platform if native version unavailable
+install_platform_fallback = true
 
 [Legendary.aliases]
 ; List of aliases for simpler CLI use
