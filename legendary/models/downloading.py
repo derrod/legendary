@@ -127,6 +127,7 @@ class AnalysisResult:
     dl_size: int = 0
     uncompressed_dl_size: int = 0
     install_size: int = 0
+    disk_space_delta: int = 0
     reuse_size: int = 0
     biggest_file_size: int = 0
     unchanged_size: int = 0

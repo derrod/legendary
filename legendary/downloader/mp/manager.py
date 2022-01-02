@@ -208,6 +208,8 @@ class DLManager(Process):
         fmlist = sorted(manifest.file_manifest_list.elements,
                         key=lambda a: a.filename.lower())
 
+        # Create reference count for chunks and calculate additional/temporary disk size required for install
+        current_tmp_size = 0
         for fm in fmlist:
             self.hash_map[fm.filename] = fm.sha_hash.hex()
 
@@ -218,6 +220,20 @@ class DLManager(Process):
 
             for cp in fm.chunk_parts:
                 references[cp.guid_num] += 1
+
+            if fm.filename in mc.added:
+                # if the file was added, it just adds to the delta
+                current_tmp_size += fm.file_size
+                analysis_res.disk_space_delta = max(current_tmp_size, analysis_res.disk_space_delta)
+            elif fm.filename in mc.changed:
+                # if the file was changed, we need temporary space equal to the full size,
+                # but then subtract the size of the old file as it's deleted on write completion.
+                current_tmp_size += fm.file_size
+                analysis_res.disk_space_delta = max(current_tmp_size, analysis_res.disk_space_delta)
+                current_tmp_size -= old_manifest.file_manifest_list.get_file_by_path(fm.filename).file_size
+
+        # clamp to 0
+        self.log.debug(f'Disk space delta: {analysis_res.disk_space_delta/1024/1024:.02f} MiB')
 
         if processing_optimization:
             s_time = time.time()
