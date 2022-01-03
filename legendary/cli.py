@@ -1103,16 +1103,29 @@ class LegendaryCLI:
             file_list = [(f.filename, f.sha_hash.hex()) for f in files]
 
         total = len(file_list)
-        num = 0
+        total_size = sum(manifest.file_manifest_list.get_file_by_path(fm[0]).file_size
+                         for fm in file_list)
+        num = processed = last_processed = 0
+        speed = 0.0
         failed = []
         missing = []
+
+        last_update = time.time()
 
         logger.info(f'Verifying "{igame.title}" version "{manifest.meta.build_version}"')
         repair_file = []
         for result, path, result_hash in validate_files(igame.install_path, file_list):
-            stdout.write(f'Verification progress: {num}/{total} ({num * 100 / total:.01f}%)\t\r')
-            stdout.flush()
+            processed += manifest.file_manifest_list.get_file_by_path(path).file_size
+            percentage = (processed / total_size) * 100.0
             num += 1
+
+            if (delta := ((current_time := time.time()) - last_update)) > 1 or not last_processed:
+                last_update = current_time
+                speed = (processed - last_processed) / 1024 / 1024 / delta
+                last_processed = processed
+
+            stdout.write(f'Verification progress: {num}/{total} ({percentage:.01f}%) [{speed:.1f} MiB/s]\t\r')
+            stdout.flush()
 
             if result == VerifyResult.HASH_MATCH:
                 repair_file.append(f'{result_hash}:{path}')
@@ -1128,7 +1141,7 @@ class LegendaryCLI:
                 logger.error(f'Other failure (see log), treating file as missing: "{path}"')
                 missing.append(path)
 
-        stdout.write(f'Verification progress: {num}/{total} ({num * 100 / total:.01f}%)\t\n')
+        stdout.write(f'Verification progress: {num}/{total} ({num * 100 / total:.01f}%) [{speed:.1f} MiB/s]\t\n')
 
         # always write repair file, even if all match
         if repair_file:
