@@ -6,6 +6,7 @@ import hashlib
 import logging
 
 from pathlib import Path
+from sys import stdout
 from typing import List, Iterator
 
 from legendary.models.game import VerifyResult
@@ -75,14 +76,16 @@ def delete_filelist(path: str, filenames: List[str],
     return no_error
 
 
-def validate_files(base_path: str, filelist: List[tuple], hash_type='sha1') -> Iterator[tuple]:
+def validate_files(base_path: str, filelist: List[tuple], hash_type='sha1',
+                   large_file_threshold=1024 * 1024 * 512) -> Iterator[tuple]:
     """
     Validates the files in filelist in path against the provided hashes
 
     :param base_path: path in which the files are located
     :param filelist: list of tuples in format (path, hash [hex])
     :param hash_type: (optional) type of hash, default is sha1
-    :return: list of files that failed hash check
+    :param large_file_threshold: (optional) threshold for large files, default is 512 MiB
+    :return: yields tuples in format (VerifyResult, path, hash [hex])
     """
 
     if not filelist:
@@ -99,11 +102,34 @@ def validate_files(base_path: str, filelist: List[tuple], hash_type='sha1') -> I
             yield VerifyResult.FILE_MISSING, file_path, ''
             continue
 
+        show_progress = False
+
         try:
+            _size = os.path.getsize(full_path)
+            if _size > large_file_threshold:
+                # enable progress indicator and go to new line
+                stdout.write('\n')
+                show_progress = True
+                interval = (_size / (1024 * 1024)) // 100
+            else:
+                interval = 0
+
             with open(full_path, 'rb') as f:
                 real_file_hash = hashlib.new(hash_type)
+                i = 0
                 while chunk := f.read(1024*1024):
                     real_file_hash.update(chunk)
+                    if show_progress and i % interval == 0:
+                        pos = f.tell()
+                        perc = (pos / _size) * 100
+                        stdout.write(f'\r=> Verifying large file "{file_path}": {perc:.0f}% '
+                                     f'({pos / 1024 / 1024:.1f}/{_size / 1024 / 1024:.1f} MiB)')
+                        stdout.flush()
+                    i += 1
+
+                if show_progress:
+                    stdout.write(f'\r=> Verifying large file "{file_path}": 100% '
+                                 f'({_size / 1024 / 1024:.1f}/{_size / 1024 / 1024:.1f} MiB)\n')
 
                 result_hash = real_file_hash.hexdigest()
                 if file_hash != result_hash:
