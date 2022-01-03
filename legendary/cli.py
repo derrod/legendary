@@ -1039,7 +1039,11 @@ class LegendaryCLI:
                 req_path, req_exec = os.path.split(postinstall['path'])
                 work_dir = os.path.join(igame.install_path, req_path)
                 fullpath = os.path.join(work_dir, req_exec)
-                subprocess.Popen([fullpath, postinstall['args']], cwd=work_dir)
+                try:
+                    p = subprocess.Popen([fullpath, postinstall['args']], cwd=work_dir, shell=True)
+                    p.wait()
+                except Exception as e:
+                    logger.error(f'Failed to run prereq executable with: {e!r}')
         else:
             logger.info('Automatic installation not available on Linux.')
 
