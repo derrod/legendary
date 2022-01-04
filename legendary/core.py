@@ -1248,15 +1248,21 @@ class LegendaryCore:
             if not base_path:
                 base_path = self.get_default_install_dir(platform=platform)
 
+                if platform == 'Mac':
+                    # if we're on mac and the path to the binary does not start with <something>.app,
+                    # treat it as if it were a Windows game instead and install it to the default folder.
+                    if '.app' not in new_manifest.meta.launch_exe.partition('/')[0].lower():
+                        base_path = self.get_default_install_dir(platform='Windows')
+                    else:
+                        # If it is a .app omit the game folder
+                        game_folder = ''
+
             # make sure base directory actually exists (but do not create game dir)
             if not os.path.exists(base_path):
                 self.log.info(f'"{base_path}" does not exist, creating...')
                 os.makedirs(base_path)
 
-            if platform == 'Mac':
-                install_path = base_path
-            else:
-                install_path = os.path.join(base_path, game_folder)
+            install_path = os.path.normpath(os.path.join(base_path, game_folder))
 
         self.log.info(f'Install path: {install_path}')
 
@@ -1429,7 +1435,7 @@ class LegendaryCore:
 
     def get_default_install_dir(self, platform='Windows'):
         if platform == 'Mac':
-            _fallback = '/Applications'
+            _fallback = '~/Applications'
         elif os.name == 'nt':
             _fallback = '~/legendary'
         else:
