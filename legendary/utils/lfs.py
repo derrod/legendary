@@ -7,6 +7,7 @@ import logging
 
 from pathlib import Path
 from sys import stdout
+from time import time
 from typing import List, Iterator
 
 from legendary.models.game import VerifyResult
@@ -103,6 +104,9 @@ def validate_files(base_path: str, filelist: List[tuple], hash_type='sha1',
             continue
 
         show_progress = False
+        interval = 0
+        speed = 0.0
+        start_time = 0.0
 
         try:
             _size = os.path.getsize(full_path)
@@ -111,8 +115,7 @@ def validate_files(base_path: str, filelist: List[tuple], hash_type='sha1',
                 stdout.write('\n')
                 show_progress = True
                 interval = (_size / (1024 * 1024)) // 100
-            else:
-                interval = 0
+                start_time = time()
 
             with open(full_path, 'rb') as f:
                 real_file_hash = hashlib.new(hash_type)
@@ -122,14 +125,17 @@ def validate_files(base_path: str, filelist: List[tuple], hash_type='sha1',
                     if show_progress and i % interval == 0:
                         pos = f.tell()
                         perc = (pos / _size) * 100
+                        speed = pos / 1024 / 1024 / (time() - start_time)
                         stdout.write(f'\r=> Verifying large file "{file_path}": {perc:.0f}% '
-                                     f'({pos / 1024 / 1024:.1f}/{_size / 1024 / 1024:.1f} MiB)')
+                                     f'({pos / 1024 / 1024:.1f}/{_size / 1024 / 1024:.1f} MiB) '
+                                     f'[{speed:.1f} MiB/s]\t')
                         stdout.flush()
                     i += 1
 
                 if show_progress:
                     stdout.write(f'\r=> Verifying large file "{file_path}": 100% '
-                                 f'({_size / 1024 / 1024:.1f}/{_size / 1024 / 1024:.1f} MiB)\n')
+                                 f'({_size / 1024 / 1024:.1f}/{_size / 1024 / 1024:.1f} MiB) '
+                                 f'[{speed:.1f} MiB/s]\t\n')
 
                 result_hash = real_file_hash.hexdigest()
                 if file_hash != result_hash:
