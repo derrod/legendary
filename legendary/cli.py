@@ -1111,6 +1111,7 @@ class LegendaryCLI:
                          for fm in file_list)
         num = processed = last_processed = 0
         speed = 0.0
+        percentage = 0.0
         failed = []
         missing = []
 
@@ -1118,8 +1119,8 @@ class LegendaryCLI:
 
         logger.info(f'Verifying "{igame.title}" version "{manifest.meta.build_version}"')
         repair_file = []
-        for result, path, result_hash in validate_files(igame.install_path, file_list):
-            processed += manifest.file_manifest_list.get_file_by_path(path).file_size
+        for result, path, result_hash, bytes_read in validate_files(igame.install_path, file_list):
+            processed += bytes_read
             percentage = (processed / total_size) * 100.0
             num += 1
 
@@ -1145,7 +1146,7 @@ class LegendaryCLI:
                 logger.error(f'Other failure (see log), treating file as missing: "{path}"')
                 missing.append(path)
 
-        stdout.write(f'Verification progress: {num}/{total} ({num * 100 / total:.01f}%) [{speed:.1f} MiB/s]\t\n')
+        stdout.write(f'Verification progress: {num}/{total} ({percentage:.01f}%) [{speed:.1f} MiB/s]\t\n')
 
         # always write repair file, even if all match
         if repair_file:

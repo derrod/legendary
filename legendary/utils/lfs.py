@@ -86,7 +86,7 @@ def validate_files(base_path: str, filelist: List[tuple], hash_type='sha1',
     :param filelist: list of tuples in format (path, hash [hex])
     :param hash_type: (optional) type of hash, default is sha1
     :param large_file_threshold: (optional) threshold for large files, default is 512 MiB
-    :return: yields tuples in format (VerifyResult, path, hash [hex])
+    :return: yields tuples in format (VerifyResult, path, hash [hex], bytes read)
     """
 
     if not filelist:
@@ -100,7 +100,7 @@ def validate_files(base_path: str, filelist: List[tuple], hash_type='sha1',
         # logger.debug(f'Checking "{file_path}"...')
 
         if not os.path.exists(full_path):
-            yield VerifyResult.FILE_MISSING, file_path, ''
+            yield VerifyResult.FILE_MISSING, file_path, '', 0
             continue
 
         show_progress = False
@@ -139,12 +139,12 @@ def validate_files(base_path: str, filelist: List[tuple], hash_type='sha1',
 
                 result_hash = real_file_hash.hexdigest()
                 if file_hash != result_hash:
-                    yield VerifyResult.HASH_MISMATCH, file_path, result_hash
+                    yield VerifyResult.HASH_MISMATCH, file_path, result_hash, f.tell()
                 else:
-                    yield VerifyResult.HASH_MATCH, file_path, result_hash
+                    yield VerifyResult.HASH_MATCH, file_path, result_hash, f.tell()
         except Exception as e:
             logger.fatal(f'Could not verify "{file_path}"; opening failed with: {e!r}')
-            yield VerifyResult.OTHER_ERROR, file_path, ''
+            yield VerifyResult.OTHER_ERROR, file_path, '', 0
 
 
 def clean_filename(filename):
