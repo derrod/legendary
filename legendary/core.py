@@ -1467,6 +1467,10 @@ class LegendaryCore:
             self.egl_uninstall(installed_game, delete_files=delete_files)
 
         if delete_files:
+            # DO NOT attempt to delete /Applications or ~/Applications on macOS. That'd be a bad idea.
+            if installed_game.platform == 'Mac' and installed_game.install_path.endswith('/Applications'):
+                delete_root_directory = False
+
             try:
                 manifest = self.load_manifest(self.get_installed_manifest(installed_game.app_name)[0])
                 filelist = [
