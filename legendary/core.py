@@ -1246,14 +1246,17 @@ class LegendaryCore:
                         get('FolderName', {}).get('value', game.app_name)
 
             if not base_path:
-                base_path = self.get_default_install_dir()
+                base_path = self.get_default_install_dir(platform=platform)
 
             # make sure base directory actually exists (but do not create game dir)
             if not os.path.exists(base_path):
                 self.log.info(f'"{base_path}" does not exist, creating...')
                 os.makedirs(base_path)
 
-            install_path = os.path.join(base_path, game_folder)
+            if platform == 'Mac':
+                install_path = base_path
+            else:
+                install_path = os.path.join(base_path, game_folder)
 
         self.log.info(f'Install path: {install_path}')
 
@@ -1424,8 +1427,15 @@ class LegendaryCore:
 
         return results
 
-    def get_default_install_dir(self):
-        return os.path.expanduser(self.lgd.config.get('Legendary', 'install_dir', fallback='~/legendary'))
+    def get_default_install_dir(self, platform='Windows'):
+        if platform == 'Mac':
+            _fallback = '/Applications'
+        elif os.name == 'nt':
+            _fallback = '~/legendary'
+        else:
+            _fallback = '~/Games/legendary'
+
+        return os.path.expanduser(self.lgd.config.get('Legendary', 'install_dir', fallback=_fallback))
 
     def install_game(self, installed_game: InstalledGame) -> dict:
         if self.egl_sync_enabled and not installed_game.is_dlc and installed_game.platform.startswith('Win'):
