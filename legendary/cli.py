@@ -2180,14 +2180,15 @@ class LegendaryCLI:
             logger.info('Looking for CrossOver installs...')
             apps = mac_find_crossover_apps()
             if len(apps) > 1:
-                print('Found multiple CrossOver installs, please select one:')
+                print('\nFound multiple CrossOver installs, please select one:')
                 for i, (ver, path) in enumerate(apps, start=1):
                     print(f'\t{i:2d}. {ver} ({path})')
                 choice = get_int_choice(f'Select a CrossOver install', 1, 1, len(apps))
                 if choice is None:
                     logger.error(f'No valid choice made, aborting.')
                     exit(1)
-
+                # empty line just to make the output look a little less crammed
+                print('')
                 cx_version, args.crossover_app = apps[choice - 1]
             elif len(apps) == 1:
                 cx_version, args.crossover_app = apps[0]
@@ -2227,7 +2228,7 @@ class LegendaryCLI:
                             f'manual setup instructions.')
                 install_candidate = None
             else:
-                print('Found available bottle(s), please select one:')
+                print('\nFound available bottle(s), please select one:')
 
                 default_choice = None
                 for i, bottle in enumerate(usable_bottles, start=1):
@@ -2249,7 +2250,8 @@ class LegendaryCLI:
                 if choice is None:
                     logger.error(f'No valid choice made, aborting.')
                     return
-
+                # empty line just to make the output look a little less crammed
+                print('')
                 install_candidate = usable_bottles[choice - 1]
 
             if install_candidate:
@@ -2293,7 +2295,7 @@ class LegendaryCLI:
                     forced_selection = bottle_name
 
         if len(bottles) > 1 and not forced_selection:
-            print('Found multiple CrossOver bottles, please select one:')
+            print('\nFound multiple CrossOver bottles, please select one:')
 
             if 'Legendary' in bottles:
                 default_choice = bottles.index('Legendary') + 1
@@ -2314,7 +2316,8 @@ class LegendaryCLI:
             if choice is None:
                 logger.error(f'No valid choice made, aborting.')
                 exit(1)
-
+            # empty line just to make the output look a little less crammed
+            print('')
             args.crossover_bottle = bottles[choice - 1]
         elif len(bottles) == 1 and not forced_selection:
             logger.info(f'Found only one bottle: {bottles[0]}')
