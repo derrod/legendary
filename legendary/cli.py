@@ -2218,7 +2218,7 @@ class LegendaryCLI:
 
             logger.info('Checking available bottles...')
             available_bottles = self.core.get_available_bottles()
-            usable_bottles = [b for b in available_bottles if b['cx_version'] == cx_version]
+            usable_bottles = [b for b in available_bottles if cx_version in b['cx_versions']]
             logger.info(f'Found {len(usable_bottles)} bottle(s) usable with the selected CrossOver version. '
                         f'(Total: {len(available_bottles)})')
 
