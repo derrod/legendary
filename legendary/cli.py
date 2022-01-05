@@ -23,7 +23,6 @@ from legendary.models.exceptions import InvalidCredentialsError
 from legendary.models.game import SaveGameStatus, VerifyResult, Game
 from legendary.utils.cli import get_boolean_choice, get_int_choice, sdl_prompt, strtobool
 from legendary.utils.crossover import *
-from legendary.utils.custom_parser import AliasedSubParsersAction
 from legendary.utils.env import is_windows_mac_or_pyi
 from legendary.utils.eos import add_registry_entries, query_registry_entries, remove_registry_entries
 from legendary.utils.lfs import validate_files, clean_filename
@@ -2351,7 +2350,6 @@ class LegendaryCLI:
 
 def main():
     parser = argparse.ArgumentParser(description=f'Legendary v{__version__} - "{__codename__}"')
-    parser.register('action', 'parsers', AliasedSubParsersAction)
 
     # general arguments
     parser.add_argument('-H', '--full-help', dest='full_help', action='store_true',
