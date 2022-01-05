@@ -33,7 +33,7 @@ from legendary.models.game import *
 from legendary.models.json_manifest import JSONManifest
 from legendary.models.manifest import Manifest, ManifestMeta
 from legendary.models.chunk import Chunk
-from legendary.utils.crossover import mac_find_crossover_apps, mac_get_crossover_version, mac_get_bottle_path
+from legendary.utils.crossover import *
 from legendary.utils.egl_crypt import decrypt_epic_data
 from legendary.utils.env import is_windows_mac_or_pyi
 from legendary.utils.eos import EOSOverlayApp, query_registry_entries
@@ -773,6 +773,9 @@ class LegendaryCore:
         if not save_path:
             raise ValueError('Game does not support cloud saves')
 
+        # replace backslashes
+        save_path = save_path.replace('\\', '/')
+
         igame = self.lgd.get_installed_game(app_name)
         if not igame:
             raise ValueError('Game is not installed!')
@@ -802,7 +805,7 @@ class LegendaryCore:
             if sys_platform == 'darwin':
                 cx_bottle = self.lgd.config.get(f'{app_name}.env', 'CX_BOTTLE', fallback=None)
                 cx_bottle = self.lgd.config.get(app_name, 'crossover_bottle', fallback=cx_bottle)
-                if cx_bottle:
+                if cx_bottle and mac_is_valid_bottle(cx_bottle):
                     wine_pfx = mac_get_bottle_path(cx_bottle)
 
             # attempt to get WINE prefix from config
@@ -819,7 +822,7 @@ class LegendaryCore:
             if not wine_pfx and sys_platform == 'darwin':
                 cx_bottle = self.lgd.config.get('default.env', 'CX_BOTTLE', fallback=None)
                 cx_bottle = self.lgd.config.get('default', 'crossover_bottle', fallback=cx_bottle)
-                if cx_bottle:
+                if cx_bottle and mac_is_valid_bottle(cx_bottle):
                     wine_pfx = mac_get_bottle_path(cx_bottle)
 
             if not wine_pfx:
@@ -840,8 +843,17 @@ class LegendaryCore:
                 path_vars['{userdir}'] = os.path.realpath(wine_folders['Personal'])
                 path_vars['{usersavedgames}'] = wine_folders['{4C5C32FF-BB9D-43B0-B5B4-2D72E54EAAA4}']
 
-        # replace backslashes
-        save_path = save_path.replace('\\', '/')
+                if sys_platform == 'darwin' and os.path.exists(os.path.join(wine_pfx, 'cxbottle.conf')):
+                    # CrossOver uses legacy appdata paths, so the relative paths in the game's save path don't work
+                    save_path_lower = save_path.lower()
+                    if 'locallow' in save_path_lower:
+                        path_vars['{locallow}'] = wine_folders['{A520A1A4-1780-4FF6-BD18-167343C5AF16}']
+                        save_path = '{locallow}/' + save_path[save_path_lower.index('locallow/') + 9:]
+                        self.log.debug(f'Adjusted path to "{save_path}"')
+                    elif 'roaming' in save_path_lower:
+                        path_vars['{roaming}'] = wine_folders['AppData']
+                        save_path = '{roaming}/' + save_path[save_path_lower.index('roaming/') + 8:]
+                        self.log.debug(f'Adjusted path to "{save_path}"')
 
         # these paths should always use a forward slash
         new_save_path = [path_vars.get(p.lower(), p) for p in save_path.split('/')]
