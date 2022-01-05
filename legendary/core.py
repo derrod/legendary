@@ -797,14 +797,36 @@ class LegendaryCore:
                 '{userlibrary}': os.path.expanduser('~/Library')
             })
         else:
+            wine_pfx = None
+            # on mac CrossOver takes precedence so check for a bottle first
+            if sys_platform == 'darwin':
+                cx_bottle = self.lgd.config.get(f'{app_name}.env', 'CX_BOTTLE', fallback=None)
+                cx_bottle = self.lgd.config.get(app_name, 'crossover_bottle', fallback=cx_bottle)
+                if cx_bottle:
+                    wine_pfx = mac_get_bottle_path(cx_bottle)
+
             # attempt to get WINE prefix from config
-            wine_pfx = self.lgd.config.get(app_name, 'wine_prefix', fallback=None)
             if not wine_pfx:
                 wine_pfx = self.lgd.config.get(f'{app_name}.env', 'WINEPREFIX', fallback=None)
+                wine_pfx = self.lgd.config.get(app_name, 'wine_prefix', fallback=wine_pfx)
+            # Proton is not officially supported, but people still use it, so look for it
             if not wine_pfx:
                 proton_pfx = self.lgd.config.get(f'{app_name}.env', 'STEAM_COMPAT_DATA_PATH', fallback=None)
                 if proton_pfx:
                     wine_pfx = f'{proton_pfx}/pfx'
+
+            # fall back to defaults if app-specifics not found
+            if not wine_pfx and sys_platform == 'darwin':
+                cx_bottle = self.lgd.config.get('default.env', 'CX_BOTTLE', fallback=None)
+                cx_bottle = self.lgd.config.get('default', 'crossover_bottle', fallback=cx_bottle)
+                if cx_bottle:
+                    wine_pfx = mac_get_bottle_path(cx_bottle)
+
+            if not wine_pfx:
+                wine_pfx = self.lgd.config.get('default.env', 'WINEPREFIX', fallback=None)
+                wine_pfx = self.lgd.config.get('default', 'wine_prefix', fallback=wine_pfx)
+
+            # if all else fails, use the WINE default
             if not wine_pfx:
                 wine_pfx = os.path.expanduser('~/.wine')
 
