@@ -9,7 +9,10 @@ Its name as a tongue-in-cheek play on tiers of [item rarity in many MMORPGs](htt
 
 Please read the the [config file](#config-file) and [cli usage](#usage) sections before creating an issue to avoid invalid reports.
 
-If you run into any issues [talk to us on Discord](https://legendary.gl/discord) or [create an issue on GitHub](https://github.com/derrod/legendary/issues/new/choose) so we can fix it!
+If you run into any issues [ask for help on our Discord](https://legendary.gl/discord) or [create an issue on GitHub](https://github.com/derrod/legendary/issues/new/choose) so we can fix it!
+
+Finally, if you wish to support the project, please consider [buying me a coffee on Ko-Fi](https://ko-fi.com/derrod).
+Alternatively, if you've been considering picking up a copy of CrossOver you can use my [affiliate link](https://www.codeweavers.com/?ad=892) and discount code `LEGENDARY15` in their store.
 
 **Note:** Legendary is currently a CLI (command-line interface) application without a graphical user interface,
 it has to be run from a terminal (e.g. PowerShell)
@@ -29,14 +32,17 @@ it has to be run from a terminal (e.g. PowerShell)
 
 ## Requirements
 
-- Linux, Windows, or macOS (64-bit)
+- Linux, Windows (8.1+), or macOS (12.0+)
   + macOS support is in an early stage, and only tested on 12.0+
-- python 3.8+ (64-bit)
+  + 32-bit operating systems are not supported
+- python 3.9+ (64-bit)
 - PyPI packages: `requests`, optionally `setuptools` and `wheel` for setup/building
+
+**Note:** Running Windows applications on Linux or macOS requires [Wine](https://www.winehq.org/).
 
 ## How to run/install
 
-### Package Manager
+### Package Manager (Linux)
 
 Several distros already have packages available, check out the [Available Linux Packages](https://github.com/derrod/legendary/wiki/Available-Linux-Packages) wiki page for details.
 
@@ -50,7 +56,7 @@ but more will be available in the future.
 Note that since packages are maintained by third parties it may take a bit for them to be updated to the latest version.
 If you always want to have the latest features and fixes available then using the PyPI distribution is recommended.
 
-### Standalone
+### Prebuilt Standalone Binary (Windows, macOS, and Linux)
 
 Download the `legendary` or `legendary.exe` binary from [the latest release](https://github.com/derrod/legendary/releases/latest)
 and move it to somewhere in your `$PATH`/`%PATH%`. Don't forget to `chmod +x` it on Linux/macOS.
@@ -58,7 +64,7 @@ and move it to somewhere in your `$PATH`/`%PATH%`. Don't forget to `chmod +x` it
 The Windows .exe and Linux/macOS executable were created with PyInstaller and will run standalone even without python being installed.
 Note that on Linux glibc >= 2.25 is required, so older distributions such as Ubuntu 16.04 or Debian stretch will not work.
 
-### Python package
+### Python Package (any)
 
 #### Prerequisites
 
@@ -155,9 +161,11 @@ legendary list-installed --check-updates
 
 Launch (run) a game with online authentication
 ````
-legendary launch Anemone
+legendary launch "world of goo"
 ````
-**Tip:** most games will run fine offline (`--offline`), and thus won't require launching through legendary for online authentication. You can run `legendary launch <App Name> --offline --dry-run` to get a command line that will launch the game with all parameters that would be used by the Epic Launcher. These can then be entered into any other game launcher (e.g. Lutris/Steam) if the game requires them.
+**Tip:** most games will run fine offline (`--offline`), and thus won't require launching through legendary for online authentication.
+You can run `legendary launch <App Name> --offline --dry-run` to get a command line that will launch the game with all parameters that would be used by the Epic Launcher.
+These can then be entered into any other game launcher (e.g. Lutris/Steam) if the game requires them.
 
 Importing a previously installed game
 ````
@@ -180,7 +188,7 @@ legendary -y egl-sync
 ## Usage
 
 ````
-usage: legendary [-h] [-H] [-v] [-y] [-V] [-J] [-T <seconds>] <command> ...
+usage: legendary [-h] [-H] [-v] [-y] [-V] [-J] [-A <seconds>] <command> ...
 
 Legendary v0.X.X - "Codename"
 
@@ -191,7 +199,7 @@ optional arguments:
   -y, --yes             Default to yes for all prompts
   -V, --version         Print version and exit
   -J, --pretty-json     Pretty-print JSON
-  -T <seconds>, --api-timeout <seconds>
+  -A <seconds>, --api-timeout <seconds>
                         API HTTP request timeout (default: 10 seconds)
 
 Commands:
@@ -207,7 +215,7 @@ Commands:
     eos-overlay         Manage EOS Overlay install
     import-game         Import an already installed game
     info                Prints info about specified app name or manifest
-    install (download,update,repair)
+    install (download, update, repair)
                         Install/download/update/repair an app
     launch              Launch a game
     list-files          List files in manifest
@@ -285,16 +293,26 @@ optional arguments:
 
 
 Command: crossover
-usage: legendary crossover [-h] [--reset] [--download] [App Name]
+usage: legendary crossover [-h] [--reset] [--download] [--ignore-version]
+                           [--crossover-app <path to .app>]
+                           [--crossover-bottle <bottle name>]
+                           [App Name]
 
 positional arguments:
-  App Name    App name to configure, will configure defaults if ommited
+  App Name              App name to configure, will configure defaults if
+                        ommited
 
 optional arguments:
-  -h, --help  show this help message and exit
-  --reset     Reset default/app-specific crossover configuration
-  --download  Automatically download and set up a preconfigured bottle
-              (experimental)
+  -h, --help            show this help message and exit
+  --reset               Reset default/app-specific crossover configuration
+  --download            Automatically download and set up a preconfigured
+                        bottle (experimental)
+  --ignore-version      Disable version check for available bottles when using
+                        --download
+  --crossover-app <path to .app>
+                        Specify app to skip interactive selection
+  --crossover-bottle <bottle name>
+                        Specify bottle to skip interactive selection
 
 
 Command: download-saves
