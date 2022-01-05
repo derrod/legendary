@@ -2208,7 +2208,7 @@ class LegendaryCLI:
                 return
             logger.info(f'Using Bottle "{args.crossover_bottle}"')
             forced_selection = args.crossover_bottle
-        elif 'Legendary' not in bottles and not args.download:
+        elif not any(b.startswith('Legendary') for b in bottles) and not args.download:
             logger.info('It is recommended to set up a bottle specifically for Legendary, see '
                         'https://legendary.gl/crossover-setup for setup instructions.')
         elif args.download:
@@ -2307,10 +2307,8 @@ class LegendaryCLI:
                 default_choice = bottles.index('Legendary') + 1
             elif 'Heroic' in bottles:
                 default_choice = bottles.index('Heroic') + 1
-            elif 'default' in bottles:
-                default_choice = bottles.index('default') + 1
             else:
-                default_choice = 1
+                default_choice = None
 
             for i, bottle in enumerate(bottles, start=1):
                 if i == default_choice:
