@@ -1899,6 +1899,10 @@ class LegendaryCore:
 
         for link, target in symlinks:
             _link = os.path.join(path, link)
+            _parent = os.path.split(_link)[0]
+            if not os.path.exists(_parent):
+                os.makedirs(_parent, exist_ok=True)
+
             try:
                 os.symlink(target, _link)
             except Exception as e:
