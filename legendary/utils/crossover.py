@@ -56,7 +56,7 @@ def mac_get_bottle_path(bottle_name):
 def mac_is_crossover_running():
     try:
         out = subprocess.check_output(['launchctl', 'list'])
-        return b'com.codeweavers.CrossOver' in out
+        return b'com.codeweavers.CrossOver.' in out
     except Exception as e:
         _logger.warning(f'Getting list of running application bundles failed: {e!r}')
         return True  # assume the worst
