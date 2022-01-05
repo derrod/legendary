@@ -551,7 +551,7 @@ class LegendaryCLI:
 
         # Interactive CrossOver setup
         if args.crossover and sys_platform == 'darwin':
-            args.reset = args.download = False
+            args.reset = args.download = args.disable_version_check = False
             self.crossover_setup(args)
 
         if args.origin:
@@ -2219,7 +2219,11 @@ class LegendaryCLI:
 
             logger.info('Checking available bottles...')
             available_bottles = self.core.get_available_bottles()
-            usable_bottles = [b for b in available_bottles if cx_version in b['cx_versions']]
+            if args.disable_version_check:
+                logger.warning('All available bottles are shown, including possibly incompatible ones.')
+                usable_bottles = available_bottles
+            else:
+                usable_bottles = [b for b in available_bottles if cx_version in b['cx_versions']]
             logger.info(f'Found {len(usable_bottles)} bottle(s) usable with the selected CrossOver version. '
                         f'(Total: {len(available_bottles)})')
 
@@ -2233,7 +2237,7 @@ class LegendaryCLI:
                 default_choice = None
                 for i, bottle in enumerate(usable_bottles, start=1):
                     extra = []
-                    if bottle['is_default']:
+                    if bottle['is_default'] and not default_choice and cx_version in bottle['cx_versions']:
                         default_choice = i
                         extra.append('default')
                     if bottle['name'] in bottles:
@@ -2697,8 +2701,9 @@ def main():
     cx_parser.add_argument('--reset', dest='reset', action='store_true',
                            help='Reset default/app-specific crossover configuration')
     cx_parser.add_argument('--download', dest='download', action='store_true',
-                           # help='Automatically download and set up a preconfigured bottle (experimental)')
-                           help=argparse.SUPPRESS)
+                           help='Automatically download and set up a preconfigured bottle (experimental)')
+    cx_parser.add_argument('--ignore-version', dest='disable_version_check', action='store_true',
+                           help='Disable version check for available bottles when using --download')
     cx_parser.add_argument('--crossover-app', dest='crossover_app', action='store', metavar='<path to .app>',
                            help='Specify app to skip interactive selection')
     cx_parser.add_argument('--crossover-bottle', dest='crossover_bottle', action='store', metavar='<bottle name>',
