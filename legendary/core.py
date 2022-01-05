@@ -843,17 +843,20 @@ class LegendaryCore:
                 path_vars['{userdir}'] = os.path.realpath(wine_folders['Personal'])
                 path_vars['{usersavedgames}'] = wine_folders['{4C5C32FF-BB9D-43B0-B5B4-2D72E54EAAA4}']
 
-                if sys_platform == 'darwin' and os.path.exists(os.path.join(wine_pfx, 'cxbottle.conf')):
-                    # CrossOver uses legacy appdata paths, so the relative paths in the game's save path don't work
+                # WINE prefixes using legacy appdata paths won't correctly resolve the relative paths from
+                # %LOCALAPPDATA% that epic uses for some reason.
+                # So instead we have to adjust the path and set the necessary variables to properly resolve it.
+                if 'roaming' not in wine_folders['AppData'].lower():
+                    path_vars['{locallow}'] = wine_folders['{A520A1A4-1780-4FF6-BD18-167343C5AF16}']
+                    path_vars['{roaming}'] = wine_folders['AppData']
+
                     save_path_lower = save_path.lower()
                     if 'locallow' in save_path_lower:
-                        path_vars['{locallow}'] = wine_folders['{A520A1A4-1780-4FF6-BD18-167343C5AF16}']
                         save_path = '{locallow}/' + save_path[save_path_lower.index('locallow/') + 9:]
-                        self.log.debug(f'Adjusted path to "{save_path}"')
                     elif 'roaming' in save_path_lower:
-                        path_vars['{roaming}'] = wine_folders['AppData']
                         save_path = '{roaming}/' + save_path[save_path_lower.index('roaming/') + 8:]
-                        self.log.debug(f'Adjusted path to "{save_path}"')
+
+                    self.log.debug(f'Legacy AppData paths detected, adjusted save game folder to "{save_path}"')
 
         # these paths should always use a forward slash
         new_save_path = [path_vars.get(p.lower(), p) for p in save_path.split('/')]
