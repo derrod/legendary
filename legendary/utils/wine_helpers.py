@@ -52,11 +52,11 @@ def case_insensitive_path_search(path):
                 break
         else:
             # once we stop finding parts break
-            still_remaining = remaining_parts[idx-1:]
+            still_remaining = remaining_parts[idx:]
             break
 
     logger.debug(f'New longest path: {longest_path}')
     logger.debug(f'Still unresolved: {still_remaining}')
     final_path = os.path.join(*longest_path, *still_remaining)
-    logger.debug('Final path:', final_path)
+    logger.debug(f'Final path: {final_path}')
     return os.path.realpath(final_path)
