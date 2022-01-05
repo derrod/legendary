@@ -2182,7 +2182,8 @@ class LegendaryCLI:
             if len(apps) > 1:
                 print('\nFound multiple CrossOver installs, please select one:')
                 for i, (ver, path) in enumerate(apps, start=1):
-                    print(f'\t{i:2d}. {ver} ({path})')
+                    print(f'  {i:2d}. {ver} ({path})')
+                print('')
                 choice = get_int_choice(f'Select a CrossOver install', 1, 1, len(apps))
                 if choice is None:
                     logger.error(f'No valid choice made, aborting.')
@@ -2244,10 +2245,11 @@ class LegendaryCLI:
                         extra.append('installed')
 
                     if extra:
-                        print(f'\t{i:2d}. {bottle["name"]} ({bottle["description"]}) [{", ".join(extra)}]')
+                        print(f'  {i:2d}. {bottle["name"]} ({bottle["description"]}) [{", ".join(extra)}]')
                     else:
-                        print(f'\t{i:2d}. {bottle["name"]} ({bottle["description"]})')
+                        print(f'  {i:2d}. {bottle["name"]} ({bottle["description"]})')
 
+                print('')
                 choice = get_int_choice(f'Select a bottle (CTRL+C to abort)',
                                         default_choice, 1, len(usable_bottles),
                                         return_on_invalid=True)
@@ -2312,9 +2314,10 @@ class LegendaryCLI:
 
             for i, bottle in enumerate(bottles, start=1):
                 if i == default_choice:
-                    print(f'\t{i:2d}. {bottle} (default)')
+                    print(f'  {i:2d}. {bottle} (default)')
                 else:
-                    print(f'\t{i:2d}. {bottle}')
+                    print(f'  {i:2d}. {bottle}')
+            print('')
 
             choice = get_int_choice(f'Select a bottle', default_choice, 1, len(bottles))
             if choice is None:
