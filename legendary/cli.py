@@ -2374,26 +2374,29 @@ def main():
     auth_parser = subparsers.add_parser('auth', help='Authenticate with the Epic Games Store')
     clean_saves_parser = subparsers.add_parser('clean-saves', help='Clean cloud saves')
     clean_parser = subparsers.add_parser('cleanup', help='Remove old temporary, metadata, and manifest files')
-    cx_parser = subparsers.add_parser('crossover', help='Setup CrossOver for game launching (macOS only)')
+    cx_parser = subparsers.add_parser('crossover', help='Setup CrossOver for launching games (macOS only)')
     download_saves_parser = subparsers.add_parser('download-saves', help='Download all cloud saves')
     egl_sync_parser = subparsers.add_parser('egl-sync', help='Setup or run Epic Games Launcher sync')
     eos_overlay_parser = subparsers.add_parser('eos-overlay', help='Manage EOS Overlay install')
-    import_parser = subparsers.add_parser('import-game', help='Import an already installed game')
+    import_parser = subparsers.add_parser('import', help='Import an already installed game',
+                                          aliases=('import-game',), hide_aliases=True)
     info_parser = subparsers.add_parser('info', help='Prints info about specified app name or manifest')
-    install_parser = subparsers.add_parser('install', help='Install/download/update/repair an app',
+    install_parser = subparsers.add_parser('install', help='Install/download/update/repair a game',
                                            aliases=('download', 'update', 'repair'),
                                            usage='%(prog)s <App Name> [options]',
                                            description='Aliases: download, update')
     launch_parser = subparsers.add_parser('launch', help='Launch a game', usage='%(prog)s <App Name> [options]',
                                           description='Note: additional arguments are passed to the game')
+    list_parser = subparsers.add_parser('list', aliases=('list-games',), hide_aliases=True,
+                                        help='List available (installable) games')
     list_files_parser = subparsers.add_parser('list-files', help='List files in manifest')
-    list_parser = subparsers.add_parser('list-games', help='List available (installable) games')
     list_installed_parser = subparsers.add_parser('list-installed', help='List installed games')
     list_saves_parser = subparsers.add_parser('list-saves', help='List available cloud saves')
     status_parser = subparsers.add_parser('status', help='Show legendary status information')
     sync_saves_parser = subparsers.add_parser('sync-saves', help='Sync cloud saves')
     uninstall_parser = subparsers.add_parser('uninstall', help='Uninstall (delete) a game')
-    verify_parser = subparsers.add_parser('verify-game', help='Verify a game\'s local files')
+    verify_parser = subparsers.add_parser('verify', help='Verify a game\'s local files',
+                                          aliases=('verify-game',), hide_aliases=True)
 
     # hidden commands have no help text
     get_token_parser = subparsers.add_parser('get-token')
@@ -2424,11 +2427,11 @@ def main():
                               metavar='<add|rename|remove|list>')
     alias_parser.add_argument('app_or_alias', help='App name when using "add" or "list" action, '
                                                    'existing alias when using "rename" or "remove" action',
-                              metavar='App name/Old alias', nargs='?')
+                              metavar='<App name/Old alias>', nargs='?')
     alias_parser.add_argument('alias', help='New alias when using "add" action',
-                              metavar='New alias', nargs='?')
+                              metavar='<New alias>', nargs='?')
 
-    cx_parser.add_argument('app_name', metavar='App Name', nargs='?',
+    cx_parser.add_argument('app_name', metavar='<App Name>', nargs='?',
                            help='App name to configure, will configure defaults if ommited')
 
     # Flags
@@ -2444,7 +2447,7 @@ def main():
                              help='Do not use embedded browser for login')
 
     install_parser.add_argument('--base-path', dest='base_path', action='store', metavar='<path>',
-                                help='Path for game installations (defaults to ~/legendary)')
+                                help='Path for game installations (defaults to ~/Games)')
     install_parser.add_argument('--game-folder', dest='game_folder', action='store', metavar='<path>',
                                 help='Folder for game installation (defaults to folder specified in metadata)')
     install_parser.add_argument('--max-shared-memory', dest='shared_memory', action='store', metavar='<size>',
@@ -2721,7 +2724,8 @@ def main():
 
         if args.full_help:
             # Commands that should not be shown in full help/list of commands (e.g. aliases)
-            _hidden_commands = {'download', 'update', 'repair', 'get-token'}
+            _hidden_commands = {'download', 'update', 'repair', 'get-token',
+                                'import-game', 'verify-game', 'list-games'}
             # Print the help for all of the subparsers. Thanks stackoverflow!
             print('Individual command help:')
             subparsers = next(a for a in parser._actions if isinstance(a, argparse._SubParsersAction))
@@ -2759,7 +2763,7 @@ def main():
     try:
         if args.subparser_name == 'auth':
             cli.auth(args)
-        elif args.subparser_name == 'list-games':
+        elif args.subparser_name == 'list':
             cli.list_games(args)
         elif args.subparser_name == 'list-installed':
             cli.list_installed(args)
@@ -2779,9 +2783,9 @@ def main():
             cli.sync_saves(args)
         elif args.subparser_name == 'clean-saves':
             cli.clean_saves(args)
-        elif args.subparser_name == 'verify-game':
+        elif args.subparser_name == 'verify':
             cli.verify_game(args)
-        elif args.subparser_name == 'import-game':
+        elif args.subparser_name == 'import':
             cli.import_game(args)
         elif args.subparser_name == 'egl-sync':
             cli.egs_sync(args)
