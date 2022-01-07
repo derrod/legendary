@@ -976,11 +976,11 @@ class LegendaryCLI:
 
                 dlcs = self.core.get_dlc_for_game(game.app_name)
                 if dlcs and not args.skip_dlcs:
-                    print('The following DLCs are available for this game:')
+                    print('\nThe following DLCs are available for this game:')
                     for dlc in dlcs:
                         print(f' - {dlc.app_title} (App name: {dlc.app_name}, version: '
                               f'{dlc.app_version(args.platform)})')
-                    print('Manually installing DLCs works the same; just use the DLC app name instead.')
+                    print('\nYou can manually install these later by running this command with the DLC\'s app name.')
 
                     install_dlcs = not args.skip_dlcs
                     if not args.yes and not args.with_dlcs and not args.skip_dlcs:
@@ -994,6 +994,8 @@ class LegendaryCLI:
                             args.app_name = dlc.app_name
                             self.install_game(args)
                         args.yes, args.app_name = _yes, _app_name
+                    else:
+                        print('')
 
                 if (game.supports_cloud_saves or game.supports_mac_cloud_saves) and not game.is_dlc:
                     # todo option to automatically download saves after the installation
@@ -1024,20 +1026,23 @@ class LegendaryCLI:
             logger.info(f'Finished installation process in {end_t - start_t:.02f} seconds.')
 
     def _handle_postinstall(self, postinstall, igame, yes=False):
-        print('This game lists the following prequisites to be installed:')
+        print('\nThis game lists the following prequisites to be installed:')
         print(f'- {postinstall["name"]}: {" ".join((postinstall["path"], postinstall["args"]))}')
+        print('')
+
         if os.name == 'nt':
             if yes:
                 c = 'n'  # we don't want to launch anything, just silent install.
             else:
                 choice = input('Do you wish to install the prerequisites? ([y]es, [n]o, [i]gnore): ')
                 c = choice.lower()[0]
+                print('')
 
             if c == 'i':  # just set it to installed
-                print('Marking prerequisites as installed...')
+                logger.info('Marking prerequisites as installed...')
                 self.core.prereq_installed(igame.app_name)
             elif c == 'y':  # set to installed and launch installation
-                print('Launching prerequisite executable..')
+                logger.info('Launching prerequisite executable..')
                 self.core.prereq_installed(igame.app_name)
                 req_path, req_exec = os.path.split(postinstall['path'])
                 work_dir = os.path.join(igame.install_path, req_path)
