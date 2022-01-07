@@ -2247,11 +2247,10 @@ class LegendaryCLI:
                 for i, bottle in enumerate(usable_bottles, start=1):
                     extra = []
                     
-                    if not default_choice and cx_version in bottle['cx_versions']:
+                    if cx_version in bottle['cx_versions']:
                         if app_name in bottle['compatible_apps']:
-                            default_choice = i
-                            extra.append('default')
-                        elif bottle['is_default']:
+                            extra.append('recommended')
+                        if not default_choice and bottle['is_default']:
                             default_choice = i
                             extra.append('default')
 
