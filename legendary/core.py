@@ -1472,13 +1472,9 @@ class LegendaryCore:
 
     def get_default_install_dir(self, platform='Windows'):
         if platform == 'Mac':
-            _fallback = '~/Applications'
-        elif os.name == 'nt':
-            _fallback = '~/legendary'
+            return os.path.expanduser(self.lgd.config.get('Legendary', 'mac_install_dir', fallback='~/Applications'))
         else:
-            _fallback = '~/Games/legendary'
-
-        return os.path.expanduser(self.lgd.config.get('Legendary', 'install_dir', fallback=_fallback))
+            return os.path.expanduser(self.lgd.config.get('Legendary', 'install_dir', fallback='~/Games'))
 
     def install_game(self, installed_game: InstalledGame) -> dict:
         if self.egl_sync_enabled and not installed_game.is_dlc and installed_game.platform.startswith('Win'):
