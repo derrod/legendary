@@ -2348,6 +2348,42 @@ class LegendaryCLI:
             self.core.lgd.config.set(app_name, 'crossover_bottle', args.crossover_bottle)
             logger.info('Saved choices to configuration.')
 
+    def move(self, args):
+        app_name = self._resolve_aliases(args.app_name)
+        igame = self.core.get_installed_game(app_name, skip_sync=True)
+        if not igame:
+            logger.error(f'No installed game found for "{app_name}"')
+            return
+
+        old_base, game_folder = os.path.split(igame.install_path.replace('\\', '/'))
+        new_path = os.path.join(args.new_path, game_folder)
+        logger.info(f'Moving "{game_folder}" from "{old_base}" to "{args.new_path}"')
+
+        if not args.skip_move:
+            try:
+                if not os.path.exists(args.new_path):
+                    os.makedirs(args.new_path)
+
+                os.rename(igame.install_path, new_path)
+            except Exception as e:
+                if isinstance(e, OSError) and e.errno == 18:
+                    logger.error(f'Moving to a different drive is not supported. Move the folder manually to '
+                                 f'"{new_path}" and then run "legendary {app_name} "{args.new_path}" --skip-move"')
+                elif isinstance(e, FileExistsError):
+                    logger.error(f'The target path already contains a folder called "{game_folder}", '
+                                 f'please remove or rename it first.')
+                else:
+                    logger.error(f'Moving failed with unknown error {e!r}.')
+                    logger.info(f'Try moving the folder manually to "{new_path}" and running '
+                                f'"legendary {app_name} "{args.new_path}" --skip-move"')
+                return
+        else:
+            logger.info(f'Not moving, just rewriting legendary metadata...')
+
+        igame.install_path = new_path
+        self.core.install_game(igame)
+        logger.info('Finished.')
+
 
 def main():
     parser = argparse.ArgumentParser(description=f'Legendary v{__version__} - "{__codename__}"')
@@ -2392,6 +2428,7 @@ def main():
     list_files_parser = subparsers.add_parser('list-files', help='List files in manifest')
     list_installed_parser = subparsers.add_parser('list-installed', help='List installed games')
     list_saves_parser = subparsers.add_parser('list-saves', help='List available cloud saves')
+    move_parser = subparsers.add_parser('move', help='Move specified app name to a new location')
     status_parser = subparsers.add_parser('status', help='Show legendary status information')
     sync_saves_parser = subparsers.add_parser('sync-saves', help='Sync cloud saves')
     uninstall_parser = subparsers.add_parser('uninstall', help='Uninstall (delete) a game')
@@ -2433,6 +2470,9 @@ def main():
 
     cx_parser.add_argument('app_name', metavar='<App Name>', nargs='?',
                            help='App name to configure, will configure defaults if ommited')
+
+    move_parser.add_argument('app_name', metavar='<App Name>', help='Name of the app')
+    move_parser.add_argument('new_path', metavar='<New Base Path>', help='Directory to move game folder to')
 
     # Flags
     auth_parser.add_argument('--import', dest='import_egs_auth', action='store_true',
@@ -2713,6 +2753,9 @@ def main():
     cx_parser.add_argument('--crossover-bottle', dest='crossover_bottle', action='store', metavar='<bottle name>',
                            help='Specify bottle to skip interactive selection')
 
+    move_parser.add_argument('--skip-move', dest='skip_move', action='store_true',
+                             help='Only change legendary database, do not move files (e.g. if already moved)')
+
     args, extra = parser.parse_known_args()
 
     if args.version:
@@ -2805,6 +2848,8 @@ def main():
             cli.manage_eos_overlay(args)
         elif args.subparser_name == 'crossover':
             cli.crossover_setup(args)
+        elif args.subparser_name == 'move':
+            cli.move(args)
     except KeyboardInterrupt:
         logger.info('Command was aborted via KeyboardInterrupt, cleaning up...')
 
