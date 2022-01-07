@@ -297,6 +297,9 @@ class LegendaryCore:
     def get_update_info(self):
         return self.lgd.get_cached_version()['data'].get('release_info')
 
+    def get_game_tip(self, app_name):
+        return self.lgd.get_cached_version()['data'].get('game_wiki', {}).get(app_name, {}).get(sys_platform)
+
     def get_sdl_data(self, app_name, platform='Windows'):
         if platform not in ('Win32', 'Windows'):
             app_name = f'{app_name}_{platform}'

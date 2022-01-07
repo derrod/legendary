@@ -1002,6 +1002,9 @@ class LegendaryCLI:
                     logger.info('This game supports cloud saves, syncing is handled by the "sync-saves" command.')
                     logger.info(f'To download saves for this game run "legendary sync-saves {args.app_name}"')
 
+                if tip_url := self.core.get_game_tip(igame.app_name):
+                    logger.info(f'This game may require additional setup, see: {tip_url}')
+
             old_igame = self.core.get_installed_game(game.app_name)
             if old_igame and args.repair_mode and os.path.exists(repair_file):
                 if old_igame.needs_verification:
