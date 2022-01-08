@@ -144,7 +144,7 @@ Note that this will log you out of the Epic Launcher.
 
 Listing your games
 ````
-legendary list-games
+legendary list
 ````
 This will fetch a list of games available on your account, the first time may take a while depending on how many games you have.
 
@@ -169,7 +169,7 @@ These can then be entered into any other game launcher (e.g. Lutris/Steam) if th
 
 Importing a previously installed game
 ````
-legendary import-game Anemone /mnt/games/Epic/WorldOfGoo
+legendary import Anemone /mnt/games/Epic/WorldOfGoo
 ````
 **Note:** Importing will require a full verification so Legendary can correctly update the game later.  
 **Note 2:** In order to use an alias here you may have to put it into quotes if if contains more than one word, e.g. `legendary import-game "world of goo" /mnt/games/Epic/WorldOfGoo`.
@@ -188,9 +188,10 @@ legendary -y egl-sync
 ## Usage
 
 ````
+Legendary v0.X.X - "Codename"
 usage: legendary [-h] [-H] [-v] [-y] [-V] [-J] [-A <seconds>] <command> ...
 
-Legendary v0.X.X - "Codename"
+Legendary v0.20.23 - "Follow Freeman!"
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -209,23 +210,24 @@ Commands:
     auth                Authenticate with the Epic Games Store
     clean-saves         Clean cloud saves
     cleanup             Remove old temporary, metadata, and manifest files
-    crossover           Setup CrossOver for game launching (macOS only)
+    crossover           Setup CrossOver for launching games (macOS only)
     download-saves      Download all cloud saves
     egl-sync            Setup or run Epic Games Launcher sync
     eos-overlay         Manage EOS Overlay install
-    import-game         Import an already installed game
+    import              Import an already installed game
     info                Prints info about specified app name or manifest
     install (download, update, repair)
-                        Install/download/update/repair an app
+                        Install/download/update/repair a game
     launch              Launch a game
+    list                List available (installable) games
     list-files          List files in manifest
-    list-games          List available (installable) games
     list-installed      List installed games
     list-saves          List available cloud saves
+    move                Move specified app name to a new location
     status              Show legendary status information
     sync-saves          Sync cloud saves
     uninstall           Uninstall (delete) a game
-    verify-game         Verify a game's local files
+    verify              Verify a game's local files
 
 Individual command help:
 
@@ -242,15 +244,15 @@ optional arguments:
 
 Command: alias
 usage: legendary alias [-h]
-                       <add|rename|remove|list> [App name/Old alias]
-                       [New alias]
+                       <add|rename|remove|list> [<App name/Old alias>]
+                       [<New alias>]
 
 positional arguments:
   <add|rename|remove|list>
                         Action: Add, rename, remove, or list alias(es)
-  App name/Old alias    App name when using "add" or "list" action, existing
+  <App name/Old alias>  App name when using "add" or "list" action, existing
                         alias when using "rename" or "remove" action
-  New alias             New alias when using "add" action
+  <New alias>           New alias when using "add" action
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -296,10 +298,10 @@ Command: crossover
 usage: legendary crossover [-h] [--reset] [--download] [--ignore-version]
                            [--crossover-app <path to .app>]
                            [--crossover-bottle <bottle name>]
-                           [App Name]
+                           [<App Name>]
 
 positional arguments:
-  App Name              App name to configure, will configure defaults if
+  <App Name>            App name to configure, will configure defaults if
                         ommited
 
 optional arguments:
@@ -364,10 +366,10 @@ optional arguments:
                         to.
 
 
-Command: import-game
-usage: legendary import-game [-h] [--disable-check] [--with-dlcs]
-                             [--skip-dlcs] [--platform <Platform>]
-                             <App Name> <Installation directory>
+Command: import
+usage: legendary import [-h] [--disable-check] [--with-dlcs] [--skip-dlcs]
+                        [--platform <Platform>]
+                        <App Name> <Installation directory>
 
 positional arguments:
   <App Name>            Name of the app
@@ -414,7 +416,7 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  --base-path <path>    Path for game installations (defaults to ~/legendary)
+  --base-path <path>    Path for game installations (defaults to ~/Games)
   --game-folder <path>  Folder for game installation (defaults to folder
                         specified in metadata)
   --max-shared-memory <size>
@@ -519,6 +521,26 @@ optional arguments:
                         Specify which bottle to use for CrossOver
 
 
+Command: list
+usage: legendary list [-h] [--platform <Platform>] [--include-ue] [-T] [--csv]
+                      [--tsv] [--json] [--force-refresh]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --platform <Platform>
+                        Platform to fetch game list for (default: Mac on
+                        macOS, otherwise Windows)
+  --include-ue          Also include Unreal Engine content
+                        (Engine/Marketplace) in list
+  -T, --third-party, --include-non-installable
+                        Include apps that are not installable (e.g. that have
+                        to be activated on Origin)
+  --csv                 List games in CSV format
+  --tsv                 List games in TSV format
+  --json                List games in JSON format
+  --force-refresh       Force a refresh of all game metadata
+
+
 Command: list-files
 usage: legendary list-files [-h] [--force-download] [--platform <Platform>]
                             [--manifest <uri>] [--csv] [--tsv] [--json]
@@ -542,26 +564,6 @@ optional arguments:
   --install-tag <tag>   Show only files with specified install tag
 
 
-Command: list-games
-usage: legendary list-games [-h] [--platform <Platform>] [--include-ue] [-T]
-                            [--csv] [--tsv] [--json] [--force-refresh]
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --platform <Platform>
-                        Platform to fetch game list for (default: Mac on
-                        macOS, otherwise Windows)
-  --include-ue          Also include Unreal Engine content
-                        (Engine/Marketplace) in list
-  -T, --third-party, --include-non-installable
-                        Include apps that are not installable (e.g. that have
-                        to be activated on Origin)
-  --csv                 List games in CSV format
-  --tsv                 List games in TSV format
-  --json                List games in JSON format
-  --force-refresh       Force a refresh of all game metadata
-
-
 Command: list-installed
 usage: legendary list-installed [-h] [--check-updates] [--csv] [--tsv]
                                 [--json] [--show-dirs]
@@ -583,6 +585,19 @@ positional arguments:
 
 optional arguments:
   -h, --help  show this help message and exit
+
+
+Command: move
+usage: legendary move [-h] [--skip-move] <App Name> <New Base Path>
+
+positional arguments:
+  <App Name>       Name of the app
+  <New Base Path>  Directory to move game folder to
+
+optional arguments:
+  -h, --help       show this help message and exit
+  --skip-move      Only change legendary database, do not move files (e.g. if
+                   already moved)
 
 
 Command: status
@@ -625,8 +640,8 @@ optional arguments:
   --keep-files  Keep files but remove game from Legendary database
 
 
-Command: verify-game
-usage: legendary verify-game [-h] <App Name>
+Command: verify
+usage: legendary verify [-h] <App Name>
 
 positional arguments:
   <App Name>  Name of the app
@@ -684,6 +699,8 @@ default_platform = Windows
 disable_auto_crossover = false
 ; Fallback to "Windows" platform if native version unavailable
 install_platform_fallback = true
+; Default directory for native Mac applications
+mac_install_dir = /User/legendary/Applications
 
 [Legendary.aliases]
 ; List of aliases for simpler CLI use
