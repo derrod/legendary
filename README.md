@@ -70,7 +70,7 @@ Note that on Linux glibc >= 2.25 is required, so older distributions such as Ubu
 
 To prevent problems with permissions during installation, please upgrade your `pip` by running `python -m pip install -U pip --user`. 
 
-> **Tip:** You may need to replace `python` in the above command with `python3.8` on Linux/macOS, or `py -3.8` on Windows.
+> **Tip:** You may need to replace `python` in the above command with `python3` on Linux/macOS, or `py -3` on Windows.
 
 #### Installation from PyPI (recommended)
 
@@ -98,7 +98,7 @@ but may require manually installing dependencies needed to build `PyGObject`.
 
 #### Manually from the repo
 
-- Install python3.8, setuptools, wheel, and requests
+- Install python3.9, setuptools, wheel, and requests
 - Clone the git repository and cd into it
 - Run `pip install .`
 
@@ -120,7 +120,7 @@ echo 'export PATH=$PATH:~/.local/bin' >> ~/.profile && source ~/.profile
 
 ### Directly from the repo (for dev/testing)
 
-- Install python3.8 and requests (optionally in a venv)
+- Install python3.9 and requests (optionally in a venv)
 - cd into the repository
 - Run `pip install -e .`
 
@@ -188,10 +188,9 @@ legendary -y egl-sync
 ## Usage
 
 ````
-Legendary v0.X.X - "Codename"
 usage: legendary [-h] [-H] [-v] [-y] [-V] [-J] [-A <seconds>] <command> ...
 
-Legendary v0.20.23 - "Follow Freeman!"
+Legendary v0.X.X - "Codename"
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -651,20 +650,6 @@ optional arguments:
 ````
 
 
-## Environment variables
-
-Legendary supports overriding certain things via environment variables,
-it also passes through any environment variables set before it is called.
-
-Legendary specific environment variables:
-+ `LGDRY_WINE_BINARY` - specifies wine binary
-+ `LGDRY_WINE_PREFIX` - specified wine prefix
-+ `LGDRY_NO_WINE` - disables wine
-+ `LGDRY_WRAPPER` - specifies wrapper binary/command line
-
-Note that the priority for settings that occur multiple times is:
-command line > environment variables > config variables.
-
 ## Config file
 
 Legendary supports some options as well as game specific configuration in `~/.config/legendary/config.ini`:
@@ -672,8 +657,8 @@ Legendary supports some options as well as game specific configuration in `~/.co
 [Legendary]
 log_level = debug
 ; maximum shared memory (in MiB) to use for installation
-max_memory = 1024
-; maximum number of worker processes when downloading (fewer workers will be slower, but also use fewer system resources)
+max_memory = 2048
+; maximum number of worker processes when downloading (fewer workers will be slower, but also use less system resources)
 max_workers = 8
 ; default install directory
 install_dir = /mnt/tank/games
@@ -693,25 +678,29 @@ disable_update_check = false
 disable_update_notice = false
 ; Disable automatically-generated aliases
 disable_auto_aliasing = false
-; Default application platform to use
+
+; macOS specific settings
+; Default application platform to use (default: Mac on macOS, Windows elsewhere)
 default_platform = Windows
-; (macOS) Disable automatic CrossOver use
-disable_auto_crossover = false
 ; Fallback to "Windows" platform if native version unavailable
 install_platform_fallback = true
-; Default directory for native Mac applications
+; (macOS) Disable automatic CrossOver use
+disable_auto_crossover = false
+; Default directory for native Mac applications (.app packages)
 mac_install_dir = /User/legendary/Applications
 
 [Legendary.aliases]
-; List of aliases for simpler CLI use
+; List of aliases for simpler CLI use, in the format `<alias> = <app name>`
 HITMAN 3 = Eider
 gtav = 9d2d0eb64d5c44529cece33fe2a46482
 
-; default settings to use (currently limited to WINE executable)
+; default settings to use for all apps (unless overridden in the app's config section)
+; Note that only the settings listed below are supported.
 [default]
-; (linux) specify wine executable to use
+; (all) wrapper to run the game with (e.g. "gamemode")
+wrapper = gamemode
+; (linux/macOS) Wine executable and prefix
 wine_executable = wine
-; wine prefix (alternative to using environment variable)
 wine_prefix = /home/user/.wine
 ; (macOS) CrossOver options
 crossover_app = /Applications/CrossOver.app
@@ -729,9 +718,10 @@ offline = true
 skip_update_check = true
 ; start parameters to use (in addition to the required ones)
 start_params = -windowed
-wine_executable = /path/to/wine64
 ; override language with two-letter language code
 language = fr
+; Override Wine version for this app
+wine_executable = /path/to/wine64
 
 [AppName.env]
 ; environment variables to set for this game (mostly useful on linux)
@@ -750,6 +740,7 @@ override_exe = relative/path/to/file.exe
 disable_sdl = true
 
 [AppName3]
-; (macOS) override crossover bottle
+; (macOS) override crossover settings
+crossover_app = /Applications/CrossOver Nightly.app
 crossover_bottle = SomethingElse
 ````
