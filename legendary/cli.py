@@ -1001,8 +1001,8 @@ class LegendaryCLI:
                     # todo option to automatically download saves after the installation
                     #  args does not have the required attributes for sync_saves in here,
                     #  not sure how to solve that elegantly.
-                    logger.info('This game supports cloud saves, syncing is handled by the "sync-saves" command. '
-                                'To download saves for this game run "legendary sync-saves {args.app_name}"')
+                    logger.info(f'This game supports cloud saves, syncing is handled by the "sync-saves" command. '
+                                f'To download saves for this game run "legendary sync-saves {args.app_name}"')
 
                 if tip_url := self.core.get_game_tip(igame.app_name):
                     print(f'\nThis game may require additional setup, see: {tip_url}\n')
