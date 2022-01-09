@@ -658,6 +658,8 @@ class LegendaryCLI:
 
         if args.dry_run:
             logger.info(f'Not Launching {app_name} (dry run)')
+            if params.pre_launch_command:
+                logger.info(f'Pre-Launch Command: {params.pre_launch_command}')
             logger.info(f'Launch parameters: {shlex.join(full_params)}')
             logger.info(f'Working directory: {params.working_directory}')
             if params.environment:
@@ -665,6 +667,16 @@ class LegendaryCLI:
                     f'{k}={v}' for k, v in params.environment.items())))
         else:
             logger.info(f'Launching {app_name}...')
+            if params.pre_launch_command:
+                try:
+                    logger.debug(f'Running pre-launch command: {params.pre_launch_command}')
+                    p = subprocess.Popen(shlex.split(params.pre_launch_command), env=full_env)
+                    if params.pre_launch_wait:
+                        logger.debug('Waiting for pre-launch command to finish...')
+                        p.wait()
+                except Exception as e:
+                    logger.warning(f'Pre-launch command failed: {e!r}')
+
             logger.debug(f'Launch parameters: {shlex.join(full_params)}')
             logger.debug(f'Working directory: {params.working_directory}')
             if params.environment:
@@ -695,9 +707,23 @@ class LegendaryCLI:
             return self._print_json(dict(uri=origin_uri), args.pretty_json)
 
         if os.name == 'nt':
+            cmd, wait_for_exit = self.core.get_pre_launch_command(args.app_name)
+
             if args.dry_run:
+                if cmd:
+                    logger.info(f'Pre-launch command: {cmd}')
                 logger.info(f'Origin URI: {origin_uri}')
             else:
+                if cmd:
+                    try:
+                        logger.debug(f'Running pre-launch command: {cmd}')
+                        p = subprocess.Popen(shlex.split(cmd))
+                        if wait_for_exit:
+                            logger.debug('Waiting for pre-launch command to finish...')
+                            p.wait()
+                    except Exception as e:
+                        logger.warning(f'Pre-launch command failed: {e!r}')
+
                 logger.debug(f'Opening Origin URI: {origin_uri}')
                 webbrowser.open(origin_uri)
             return
@@ -709,6 +735,8 @@ class LegendaryCLI:
                                                    crossover_app=args.crossover_app)
         env = self.core.get_app_environment(args.app_name, wine_pfx=args.wine_pfx,
                                             cx_bottle=args.crossover_bottle)
+        cmd, wait_for_exit = self.core.get_pre_launch_command(args.app_name)
+
         full_env = os.environ.copy()
         full_env.update(env)
 
@@ -732,8 +760,20 @@ class LegendaryCLI:
 
         command.append(origin_uri)
         if args.dry_run:
+            if cmd:
+                logger.info(f'Pre-launch command: {cmd}')
             logger.info(f'Origin launch command: {shlex.join(command)}')
         else:
+            if cmd:
+                try:
+                    logger.debug(f'Running pre-launch command: {cmd}')
+                    p = subprocess.Popen(shlex.split(cmd), env=full_env)
+                    if wait_for_exit:
+                        logger.debug('Waiting for pre-launch command to finish...')
+                        p.wait()
+                except Exception as e:
+                    logger.warning(f'Pre-launch command failed: {e!r}')
+
             logger.debug(f'Opening Origin URI with command: {shlex.join(command)}')
             subprocess.Popen(command, env=full_env)
 

@@ -740,6 +740,10 @@ override_exe = relative/path/to/file.exe
 disable_sdl = true
 
 [AppName3]
+; Command to run before launching the gmae
+pre_launch_command = /path/to/script.sh
+; Whether or not to wait for command to finish running
+pre_launch_wait = false
 ; (macOS) override crossover settings
 crossover_app = /Applications/CrossOver Nightly.app
 crossover_bottle = SomethingElse

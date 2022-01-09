@@ -642,6 +642,19 @@ class LegendaryCore:
 
         return _cmd
 
+    def get_pre_launch_command(self, app_name=''):
+        if app_name:
+            pre_launch_command = self.lgd.config.get(app_name, 'pre_launch_command', fallback=None)
+            pre_launch_wait = self.lgd.config.getboolean(app_name, 'pre_launch_wait', fallback=False)
+
+            if pre_launch_command:
+                return pre_launch_command, pre_launch_wait
+
+        # try default if no per-game override exists
+        pre_launch_command = self.lgd.config.get('default', 'pre_launch_command', fallback=None)
+        pre_launch_wait = self.lgd.config.getboolean('default', 'pre_launch_wait', fallback=False)
+        return pre_launch_command, pre_launch_wait
+
     def get_launch_parameters(self, app_name: str, offline: bool = False,
                               user: str = None, extra_args: list = None,
                               wine_bin: str = None, wine_pfx: str = None,
@@ -680,6 +693,11 @@ class LegendaryCore:
             environment=self.get_app_environment(app_name=app_name, wine_pfx=wine_pfx,
                                                  cx_bottle=crossover_bottle, disable_wine=disable_wine)
         )
+
+        cmd, wait = self.get_pre_launch_command(app_name)
+        if cmd:
+            params.pre_launch_command = cmd
+            params.pre_launch_wait = wait
 
         if install.launch_parameters:
             try:

@@ -222,3 +222,5 @@ class LaunchParameters:
     # user and environment supplied options
     user_parameters: list = field(default_factory=list)
     environment: dict = field(default_factory=dict)
+    pre_launch_command: str = ''
+    pre_launch_wait: bool = False
