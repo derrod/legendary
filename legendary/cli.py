@@ -2859,13 +2859,13 @@ def main():
     try:
         if args.subparser_name == 'auth':
             cli.auth(args)
-        elif args.subparser_name == 'list':
+        elif args.subparser_name in {'list', 'list-games'}:
             cli.list_games(args)
         elif args.subparser_name == 'list-installed':
             cli.list_installed(args)
         elif args.subparser_name == 'launch':
             cli.launch_game(args, extra)
-        elif args.subparser_name in ('download', 'install', 'update', 'repair'):
+        elif args.subparser_name in {'download', 'install', 'update', 'repair'}:
             cli.install_game(args)
         elif args.subparser_name == 'uninstall':
             cli.uninstall_game(args)
@@ -2879,9 +2879,9 @@ def main():
             cli.sync_saves(args)
         elif args.subparser_name == 'clean-saves':
             cli.clean_saves(args)
-        elif args.subparser_name == 'verify':
+        elif args.subparser_name in {'verify', 'verify-game'}:
             cli.verify_game(args)
-        elif args.subparser_name == 'import':
+        elif args.subparser_name in {'import', 'import-game'}:
             cli.import_game(args)
         elif args.subparser_name == 'egl-sync':
             cli.egs_sync(args)
