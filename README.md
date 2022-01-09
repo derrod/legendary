@@ -351,7 +351,8 @@ optional arguments:
 
 
 Command: eos-overlay
-usage: legendary eos-overlay [-h] [--path PATH]
+usage: legendary eos-overlay [-h] [--path PATH] [--prefix PREFIX] [--app APP]
+                             [--bottle BOTTLE]
                              <install|update|remove|enable|disable|info>
 
 positional arguments:
@@ -363,6 +364,9 @@ optional arguments:
   -h, --help            show this help message and exit
   --path PATH           Path to the EOS overlay folder to be enabled/installed
                         to.
+  --prefix PREFIX       WINE prefix to install the overlay in
+  --app APP             Use this app's wine prefix (if configured in config)
+  --bottle BOTTLE       WINE prefix to install the overlay in
 
 
 Command: import
