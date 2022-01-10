@@ -1943,10 +1943,36 @@ class LegendaryCLI:
                     logger.info('Aborting.')
                     return
 
+            def read_service_response(response):
+                # try to get specific error, otherwise just fall back to generic message
+                error_msgs = []
+
+                for error in response['errors']:
+                    try:
+                        srv_resp = json.loads(error['serviceResponse'])
+                        error_msgs.append(srv_resp["errorMessage"])
+                    except Exception as _e:
+                        logger.debug(f'Reading upstream error message failed with {_e!r}')
+                        error_msgs.append(error['message'])
+
+                if len(error_msgs) > 1:
+                    return error_msgs
+                elif error_msgs:
+                    return error_msgs[0]
+                else:
+                    return 'Unknown error (API error message missing)'
+
             try:
                 for game in uplay_games:
-                    self.core.egs.store_claim_uplay_code(ubi_account_id, game.partner_link_id)
-                self.core.egs.store_redeem_uplay_codes(ubi_account_id)
+                    result = self.core.egs.store_claim_uplay_code(ubi_account_id, game.partner_link_id)
+                    if 'errors' in result:
+                        logger.error(f'Claiming "{game.app_title}" failed with: {read_service_response(result)}')
+                    else:
+                        logger.debug(f'Successfully claimed code for "{game.partner_link_id}"')
+
+                result = self.core.egs.store_redeem_uplay_codes(ubi_account_id)
+                if 'errors' in result:
+                    logger.error(f'Redeeming codes (partially) failed with: {read_service_response(result)}')
             except Exception as e:
                 logger.error(f'Failed to redeem Uplay codes: {e!r}')
             else:
