@@ -1333,6 +1333,13 @@ class LegendaryCore:
 
             install_path = os.path.normpath(os.path.join(base_path, game_folder))
 
+        # check for write access on the install path or its parent directory if it doesn't exist yet
+        base_path = os.path.dirname(install_path)
+        if os.path.exists(install_path) and not os.access(install_path, os.W_OK):
+            raise PermissionError(f'No write access to "{install_path}"')
+        elif not os.access(base_path, os.W_OK):
+            raise PermissionError(f'No write access to "{base_path}"')
+
         self.log.info(f'Install path: {install_path}')
 
         if repair:
