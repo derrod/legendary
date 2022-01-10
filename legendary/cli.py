@@ -2123,6 +2123,9 @@ class LegendaryCLI:
                     args.path = igame.install_path
                 else:
                     available_installs = self.core.search_overlay_installs(prefix)
+                    if not available_installs:
+                        logger.error('No EOS overlay installs found!')
+                        return
                     args.path = available_installs[0]
 
             if not self.core.is_overlay_install(args.path):
