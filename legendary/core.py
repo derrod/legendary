@@ -10,6 +10,7 @@ from base64 import b64decode
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timezone
+from hashlib import sha1
 from locale import getdefaultlocale
 from multiprocessing import Queue
 from platform import system
@@ -1173,6 +1174,7 @@ class LegendaryCore:
         if len(m_api_r['elements']) > 1:
             raise ValueError('Manifest response has more than one element!')
 
+        manifest_hash = m_api_r['elements'][0]['hash']
         base_urls = []
         manifest_urls = []
         for manifest in m_api_r['elements'][0]['manifests']:
@@ -1186,13 +1188,18 @@ class LegendaryCore:
             else:
                 manifest_urls.append(manifest['uri'])
 
-        return manifest_urls, base_urls
+        return manifest_urls, base_urls, manifest_hash
 
     def get_cdn_manifest(self, game, platform='Windows'):
-        manifest_urls, base_urls = self.get_cdn_urls(game, platform)
+        manifest_urls, base_urls, manifest_hash = self.get_cdn_urls(game, platform)
         self.log.debug(f'Downloading manifest from {manifest_urls[0]} ...')
         r = self.egs.unauth_session.get(manifest_urls[0])
         r.raise_for_status()
+        manifest_bytes = r.content
+
+        if sha1(manifest_bytes).hexdigest() != manifest_hash:
+            raise ValueError('Manifest sha hash mismatch!')
+
         return r.content, base_urls
 
     def get_uri_manifest(self, uri):
