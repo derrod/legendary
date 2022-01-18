@@ -1749,6 +1749,9 @@ class LegendaryCore:
             self.egl.delete_manifest(igame.app_name)
         except ValueError as e:
             self.log.warning(f'Deleting EGL manifest failed: {e!r}')
+        except FileNotFoundError:
+            self.log.warning(f'EGL manifest was already deleted, in case you uninstalled the Epic Games Launcher'
+                             f' please disable and unlink EGL Sync.')
 
         if delete_files:
             delete_folder(os.path.join(igame.install_path, '.egstore'))
