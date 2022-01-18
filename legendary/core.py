@@ -1190,8 +1190,12 @@ class LegendaryCore:
 
         return manifest_urls, base_urls, manifest_hash
 
-    def get_cdn_manifest(self, game, platform='Windows'):
+    def get_cdn_manifest(self, game, platform='Windows', disable_https=False):
         manifest_urls, base_urls, manifest_hash = self.get_cdn_urls(game, platform)
+
+        if disable_https:
+            manifest_urls = [url.replace('https://', 'http://') for url in manifest_urls]
+
         self.log.debug(f'Downloading manifest from {manifest_urls[0]} ...')
         r = self.egs.unauth_session.get(manifest_urls[0])
         r.raise_for_status()
@@ -1257,6 +1261,11 @@ class LegendaryCore:
                 old_manifest = self.load_manifest(old_bytes)
 
         base_urls = game.base_urls
+
+        # The EGS client uses plaintext HTTP by default for the purposes of enabling simple DNS based
+        # CDN redirection to a (local) cache. In Legendary this will be a config option.
+        disable_https = disable_https or self.lgd.config.getboolean('Legendary', 'disable_https', fallback=False)
+
         if override_manifest:
             self.log.info(f'Overriding manifest with "{override_manifest}"')
             new_manifest_data, _base_urls = self.get_uri_manifest(override_manifest)
@@ -1264,7 +1273,7 @@ class LegendaryCore:
             if _base_urls:
                 base_urls = _base_urls
         else:
-            new_manifest_data, base_urls = self.get_cdn_manifest(game, platform)
+            new_manifest_data, base_urls = self.get_cdn_manifest(game, platform, disable_https=disable_https)
             # overwrite base urls in metadata with current ones to avoid using old/dead CDNs
             game.base_urls = base_urls
             # save base urls to game metadata
@@ -1376,9 +1385,7 @@ class LegendaryCore:
                 raise ValueError('No base URLs found, please try again.')
             base_url = base_urls[0]
 
-        # The EGS client uses plaintext HTTP by default for the purposes of enabling simple DNS based
-        # CDN redirection to a (local) cache. In Legendary this will be a config option.
-        if disable_https or self.lgd.config.getboolean('Legendary', 'disable_https', fallback=False):
+        if disable_https:
             base_url = base_url.replace('https://', 'http://')
 
         self.log.debug(f'Using base URL: {base_url}')
