@@ -742,7 +742,8 @@ class LegendaryCore:
             '-EpicPortal',
             f'-epicusername={user_name}',
             f'-epicuserid={account_id}',
-            f'-epiclocale={language_code}'
+            f'-epiclocale={language_code}',
+            f'-epicsandboxid={game.namespace}'
         ])
 
         if extra_args:
