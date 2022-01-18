@@ -637,8 +637,8 @@ class LegendaryCLI:
         full_params.extend(params.launch_command)
         full_params.append(os.path.join(params.game_directory, params.game_executable))
         full_params.extend(params.game_parameters)
-        full_params.extend(params.egl_parameters)
         full_params.extend(params.user_parameters)
+        full_params.extend(params.egl_parameters)
         # Copying existing env vars is required on Windows, probably a good idea on Linux
         full_env = os.environ.copy()
         full_env.update(params.environment)
