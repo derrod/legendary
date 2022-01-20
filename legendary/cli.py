@@ -1310,11 +1310,13 @@ class LegendaryCLI:
             self.core.lgd.config.remove_option('Legendary', 'egl_sync')
             # remove EGL GUIDs from all games, DO NOT remove .egstore folders because that would fuck things up.
             for igame in self.core.get_installed_list():
+                if not igame.egl_guid:
+                    continue
                 igame.egl_guid = ''
                 self.core.install_game(igame)
             # todo track which games were imported, remove those from LGD and exported ones from EGL
-            logger.info('NOTE: Games have not been removed from the Epic Games Launcher or Legendary.')
-            logger.info('Games will not be removed from EGL or Legendary if it was removed from the other launcher.')
+            logger.info('NOTE: All games are still available in Legendary and EGL, but future changes '
+                        'will not be synced. This may cause issues when trying to update/uninstall games.')
             return
         elif args.disable_sync:
             logger.info('Disabling EGS/LGD sync...')
@@ -1325,6 +1327,10 @@ class LegendaryCLI:
             logger.error('Legendary is missing game metadata, please login (if not already) and use the '
                          '"status" command to fetch necessary information to set-up syncing.')
             return
+
+        if args.migrate:
+            logger.info('Migration enabled, this will remove the games from EGL, but not uninstall them.')
+            args.import_only = args.one_shot = True
 
         if not self.core.egl.programdata_path:
             if not args.egl_manifest_path and not args.egl_wine_prefix:
@@ -1422,12 +1428,26 @@ class LegendaryCLI:
                 print('Nothing to export.')
 
         print('\nChecking automatic sync...')
-        if not self.core.egl_sync_enabled and not args.one_shot:
+        if not self.core.egl_sync_enabled and not args.one_shot and not args.migrate:
             if not args.enable_sync:
                 args.enable_sync = args.yes or get_boolean_choice('Enable automatic synchronization?')
                 if not args.enable_sync:  # if user chooses no, still run the sync once
                     self.core.egl_sync()
             self.core.lgd.config.set('Legendary', 'egl_sync', str(args.enable_sync))
+        elif args.migrate:
+            # migration also disables sync
+            logger.info('Disabling automatic sync (if enabled) and removing EGL link to finish migration...')
+            self.core.lgd.config.remove_option('Legendary', 'egl_programdata')
+            self.core.lgd.config.remove_option('Legendary', 'egl_sync')
+
+            for igame in self.core.get_installed_list():
+                if not igame.egl_guid:
+                    continue
+                self.core.egl_uninstall(igame)
+                igame.egl_guid = ''
+                self.core.install_game(igame)
+
+            logger.info('Migration complete. Your games will now be exclusively managed by Legendary.')
         else:
             self.core.egl_sync()
 
@@ -2770,6 +2790,9 @@ def main():
                                  help='Only import games from EGL (no export)')
     egl_sync_parser.add_argument('--export-only', dest='export_only', action='store_true',
                                  help='Only export games to EGL (no import)')
+    egl_sync_parser.add_argument('--migrate', dest='migrate', action='store_true',
+                                 help='Import games into legendary, then remove them from EGL '
+                                      '(implies --import-only --one-shot --unlink)')
     egl_sync_parser.add_argument('--unlink', dest='unlink', action='store_true',
                                  help='Disable sync and remove EGL metadata from installed games')
 
