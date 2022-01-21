@@ -406,6 +406,9 @@ class LegendaryCore:
         for _platform in platforms:
             self.get_assets(update_assets=update_assets, platform=_platform)
 
+        if not self.lgd.assets:
+            return _ret, _dlc
+
         assets = {}
         for _platform, _assets in self.lgd.assets.items():
             for _asset in _assets:
