@@ -330,7 +330,7 @@ Command: egl-sync
 usage: legendary egl-sync [-h] [--egl-manifest-path EGL_MANIFEST_PATH]
                           [--egl-wine-prefix EGL_WINE_PREFIX] [--enable-sync]
                           [--disable-sync] [--one-shot] [--import-only]
-                          [--export-only] [--unlink]
+                          [--export-only] [--migrate] [--unlink]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -346,6 +346,8 @@ optional arguments:
   --one-shot            Sync once, do not ask to setup automatic sync
   --import-only         Only import games from EGL (no export)
   --export-only         Only export games to EGL (no import)
+  --migrate             Import games into legendary, then remove them from EGL
+                        (implies --import-only --one-shot --unlink)
   --unlink              Disable sync and remove EGL metadata from installed
                         games
 
