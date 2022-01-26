@@ -1,4 +1,4 @@
-# Legendary
+ Legendary
 ## A free and open-source Epic Games Launcher alternative
 ![Logo](https://repository-images.githubusercontent.com/249938026/80b18f80-96c7-11ea-9183-0a8c96e7cada)
 
@@ -36,6 +36,8 @@ it has to be run from a terminal (e.g. PowerShell)
   + macOS support is in an early stage, and only tested on 12.0+
   + 32-bit operating systems are not supported
 - python 3.9+ (64-bit)
+  + `pythonnet` and thus `pywebview` is not yet compatible with 3.10+ on Windows, use 3.9 if you want to use the webview login
+  + Currently, only features up to 3.8 are used, but support for 3.8 may be dropped at any point 
 - PyPI packages: `requests`, optionally `setuptools` and `wheel` for setup/building
 
 **Note:** Running Windows applications on Linux or macOS requires [Wine](https://www.winehq.org/).
