@@ -473,6 +473,10 @@ class LegendaryCLI:
 
             # if there is no saved save path, try to get one
             if not igame.save_path:
+                if args.yes:
+                    logger.info(f'Save path for this title has not been set, skipping due to --yes')
+                    continue
+
                 save_path = self.core.get_save_path(igame.app_name, platform=igame.platform)
 
                 # ask user if path is correct if computing for the first time
