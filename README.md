@@ -33,12 +33,14 @@ it has to be run from a terminal (e.g. PowerShell)
 ## Requirements
 
 - Linux, Windows (8.1+), or macOS (12.0+)
-  + macOS support is in an early stage, and only tested on 12.0+
   + 32-bit operating systems are not supported
 - python 3.9+ (64-bit)
-  + `pythonnet` and thus `pywebview` is not yet compatible with 3.10+ on Windows, use 3.9 if you want to use the webview login
-  + Currently, only features up to 3.8 are used, but support for 3.8 may be dropped at any point 
-- PyPI packages: `requests`, optionally `setuptools` and `wheel` for setup/building
+  + Currently, only features up to Python 3.8 are used, but support for 3.8 may be dropped at any point
+  + (Windows) `pythonnet` is not yet compatible with 3.10+, use 3.9 if you plan to install `pywebview` 
+- PyPI packages:
+  + `requests`
+  + (optional) `pywebview` for webview-based login
+  + (optional) `setuptools` and `wheel` for setup/building
 
 **Note:** Running Windows applications on Linux or macOS requires [Wine](https://www.winehq.org/).
 
