@@ -1,4 +1,4 @@
- Legendary
+# Legendary
 ## A free and open-source Epic Games Launcher alternative
 ![Logo](https://repository-images.githubusercontent.com/249938026/80b18f80-96c7-11ea-9183-0a8c96e7cada)
 
