@@ -31,11 +31,7 @@ window.ue = {
         registersignincompletecallback: pywebview.api.trigger_sid_exchange
     },
     common: {
-        launchexternalurl: pywebview.api.open_url_external,
-        // not required, just needs to be non-null
-        auth: {
-            completeLogin: pywebview.api.nop
-        }
+        launchexternalurl: pywebview.api.open_url_external
     }
 }
 '''
