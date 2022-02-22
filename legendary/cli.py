@@ -2005,6 +2005,10 @@ class LegendaryCLI:
             na_games, _ = self.core.get_non_asset_library_items(skip_ue=True)
             origin_games = [game for game in na_games if game.third_party_store == 'Origin']
 
+            if not origin_games:
+                logger.info('No redeemable games found.')
+                return
+
             logger.info(f'Found {len(origin_games)} game(s) to redeem:')
             for game in origin_games:
                 logger.info(f' - {game.app_title}')
