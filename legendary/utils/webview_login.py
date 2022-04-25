@@ -127,7 +127,7 @@ def do_webview_login(callback_sid=None, callback_code=None):
     window = webview.create_window(f'Legendary {__version__} - Epic Games Account Login',
                                    url=login_url, width=768, height=1024, js_api=api)
     api.window = window
-    window.loaded += api.on_loaded
+    window.events.loaded += api.on_loaded
 
     try:
         webview.start()
