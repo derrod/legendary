@@ -647,7 +647,7 @@ class LegendaryCLI:
         full_env = os.environ.copy()
         full_env.update(params.environment)
 
-        if 'CX_BOTTLE' in full_env:
+        if 'CX_BOTTLE' in full_env and any('SharedSupport/CrossOver' in p for p in params.launch_command):
             # if using crossover, unset WINEPREFIX
             full_env.pop('WINEPREFIX', None)
             # check that bottle is valid, show error otherwise
@@ -659,6 +659,8 @@ class LegendaryCLI:
                 else:
                     logger.error(f'Specified CrossOver bottle {bottle_name} does not exist, cannot launch.')
                 exit(1)
+            else:
+                logger.info(f'Using CrossOver Bottle "{bottle_name}"')
 
         if args.dry_run:
             logger.info(f'Not Launching {app_name} (dry run)')
@@ -744,7 +746,7 @@ class LegendaryCLI:
         full_env = os.environ.copy()
         full_env.update(env)
 
-        if 'CX_BOTTLE' in full_env:
+        if 'CX_BOTTLE' in full_env and any('SharedSupport/CrossOver' in p for p in command):
             # if using crossover, unset WINEPREFIX
             full_env.pop('WINEPREFIX', None)
             # check that bottle is valid, show error otherwise
@@ -756,6 +758,8 @@ class LegendaryCLI:
                 else:
                     logger.error(f'Specified CrossOver bottle {bottle_name} does not exist, cannot launch.')
                 exit(1)
+            else:
+                logger.info(f'Using CrossOver Bottle "{bottle_name}"')
 
         if not command:
             logger.error(f'In order to launch Origin correctly you must specify a prefix and wine binary or '

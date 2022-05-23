@@ -597,7 +597,9 @@ class LegendaryCore:
                     env['CX_BOTTLE'] = cx_bottle
             else:
                 cx_bottle = os.environ['CX_BOTTLE']
-            self.log.info(f'Using CrossOver Bottle "{cx_bottle}"')
+
+            if cx_bottle:
+                self.log.debug(f'Using CrossOver Bottle "{cx_bottle}"')
 
         if wine_pfx:
             env['WINEPREFIX'] = wine_pfx
