@@ -263,7 +263,9 @@ class LGDLFS:
                     self.log.warning(f'Failed to delete file "{f}": {e!r}')
 
     def clean_manifests(self, in_use):
-        in_use_files = set(f'{clean_filename(f"{app_name}_{version}")}.manifest' for app_name, version in in_use)
+        in_use_files = set(f'{clean_filename(f"{app_name}_{version}")}.manifest' for app_name, version, _ in in_use)
+        in_use_files |= set(f'{clean_filename(f"{app_name}_{platform}_{version}")}.manifest'
+                            for app_name, version, platform in in_use)
         for f in os.listdir(os.path.join(self.path, 'manifests')):
             if f not in in_use_files:
                 try:
