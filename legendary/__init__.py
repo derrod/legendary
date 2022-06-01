@@ -1,4 +1,4 @@
 """Legendary!"""
 
-__version__ = '0.20.25'
-__codename__ = 'Our Benefactors'
+__version__ = '0.20.26'
+__codename__ = 'Dark Energy'
