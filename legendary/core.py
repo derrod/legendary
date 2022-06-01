@@ -1532,7 +1532,21 @@ class LegendaryCore:
         # Detect 2K launcher, warn about it
         if '2klauncher' in install.executable.lower():
             results.warnings.add('This game uses the 2K Launcher which is does not work with Legendary. '
-                                 'See the Legendary or EpicLinux Wiki for workarounds (e.g. exe override)')
+                                 'Consult the Legendary or EpicLinux Wikis for workarounds (e.g. exe override).')
+            # suggest alternative EXEs
+            alts = []
+            all_files = analysis.manifest_comparison.added \
+                        | analysis.manifest_comparison.unchanged \
+                        | analysis.manifest_comparison.changed
+            for fname in sorted(all_files):
+                if (fname_l := fname.lower()).endswith('.exe'):
+                    if 'prereq' in fname_l or '2klauncher' in fname_l:
+                        continue
+                    alts.append(fname)
+            # todo move this to "install" command as an interactive selection
+            alt_str = '\n'.join(f'   + {alt}' for alt in alts)
+            results.warnings.add('You may want to consider trying one of the following executables '
+                                 f'("--override-exe" launch parameter or "override_exe" config option):\n{alt_str}')
 
         return results
 
