@@ -1483,14 +1483,14 @@ class LegendaryCore:
             min_disk_space = analysis.disk_space_delta
             _, _, free = shutil.disk_usage(base_path)
             if free < min_disk_space:
-                free_mib = free / 1024 / 1024
-                required_mib = min_disk_space / 1024 / 1024
+                free_gib = free / 1024**3
+                required_gib = min_disk_space / 1024**3
                 if ignore_space_req:
                     results.warnings.add(f'Potentially not enough available disk space! '
-                                         f'{free_mib:.02f} MiB < {required_mib:.02f} MiB')
+                                         f'{free_gib:.02f} GiB < {required_gib:.02f} GiB')
                 else:
                     results.failures.add(f'Not enough available disk space! '
-                                         f'{free_mib:.02f} MiB < {required_mib:.02f} MiB')
+                                         f'{free_gib:.02f} GiB < {required_gib:.02f} GiB')
         else:
             results.failures.add(f'Install path "{base_path}" does not exist, make sure all necessary mounts are '
                                  f'available. If you previously deleted the game folder without uninstalling, run '
