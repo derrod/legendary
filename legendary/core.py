@@ -38,7 +38,7 @@ from legendary.utils.crossover import *
 from legendary.utils.egl_crypt import decrypt_epic_data
 from legendary.utils.env import is_windows_mac_or_pyi
 from legendary.utils.eos import EOSOverlayApp, query_registry_entries
-from legendary.utils.game_workarounds import is_opt_enabled, update_workarounds
+from legendary.utils.game_workarounds import is_opt_enabled, update_workarounds, get_exe_override
 from legendary.utils.savegame_helper import SaveGameHelper
 from legendary.utils.selective_dl import games as sdl_games
 from legendary.utils.manifests import combine_manifests
@@ -1432,10 +1432,17 @@ class LegendaryCore:
 
         if file_install_tag is None:
             file_install_tag = []
+
+        # Override exe at an install level to avoid breaking existing config overrides
+        executable = new_manifest.meta.launch_exe
+        if exe_override := get_exe_override(app_name=game.app_name):
+            self.log.info(f'Launch exe will be changed from "{executable}" to "{exe_override}" for compatibility')
+            executable = exe_override
+
         igame = InstalledGame(app_name=game.app_name, title=game.app_title,
                               version=new_manifest.meta.build_version, prereq_info=prereq,
                               manifest_path=override_manifest, base_urls=base_urls,
-                              install_path=install_path, executable=new_manifest.meta.launch_exe,
+                              install_path=install_path, executable=executable,
                               launch_parameters=new_manifest.meta.launch_command,
                               can_run_offline=offline == 'true', requires_ot=ot == 'true',
                               is_dlc=base_game is not None, install_size=anlres.install_size,
