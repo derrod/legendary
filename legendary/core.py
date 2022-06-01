@@ -1435,9 +1435,12 @@ class LegendaryCore:
 
         # Override exe at an install level to avoid breaking existing config overrides
         executable = new_manifest.meta.launch_exe
-        if exe_override := get_exe_override(app_name=game.app_name):
-            self.log.info(f'Launch exe will be changed from "{executable}" to "{exe_override}" for compatibility')
-            executable = exe_override
+        if platform != 'Mac' and (exe_override := get_exe_override(app_name=game.app_name)):
+            exe_override_l = exe_override.lower()
+            # make sure that override exe even exists
+            if any(fm.filename.lower() == exe_override_l for fm in new_manifest.file_manifest_list.elements):
+                self.log.info(f'Launch exe will be changed from "{executable}" to "{exe_override}" for compatibility')
+                executable = exe_override
 
         igame = InstalledGame(app_name=game.app_name, title=game.app_title,
                               version=new_manifest.meta.build_version, prereq_info=prereq,
