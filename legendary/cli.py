@@ -2482,14 +2482,14 @@ class LegendaryCLI:
             except Exception as e:
                 if isinstance(e, OSError) and e.errno == 18:
                     logger.error(f'Moving to a different drive is not supported. Move the folder manually to '
-                                 f'"{new_path}" and then run "legendary {app_name} "{args.new_path}" --skip-move"')
+                                 f'"{new_path}" and run "legendary move {app_name} "{args.new_path}" --skip-move"')
                 elif isinstance(e, FileExistsError):
                     logger.error(f'The target path already contains a folder called "{game_folder}", '
                                  f'please remove or rename it first.')
                 else:
                     logger.error(f'Moving failed with unknown error {e!r}.')
                     logger.info(f'Try moving the folder manually to "{new_path}" and running '
-                                f'"legendary {app_name} "{args.new_path}" --skip-move"')
+                                f'"legendary move {app_name} "{args.new_path}" --skip-move"')
                 return
         else:
             logger.info(f'Not moving, just rewriting legendary metadata...')
