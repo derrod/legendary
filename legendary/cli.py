@@ -991,6 +991,9 @@ class LegendaryCLI:
             logger.fatal('Installation cannot proceed, exiting.')
             exit(1)
 
+        if tip_url := self.core.get_game_tip(igame.app_name):
+            print(f'\nThis game may have compatibility issues or require additional setup, see: {tip_url}\n')
+
         if not args.yes:
             if not get_boolean_choice(f'Do you wish to install "{igame.title}"?'):
                 print('Aborting...')
@@ -1052,6 +1055,7 @@ class LegendaryCLI:
                     logger.info(f'This game supports cloud saves, syncing is handled by the "sync-saves" command. '
                                 f'To download saves for this game run "legendary sync-saves {args.app_name}"')
 
+                # show tip again after installation finishes so users hopefully actually see it
                 if tip_url := self.core.get_game_tip(igame.app_name):
                     print(f'\nThis game may require additional setup, see: {tip_url}\n')
 
