@@ -6,7 +6,7 @@ logger = logging.getLogger('WineHelpers')
 
 
 def read_registry(wine_pfx):
-    reg = configparser.ConfigParser(comment_prefixes=(';', '#', '/', 'WINE'), allow_no_value=True)
+    reg = configparser.ConfigParser(comment_prefixes=(';', '#', '/', 'WINE'), allow_no_value=True, strict=False)
     reg.optionxform = str
     reg.read(os.path.join(wine_pfx, 'user.reg'))
     return reg
