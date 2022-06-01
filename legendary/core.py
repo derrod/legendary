@@ -1546,7 +1546,7 @@ class LegendaryCore:
             # todo move this to "install" command as an interactive selection
             alt_str = '\n'.join(f'   + {alt}' for alt in alts)
             results.warnings.add('You may want to consider trying one of the following executables '
-                                 f'("--override-exe" launch parameter or "override_exe" config option):\n{alt_str}')
+                                 f'(see README for launch parameter/config option usage):\n{alt_str}')
 
         return results
 
