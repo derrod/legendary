@@ -1522,6 +1522,11 @@ class LegendaryCore:
                                      'installation via Uplay running in WINE (e.g. using Lutris) is recommended. '
                                      'Use "legendary activate --uplay" and follow the instructions.')
 
+        # Detect 2K launcher, warn about it
+        if '2klauncher' in install.executable.lower():
+            results.warnings.add('This game uses the 2K Launcher which is does not work with Legendary. '
+                                 'See the Legendary or EpicLinux Wiki for workarounds (e.g. exe override)')
+
         return results
 
     def get_default_install_dir(self, platform='Windows'):
