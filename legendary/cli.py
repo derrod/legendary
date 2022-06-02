@@ -2896,6 +2896,8 @@ def main():
                 print(f'\nCommand: {choice}')
                 print(subparser.format_help())
         elif os.name == 'nt' and double_clicked():
+            print('Please note that this is not the intended way to run Legendary.')
+            print('Follow https://github.com/derrod/legendary/wiki/Setup-Instructions to set it up properly')
             subprocess.Popen(['cmd', '/K', 'echo>nul'])
         return
 
