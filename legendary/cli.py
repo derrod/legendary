@@ -2896,7 +2896,7 @@ def main():
                 print(f'\nCommand: {choice}')
                 print(subparser.format_help())
         elif os.name == 'nt' and double_clicked():
-            subprocess.run(['cmd', '/K', 'echo>nul'])
+            subprocess.Popen(['cmd', '/K', 'echo>nul'])
         return
 
     cli = LegendaryCLI(override_config=args.config_file, api_timeout=args.api_timeout)
