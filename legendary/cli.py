@@ -850,7 +850,7 @@ class LegendaryCLI:
             base_game = self.core.get_game(app_name)
             # check if base_game is actually installed
             if not self.core.is_installed(app_name):
-                # download mode doesn't care about whether or not something's installed
+                # download mode doesn't care about whether something's installed
                 if not args.no_install:
                     logger.fatal(f'Base game "{app_name}" is not installed!')
                     exit(1)
@@ -948,7 +948,7 @@ class LegendaryCLI:
                                                           preferred_cdn=args.preferred_cdn,
                                                           disable_https=args.disable_https)
 
-        # game is either up to date or hasn't changed, so we have nothing to do
+        # game is either up-to-date or hasn't changed, so we have nothing to do
         if not analysis.dl_size:
             old_igame = self.core.get_installed_game(game.app_name)
             logger.info('Download size is 0, the game is either already up to date or has not changed. Exiting...')
@@ -2222,7 +2222,7 @@ class LegendaryCLI:
 
             if os.name != 'nt' and not prefix:
                 logger.info('Registry entries in prefixes (if any) have not been removed. '
-                            f'This shoouldn\'t cause any issues as the overlay will simply fail to load.')
+                            f'This shouldn\'t cause any issues as the overlay will simply fail to load.')
                 return
 
             logger.info('Removing registry entries...')
@@ -2230,7 +2230,7 @@ class LegendaryCLI:
 
             if os.name != 'nt':
                 logger.info(f'Registry entries in prefixes other than "{prefix}" were not removed. '
-                            f'This shoouldn\'t cause any issues as the overlay will simply fail to load.')
+                            f'This shouldn\'t cause any issues as the overlay will simply fail to load.')
 
             logger.info('Deleting overlay installation...')
             self.core.remove_overlay_install()
