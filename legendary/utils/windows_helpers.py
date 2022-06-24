@@ -1,5 +1,6 @@
 import logging
 import winreg
+import ctypes
 
 _logger = logging.getLogger('WindowsHelpers')
 
@@ -80,3 +81,16 @@ def set_registry_value(hive, key, value, data, reg_type=winreg.REG_SZ, use_32bit
         except Exception as e:
             _logger.debug(f'Setting "{key}":"{value}" to "{data}" failed with {repr(e)}')
         winreg.CloseKey(k)
+
+
+def double_clicked() -> bool:
+    # Thanks https://stackoverflow.com/a/55476145
+
+    # Load kernel32.dll
+    kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+    # Create an array to store the processes in.  This doesn't actually need to
+    # be large enough to store the whole process list since GetConsoleProcessList()
+    # just returns the number of processes if the array is too small.
+    process_array = (ctypes.c_uint * 1)()
+    num_processes = kernel32.GetConsoleProcessList(process_array, 1)
+    return num_processes < 3
