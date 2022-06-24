@@ -94,16 +94,6 @@ class LegendaryCore:
         self.overlay_update_available = False
         self.logged_in = False
 
-    def auth(self, username, password):
-        """
-        Attempts direct non-web login, raises CaptchaError if manual login is required
-
-        :param username:
-        :param password:
-        :return:
-        """
-        raise NotImplementedError
-
     def auth_sid(self, sid) -> str:
         """
         Handles getting an exchange code from a session id
