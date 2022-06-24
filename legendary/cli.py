@@ -2093,14 +2093,6 @@ class LegendaryCLI:
                 args.prefix = self.core.lgd.config.get(f'{app_name}.env', 'WINEPREFIX', fallback=None)
                 args.prefix = self.core.lgd.config.get(app_name, 'wine_prefix', fallback=args.prefix)
 
-            if not args.prefix and not args.bottle:
-                # try using defaults if they exist
-                if sys_platform == 'darwin':
-                    args.bottle = self.core.lgd.config.get('default', 'crossover_bottle', fallback=None)
-
-                args.prefix = self.core.lgd.config.get('default.env', 'WINEPREFIX', fallback=None)
-                args.prefix = self.core.lgd.config.get('default', 'wine_prefix', fallback=args.prefix)
-
             if sys_platform == 'darwin' and args.bottle:
                 if not mac_is_valid_bottle(args.bottle):
                     logger.error('Invalid bottle specified.')
@@ -2111,19 +2103,18 @@ class LegendaryCLI:
                     logger.error(f'Prefix "{args.prefix}" does not exist.')
                     return
                 prefix = args.prefix
-            else:
-                logger.error('Need either config default, --prefix, --bottle, or --app to install the overlay to.')
+            elif args.action not in {'info', 'install', 'remove', 'update'}:
+                logger.error('Need either --prefix, --bottle, or --app for this command.')
                 return
 
-            if not os.path.exists(prefix):
-                logger.error(f'Prefix "{prefix}" does not exist.')
-                return
-            else:
-                logger.info(f'Using prefix "{prefix}"')
+            if prefix:
+                if not os.path.exists(prefix):
+                    logger.error(f'Prefix "{prefix}" does not exist.')
+                    return
+                else:
+                    logger.info(f'Using prefix "{prefix}"')
 
         if args.action == 'info':
-            reg_paths = query_registry_entries(prefix)
-            available_installs = self.core.search_overlay_installs(prefix)
             igame = self.core.lgd.get_overlay_install_info()
             if not igame:
                 logger.info('No Legendary-managed installation found.')
@@ -2131,6 +2122,11 @@ class LegendaryCLI:
                 logger.info(f'Installed version: {igame.version}')
                 logger.info(f'Installed path: {igame.install_path}')
 
+            if os.name != 'nt' and not prefix:
+                return
+
+            reg_paths = query_registry_entries(prefix)
+            available_installs = self.core.search_overlay_installs(prefix)
             logger.info('Found available Overlay installations in:')
             for install in available_installs:
                 logger.info(f' - {install}')
@@ -2202,6 +2198,11 @@ class LegendaryCLI:
                     print('Aborting...')
                     return
 
+            if os.name != 'nt' and not prefix:
+                logger.info('Registry entries in prefixes (if any) have not been removed. '
+                            f'This shoouldn\'t cause any issues as the overlay will simply fail to load.')
+                return
+
             logger.info('Removing registry entries...')
             remove_registry_entries(prefix)
 
@@ -2243,21 +2244,25 @@ class LegendaryCLI:
                 logger.error(f'The following exception occurred while waiting for the downloader to finish: {e!r}. '
                              f'Try restarting the process, if it continues to fail please open an issue on GitHub.')
             else:
-                logger.info('Finished downloading, setting up overlay...')
                 self.core.finish_overlay_install(igame)
 
-                # Check for existing registry entries, and remove them if necessary
-                install_path = os.path.normpath(igame.install_path)
-                reg_paths = query_registry_entries(prefix)
-                if old_path := reg_paths["overlay_path"]:
-                    if os.path.normpath(old_path) != install_path:
-                        logger.info(f'Updating overlay registry entries from "{old_path}" to "{install_path}"')
-                        remove_registry_entries(prefix)
-                    else:
-                        logger.info(f'Registry entries already exist. Done.')
-                        return
-                add_registry_entries(install_path, prefix)
-                logger.info('Done.')
+                if os.name == 'nt' or prefix:
+                    logger.info('Finished downloading, setting up overlay...')
+                    # Check for existing registry entries, and remove them if necessary
+                    install_path = os.path.normpath(igame.install_path)
+                    reg_paths = query_registry_entries(prefix)
+                    if old_path := reg_paths["overlay_path"]:
+                        if os.path.normpath(old_path) != install_path:
+                            logger.info(f'Updating overlay registry entries from "{old_path}" to "{install_path}"')
+                            remove_registry_entries(prefix)
+                        else:
+                            logger.info(f'Registry entries already exist. Done.')
+                            return
+                    add_registry_entries(install_path, prefix)
+                    logger.info('Done.')
+                else:
+                    logger.info('Overlay has been downloaded. Run "legendary eos-overlay enable -h" to see '
+                                'available options for enabling the overlay by specifying a prefix, app, or bottle.')
 
     def crossover_setup(self, args):
         if sys_platform != 'darwin':
