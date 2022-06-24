@@ -869,7 +869,13 @@ class LegendaryCLI:
                         print('Aborting...')
                         exit(0)
 
-                self.verify_game(args, print_command=False)
+                try:
+                    self.verify_game(args, print_command=False, repair_mode=True, repair_online=args.repair_and_update)
+                except ValueError:
+                    logger.error('To repair a game with a missing manifest you must run the command with '
+                                 '"--repair-and-update". However this will redownload any file that does '
+                                 'not match the current hash in its entirety.')
+                    return
             else:
                 logger.info(f'Using existing repair file: {repair_file}')
 
@@ -1136,7 +1142,7 @@ class LegendaryCLI:
         except Exception as e:
             logger.warning(f'Removing game failed: {e!r}, please remove {igame.install_path} manually.')
 
-    def verify_game(self, args, print_command=True):
+    def verify_game(self, args, print_command=True, repair_mode=False, repair_online=False):
         args.app_name = self._resolve_aliases(args.app_name)
         if not self.core.is_installed(args.app_name):
             logger.error(f'Game "{args.app_name}" is not installed')
@@ -1151,6 +1157,21 @@ class LegendaryCLI:
             return
 
         manifest_data, _ = self.core.get_installed_manifest(args.app_name)
+        if manifest_data is None:
+            if repair_mode:
+                if not repair_online:
+                    logger.critical('No manifest could be loaded, the manifest file may be missing!')
+                    raise ValueError('Local manifest is missing')
+
+                logger.warning('No manifest could be loaded, the file may be missing. Downloading the latest manifest.')
+                game = self.core.get_game(args.app_name, platform=igame.platform)
+                manifest_data, _ = self.core.get_cdn_manifest(game, igame.platform)
+            else:
+                logger.critical(f'Manifest appears to be missing! To repair, run "legendary repair '
+                                f'{args.app_name} --repair-and-update", this will however redownload all files '
+                                f'that do not match the latest manifest in their entirety.')
+                return
+
         manifest = self.core.load_manifest(manifest_data)
 
         files = sorted(manifest.file_manifest_list.elements,
