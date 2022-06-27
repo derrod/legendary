@@ -2219,20 +2219,19 @@ class LegendaryCLI:
                     print('Aborting...')
                     return
 
+            logger.info('Deleting overlay installation...')
+            self.core.remove_overlay_install()
+
             if os.name != 'nt' and not prefix:
                 logger.info('Registry entries in prefixes (if any) have not been removed. '
                             f'This shouldn\'t cause any issues as the overlay will simply fail to load.')
-                return
+            else:
+                logger.info('Removing registry entries...')
+                remove_registry_entries(prefix)
 
-            logger.info('Removing registry entries...')
-            remove_registry_entries(prefix)
-
-            if os.name != 'nt':
-                logger.info(f'Registry entries in prefixes other than "{prefix}" were not removed. '
-                            f'This shouldn\'t cause any issues as the overlay will simply fail to load.')
-
-            logger.info('Deleting overlay installation...')
-            self.core.remove_overlay_install()
+                if os.name != 'nt':
+                    logger.info(f'Registry entries in prefixes other than "{prefix}" were not removed. '
+                                f'This shouldn\'t cause any issues as the overlay will simply fail to load.')
             logger.info('Done.')
 
         elif args.action in {'install', 'update'}:
