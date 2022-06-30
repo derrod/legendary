@@ -1084,7 +1084,7 @@ class LegendaryCLI:
             logger.info(f'Finished installation process in {end_t - start_t:.02f} seconds.')
 
     def _handle_postinstall(self, postinstall, igame, skip_prereqs=False):
-        print('\nThis game lists the following prequisites to be installed:')
+        print('\nThis game lists the following prerequisites to be installed:')
         print(f'- {postinstall["name"]}: {" ".join((postinstall["path"], postinstall["args"]))}')
         print('')
 
