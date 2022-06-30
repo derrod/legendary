@@ -1029,7 +1029,7 @@ class LegendaryCLI:
 
                 postinstall = self.core.install_game(igame)
                 if postinstall:
-                    self._handle_postinstall(postinstall, igame, yes=args.yes)
+                    self._handle_postinstall(postinstall, igame, skip_prereqs=args.yes)
 
                 dlcs = self.core.get_dlc_for_game(game.app_name)
                 if dlcs and not args.skip_dlcs:
@@ -1083,13 +1083,13 @@ class LegendaryCLI:
 
             logger.info(f'Finished installation process in {end_t - start_t:.02f} seconds.')
 
-    def _handle_postinstall(self, postinstall, igame, yes=False):
+    def _handle_postinstall(self, postinstall, igame, skip_prereqs=False):
         print('\nThis game lists the following prequisites to be installed:')
         print(f'- {postinstall["name"]}: {" ".join((postinstall["path"], postinstall["args"]))}')
         print('')
 
         if os.name == 'nt':
-            if yes:
+            if skip_prereqs:
                 c = 'n'  # we don't want to launch anything, just silent install.
             else:
                 choice = input('Do you wish to install the prerequisites? ([y]es, [n]o, [i]gnore): ')
