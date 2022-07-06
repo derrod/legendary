@@ -15,7 +15,7 @@ from locale import getdefaultlocale
 from multiprocessing import Queue
 from platform import system
 from requests import session
-from requests.exceptions import HTTPError
+from requests.exceptions import HTTPError, ConnectionError
 from sys import platform as sys_platform
 from uuid import uuid4
 from urllib.parse import urlencode, parse_qsl
@@ -229,7 +229,7 @@ class LegendaryCore:
             self.log.error('Stored credentials are no longer valid! Please login again.')
             self.lgd.invalidate_userdata()
             return False
-        except HTTPError as e:
+        except (HTTPError, ConnectionError) as e:
             self.log.error(f'HTTP request for login failed: {e!r}, please try again later.')
             return False
 
