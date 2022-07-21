@@ -77,7 +77,8 @@ class LegendaryCore:
         self.local_timezone = datetime.now().astimezone().tzinfo
         self.language_code, self.country_code = ('en', 'US')
 
-        if locale := self.lgd.config.get('Legendary', 'locale', fallback=getdefaultlocale()[0]):
+        if locale := self.lgd.config.get('Legendary', 'locale',
+                                         fallback=getdefaultlocale(('LANG', 'LANGUAGE', 'LC_ALL', 'LC_CTYPE'))[0]):
             try:
                 self.language_code, self.country_code = locale.split('-' if '-' in locale else '_')
                 self.log.debug(f'Set locale to {self.language_code}-{self.country_code}')
