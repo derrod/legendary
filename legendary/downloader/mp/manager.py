@@ -79,6 +79,7 @@ class DLManager(Process):
     def run_analysis(self, manifest: Manifest, old_manifest: Manifest = None,
                      patch=True, resume=True, file_prefix_filter=None,
                      file_exclude_filter=None, file_install_tag=None,
+                     file_exclude_filelist=None,
                      processing_optimization=False) -> AnalysisResult:
         """
         Run analysis on manifest and old manifest (if not None) and return a result
@@ -166,6 +167,16 @@ class DLManager(Process):
             mc.changed -= files_to_skip
             mc.unchanged |= files_to_skip
 
+        if file_exclude_filelist:
+            file = open(file_exclude_filelist, 'r')
+            file_exclusions = set(file.read().splitlines())
+            file.close()
+
+            self.log.info(f'Found {len(file_exclusions)} files to skip')
+            mc.added -= file_exclusions
+            mc.changed -= file_exclusions
+            mc.unchanged |= file_exclusions
+
         if file_prefix_filter:
             if isinstance(file_prefix_filter, str):
                 file_prefix_filter = [file_prefix_filter]
@@ -178,7 +189,7 @@ class DLManager(Process):
             mc.changed -= files_to_skip
             mc.unchanged |= files_to_skip
 
-        if file_prefix_filter or file_exclude_filter or file_install_tag:
+        if file_prefix_filter or file_exclude_filter or file_exclude_filelist or file_install_tag:
             self.log.info(f'Remaining files after filtering: {len(mc.added) + len(mc.changed)}')
             # correct install size after filtering
             analysis_res.install_size = sum(fm.file_size for fm in manifest.file_manifest_list.elements

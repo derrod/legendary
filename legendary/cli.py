@@ -807,7 +807,7 @@ class LegendaryCLI:
             logger.error('Login failed! Cannot continue with download process.')
             exit(1)
 
-        if args.file_prefix or args.file_exclude_prefix:
+        if args.file_prefix or args.file_exclude_prefix or args.file_exclude_filelist:
             args.no_install = True
 
         if args.update_only:
@@ -937,6 +937,7 @@ class LegendaryCLI:
                                                           platform=args.platform,
                                                           file_prefix_filter=args.file_prefix,
                                                           file_exclude_filter=args.file_exclude_prefix,
+                                                          file_exclude_filelist=args.file_exclude_filelist,
                                                           file_install_tag=args.install_tag,
                                                           dl_optimizations=args.order_opt,
                                                           dl_timeout=args.dl_timeout,
@@ -2661,6 +2662,8 @@ def main():
                                 help='Only fetch files whose path starts with <prefix> (case insensitive)')
     install_parser.add_argument('--exclude', dest='file_exclude_prefix', action='append', metavar='<prefix>',
                                 type=str, help='Exclude files starting with <prefix> (case insensitive)')
+    install_parser.add_argument('--exclude-file', dest='file_exclude_filelist', action='store', metavar='<file>',
+                                type=str, help='Exclude files listed in <file> (case sensitive)')
     install_parser.add_argument('--install-tag', dest='install_tag', action='append', metavar='<tag>',
                                 type=str, help='Only download files with the specified install tag')
     install_parser.add_argument('--enable-reordering', dest='order_opt', action='store_true',
