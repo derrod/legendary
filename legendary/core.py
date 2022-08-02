@@ -852,6 +852,18 @@ class LegendaryCore:
                 wine_pfx = self.lgd.config.get('default.env', 'WINEPREFIX', fallback=None)
                 wine_pfx = self.lgd.config.get('default', 'wine_prefix', fallback=wine_pfx)
 
+            # If we still didn't find anything, try to read the prefix from the environment variables of this process
+            if not wine_pfx and sys_platform == 'darwin':
+                cx_bottle = os.getenv('CX_BOTTLE')
+                if cx_bottle and mac_is_valid_bottle(cx_bottle):
+                    wine_pfx = mac_get_bottle_path(cx_bottle)
+
+            if not wine_pfx:
+                proton_pfx = os.getenv('STEAM_COMPAT_DATA_PATH')
+                if proton_pfx:
+                    wine_pfx = f'{proton_pfx}/pfx'
+                wine_pfx = os.getenv('WINEPREFIX', wine_pfx)
+
             # if all else fails, use the WINE default
             if not wine_pfx:
                 wine_pfx = os.path.expanduser('~/.wine')
