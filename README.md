@@ -141,7 +141,7 @@ legendary auth
 When using the prebuilt Windows executables of version 0.20.14 or higher this should open a new window with the Epic Login.
 
 Otherwise, authentication is a little finicky since we have to go through the Epic website and manually copy a code.
-The login page should open in your browser and after logging in you should be presented with a JSON response that contains a code ("sid"), just copy the code into the terminal and hit enter.
+The login page should open in your browser and after logging in you should be presented with a JSON response that contains a code ("authorizationCode"), just copy the code into the terminal and hit enter.
 
 Alternatively you can use the `--import` flag to import the authentication from the Epic Games Launcher (manually specifying the used WINE prefix may be required on Linux).
 Note that this will log you out of the Epic Launcher.
@@ -269,9 +269,10 @@ optional arguments:
   -h, --help            show this help message and exit
   --import              Import Epic Games Launcher authentication data (logs
                         out of EGL)
-  --code <exchange code>
-                        Use specified exchange code instead of interactive
-                        authentication
+  --code <authorization code>
+                        Use specified authorization code instead of interactive authentication
+  --token <exchange token>
+                        Use specified exchange token instead of interactive authentication
   --sid <session id>    Use specified session id instead of interactive
                         authentication
   --delete              Remove existing authentication (log out)
