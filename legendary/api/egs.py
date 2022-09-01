@@ -1,6 +1,8 @@
 # !/usr/bin/env python
 # coding: utf-8
 
+import urllib.parse
+
 import requests
 import requests.adapters
 import logging
@@ -52,6 +54,11 @@ class EPCAPI:
             self.request_timeout = timeout
         else:
             self.request_timeout = None
+
+    def get_auth_url(self):
+        login_url = 'https://www.epicgames.com/id/login?redirectUrl='
+        redirect_url = f'https://www.epicgames.com/id/api/redirect?clientId={self._user_basic}&responseType=code'
+        return login_url + urllib.parse.quote(redirect_url)
 
     def update_egs_params(self, egs_params):
         # update user-agent
