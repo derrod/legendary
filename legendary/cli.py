@@ -165,7 +165,7 @@ class LegendaryCLI:
                     sid = sid.strip('"')
                 exchange_token = self.core.auth_sid(sid)
             else:
-                if do_webview_login(callback_sid=self.core.auth_sid, callback_code=self.core.auth_code):
+                if do_webview_login(callback_code=self.core.auth_code):
                     logger.info(f'Successfully logged in as "{self.core.lgd.userdata["displayName"]}" via WebView')
                 else:
                     logger.error('WebView login attempt failed, please see log for details.')

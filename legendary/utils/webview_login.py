@@ -70,7 +70,7 @@ class MockLauncher:
         if self.inject_js:
             self.window.evaluate_js(window_js)
 
-        if 'logout' in url:
+        if 'logout' in url and self.callback_sid:
             # prepare to close browser after logout redirect
             self.destroy_on_load = True
 
@@ -87,16 +87,17 @@ class MockLauncher:
         # skip logging out on those platforms and directly use the exchange code we're given.
         # On windows we have to do a little dance with the SID to create a session that
         # remains valid after logging out in the embedded browser.
-        if self.window.gui.renderer in ('gtkwebkit2', 'qtwebengine', 'qtwebkit'):
-            self.destroy_on_load = True
-            try:
-                self.callback_result = self.callback_code(exchange_code)
-            except Exception as e:
-                logger.error(f'Logging in via exchange-code failed with {e!r}')
-            finally:
-                # We cannot destroy the browser from here,
-                # so we'll load a small goodbye site first.
-                self.window.load_url(goodbye_url)
+        #  Update: Epic broke SID login, we'll also do this on Windows now
+        # if self.window.gui.renderer in ('gtkwebkit2', 'qtwebengine', 'qtwebkit'):
+        self.destroy_on_load = True
+        try:
+            self.callback_result = self.callback_code(exchange_code)
+        except Exception as e:
+            logger.error(f'Logging in via exchange-code failed with {e!r}')
+        finally:
+            # We cannot destroy the browser from here,
+            # so we'll load a small goodbye site first.
+            self.window.load_url(goodbye_url)
 
     def trigger_sid_exchange(self, *args, **kwargs):
         # check if code-based login hasn't already set the destroy flag
@@ -125,7 +126,8 @@ def do_webview_login(callback_sid=None, callback_code=None):
     api = MockLauncher(callback_sid=callback_sid, callback_code=callback_code)
     logger.info('Opening Epic Games login window...')
     window = webview.create_window(f'Legendary {__version__} - Epic Games Account Login',
-                                   url=login_url, width=768, height=1024, js_api=api)
+                                   url=logout_url if not callback_sid else login_url,
+                                   width=768, height=1024, js_api=api)
     api.window = window
     window.events.loaded += api.on_loaded
 
