@@ -131,7 +131,18 @@ class LegendaryCore:
 
     def auth_code(self, code) -> bool:
         """
-        Handles authentication via exchange code (either retrieved manually or automatically)
+        Handles authentication via authorization code (either retrieved manually or automatically)
+        """
+        try:
+            self.lgd.userdata = self.egs.start_session(authorization_code=code)
+            return True
+        except Exception as e:
+            self.log.error(f'Logging in failed with {e!r}, please try again.')
+            return False
+
+    def auth_ex_token(self, code) -> bool:
+        """
+        Handles authentication via exchange token (either retrieved manually or automatically)
         """
         try:
             self.lgd.userdata = self.egs.start_session(exchange_token=code)

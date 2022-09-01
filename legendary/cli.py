@@ -143,6 +143,7 @@ class LegendaryCLI:
                 exit(1)
 
         exchange_token = ''
+        auth_code = ''
         if not args.auth_code and not args.session_id:
             # only import here since pywebview import is slow
             from legendary.utils.webview_login import webview_available, do_webview_login
@@ -150,22 +151,18 @@ class LegendaryCLI:
             if not webview_available or args.no_webview or self.core.webview_killswitch:
                 # unfortunately the captcha stuff makes a complete CLI login flow kinda impossible right now...
                 print('Please login via the epic web login!')
-                webbrowser.open(
-                    'https://www.epicgames.com/id/login?redirectUrl='
-                    'https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect'
-                )
-                print('If the web page did not open automatically, please manually open the following URL: '
-                      'https://www.epicgames.com/id/login?redirectUrl=https://www.epicgames.com/id/api/redirect')
-                sid = input('Please enter the "sid" value from the JSON response: ')
-                sid = sid.strip()
-                if sid[0] == '{':
-                    tmp = json.loads(sid)
-                    sid = tmp['sid']
+                url = 'https://legendary.gl/epiclogin'
+                webbrowser.open(url)
+                print(f'If the web page did not open automatically, please manually open the following URL: {url}')
+                auth_code = input('Please enter the "authorizationCode" value from the JSON response: ')
+                auth_code = auth_code.strip()
+                if auth_code[0] == '{':
+                    tmp = json.loads(auth_code)
+                    auth_code = tmp['authorizationCode']
                 else:
-                    sid = sid.strip('"')
-                exchange_token = self.core.auth_sid(sid)
+                    auth_code = auth_code.strip('"')
             else:
-                if do_webview_login(callback_code=self.core.auth_code):
+                if do_webview_login(callback_code=self.core.auth_ex_token):
                     logger.info(f'Successfully logged in as "{self.core.lgd.userdata["displayName"]}" via WebView')
                 else:
                     logger.error('WebView login attempt failed, please see log for details.')
@@ -173,13 +170,17 @@ class LegendaryCLI:
         elif args.session_id:
             exchange_token = self.core.auth_sid(args.session_id)
         elif args.auth_code:
-            exchange_token = args.auth_code
+            auth_code = args.auth_code
+        elif args.ex_token:
+            exchange_token = args.ex_token
 
-        if not exchange_token:
-            logger.fatal('No exchange token, cannot login.')
+        if not exchange_token and not auth_code:
+            logger.fatal('No exchange token/authorization code, cannot login.')
             return
 
-        if self.core.auth_code(exchange_token):
+        if exchange_token and self.core.auth_ex_token(exchange_token):
+            logger.info(f'Successfully logged in as "{self.core.lgd.userdata["displayName"]}"')
+        elif auth_code and self.core.auth_code(auth_code):
             logger.info(f'Successfully logged in as "{self.core.lgd.userdata["displayName"]}"')
         else:
             logger.error('Login attempt failed, please see log for details.')
@@ -2620,8 +2621,10 @@ def main():
     # Flags
     auth_parser.add_argument('--import', dest='import_egs_auth', action='store_true',
                              help='Import Epic Games Launcher authentication data (logs out of EGL)')
-    auth_parser.add_argument('--code', dest='auth_code', action='store', metavar='<exchange code>',
-                             help='Use specified exchange code instead of interactive authentication')
+    auth_parser.add_argument('--code', dest='auth_code', action='store', metavar='<authorization code>',
+                             help='Use specified authorization code instead of interactive authentication')
+    auth_parser.add_argument('--token', dest='ex_token', action='store', metavar='<exchange token>',
+                             help='Use specified exchange token instead of interactive authentication')
     auth_parser.add_argument('--sid', dest='session_id', action='store', metavar='<session id>',
                              help='Use specified session id instead of interactive authentication')
     auth_parser.add_argument('--delete', dest='auth_delete', action='store_true',
