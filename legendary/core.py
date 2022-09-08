@@ -18,7 +18,7 @@ from requests import session
 from requests.exceptions import HTTPError, ConnectionError
 from sys import platform as sys_platform
 from uuid import uuid4
-from urllib.parse import urlencode, parse_qsl
+from urllib.parse import urlencode, parse_qsl, urlparse
 
 from legendary import __version__
 from legendary.api.egs import EPCAPI
@@ -1212,19 +1212,28 @@ class LegendaryCore:
 
     def get_cdn_manifest(self, game, platform='Windows', disable_https=False):
         manifest_urls, base_urls, manifest_hash = self.get_cdn_urls(game, platform)
+        if not manifest_urls:
+            raise ValueError('No manifest URLs returned by API')
 
         if disable_https:
             manifest_urls = [url.replace('https://', 'http://') for url in manifest_urls]
 
-        self.log.debug(f'Downloading manifest from {manifest_urls[0]} ...')
-        r = self.egs.unauth_session.get(manifest_urls[0])
-        r.raise_for_status()
-        manifest_bytes = r.content
+        for url in manifest_urls:
+            self.log.debug(f'Trying to download manifest from "{url}"...')
+            r = self.egs.unauth_session.get(url)
+            if r.status_code == 200:
+                manifest_bytes = r.content
+                break
+            else:
+                self.log.warning(f'Unable to download manifest from "{urlparse(url).netloc}" '
+                                 f'(status: {r.status_code}), trying next URL...')
+        else:
+            raise ValueError(f'Unable to get manifest from any CDN URL, last result: {r.status_code} ({r.reason})')
 
         if sha1(manifest_bytes).hexdigest() != manifest_hash:
             raise ValueError('Manifest sha hash mismatch!')
 
-        return r.content, base_urls
+        return manifest_bytes, base_urls
 
     def get_uri_manifest(self, uri):
         if uri.startswith('http'):
