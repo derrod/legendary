@@ -15,7 +15,8 @@ from legendary.models.gql import *
 
 class EPCAPI:
     _user_agent = 'UELauncher/11.0.1-14907503+++Portal+Release-Live Windows/10.0.19041.1.256.64bit'
-    _store_user_agent = 'EpicGamesLauncher/11.0.1-14907503+++Portal+Release-Live'
+    # ToDo figure out why updating this past 14.0.8 causes a CF captcha page :/
+    _store_user_agent = 'EpicGamesLauncher/14.0.8-22004686+++Portal+Release-Live'
     # required for the oauth request
     _user_basic = '34a02cf8f4414e29b15921876da36f9a'
     _pw_basic = 'daafbccc737745039dffe53d94fc76cf'
@@ -64,7 +65,7 @@ class EPCAPI:
         # update user-agent
         if version := egs_params['version']:
             self._user_agent = f'UELauncher/{version} Windows/10.0.19041.1.256.64bit'
-            self._store_user_agent = f'EpicGamesLauncher/{version}'
+            # self._store_user_agent = f'EpicGamesLauncher/{version}'
             self.session.headers['User-Agent'] = self._user_agent
             self.unauth_session.headers['User-Agent'] = self._user_agent
         # update label
