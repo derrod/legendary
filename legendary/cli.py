@@ -1206,7 +1206,7 @@ class LegendaryCLI:
             percentage = (processed / total_size) * 100.0
             num += 1
 
-            if (delta := ((current_time := time.time()) - last_update)) > 1 or (not last_processed and delta > 1):
+            if (delta := ((current_time := time.time()) - last_update)) > 1:
                 last_update = current_time
                 speed = (processed - last_processed) / 1024 / 1024 / delta
                 last_processed = processed
