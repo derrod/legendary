@@ -57,7 +57,13 @@ jobs:
         path: legendary/dist/*
 
   deb:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ['ubuntu-20.04', 'ubuntu-22.04']
+      fail-fast: false
+      max-parallel: 2
+
     steps:
     - uses: actions/checkout@v2
 
@@ -69,6 +75,10 @@ jobs:
         python3-requests
         python3-setuptools
         python3-wheel
+
+    - name: Webview Dependencies
+      if: matrix.os == 'ubuntu-22.04'
+      run: sudo apt install 
         python3-webview
         python3-gi
         python3-gi-cairo
