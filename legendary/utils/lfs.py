@@ -7,7 +7,7 @@ import logging
 
 from pathlib import Path
 from sys import stdout
-from time import time
+from time import perf_counter
 from typing import List, Iterator
 
 from legendary.models.game import VerifyResult
@@ -115,7 +115,7 @@ def validate_files(base_path: str, filelist: List[tuple], hash_type='sha1',
                 stdout.write('\n')
                 show_progress = True
                 interval = (_size / (1024 * 1024)) // 100
-                start_time = time()
+                start_time = perf_counter()
 
             with open(full_path, 'rb') as f:
                 real_file_hash = hashlib.new(hash_type)
@@ -125,7 +125,7 @@ def validate_files(base_path: str, filelist: List[tuple], hash_type='sha1',
                     if show_progress and i % interval == 0:
                         pos = f.tell()
                         perc = (pos / _size) * 100
-                        speed = pos / 1024 / 1024 / (time() - start_time)
+                        speed = pos / 1024 / 1024 / (perf_counter() - start_time)
                         stdout.write(f'\r=> Verifying large file "{file_path}": {perc:.0f}% '
                                      f'({pos / 1024 / 1024:.1f}/{_size / 1024 / 1024:.1f} MiB) '
                                      f'[{speed:.1f} MiB/s]\t')
