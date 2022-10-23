@@ -469,7 +469,7 @@ class LegendaryCore:
                 fetch_game_meta((app_name, _ga.namespace, _ga.catalog_item_id))
                 game = games[app_name]
 
-            if game.is_dlc:
+            if game.is_dlc and platform in app_assets:
                 _dlc[game.metadata['mainGameItem']['id']].append(game)
             elif not any(i['path'] == 'mods' for i in game.metadata.get('categories', [])) and platform in app_assets:
                 _ret.append(game)
