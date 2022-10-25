@@ -8,11 +8,12 @@ from collections import defaultdict
 from pathlib import Path
 from time import time
 
+from .utils import clean_filename
+
 from legendary.models.game import *
 from legendary.utils.aliasing import generate_aliases
-from legendary.utils.config import LGDConf
+from legendary.models.config import LGDConf
 from legendary.utils.env import is_windows_mac_or_pyi
-from legendary.utils.lfs import clean_filename
 
 
 class LGDLFS:

@@ -22,13 +22,13 @@ from legendary.core import LegendaryCore
 from legendary.models.exceptions import InvalidCredentialsError
 from legendary.models.game import SaveGameStatus, VerifyResult, Game
 from legendary.utils.cli import get_boolean_choice, get_int_choice, sdl_prompt, strtobool
-from legendary.utils.crossover import *
+from legendary.lfs.crossover import *
 from legendary.utils.custom_parser import HiddenAliasSubparsersAction
 from legendary.utils.env import is_windows_mac_or_pyi
-from legendary.utils.eos import add_registry_entries, query_registry_entries, remove_registry_entries
-from legendary.utils.lfs import validate_files, clean_filename
+from legendary.lfs.eos import add_registry_entries, query_registry_entries, remove_registry_entries
+from legendary.lfs.utils import validate_files, clean_filename
 from legendary.utils.selective_dl import get_sdl_appname
-from legendary.utils.wine_helpers import read_registry, get_shell_folders
+from legendary.lfs.wine_helpers import read_registry, get_shell_folders
 
 # todo custom formatter for cli logger (clean info, highlighted error/warning)
 logging.basicConfig(
@@ -2927,7 +2927,7 @@ def main():
                 print(f'\nCommand: {choice}')
                 print(subparser.format_help())
         elif os.name == 'nt':
-            from legendary.utils.windows_helpers import double_clicked
+            from legendary.lfs.windows_helpers import double_clicked
             if double_clicked():
                 print('Please note that this is not the intended way to run Legendary.')
                 print('Follow https://github.com/derrod/legendary/wiki/Setup-Instructions to set it up properly')

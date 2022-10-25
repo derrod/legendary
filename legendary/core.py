@@ -1,8 +1,6 @@
 # coding: utf-8
 
 import json
-import logging
-import os
 import shlex
 import shutil
 
@@ -26,7 +24,7 @@ from legendary.api.lgd import LGDAPI
 from legendary.downloader.mp.manager import DLManager
 from legendary.lfs.egl import EPCLFS
 from legendary.lfs.lgndry import LGDLFS
-from legendary.utils.lfs import clean_filename, delete_folder, delete_filelist, get_dir_size
+from legendary.lfs.utils import clean_filename, delete_folder, delete_filelist, get_dir_size
 from legendary.models.downloading import AnalysisResult, ConditionCheckResult
 from legendary.models.egl import EGLManifest
 from legendary.models.exceptions import *
@@ -34,15 +32,15 @@ from legendary.models.game import *
 from legendary.models.json_manifest import JSONManifest
 from legendary.models.manifest import Manifest, ManifestMeta
 from legendary.models.chunk import Chunk
-from legendary.utils.crossover import *
+from legendary.lfs.crossover import *
 from legendary.utils.egl_crypt import decrypt_epic_data
 from legendary.utils.env import is_windows_mac_or_pyi
-from legendary.utils.eos import EOSOverlayApp, query_registry_entries
+from legendary.lfs.eos import EOSOverlayApp, query_registry_entries
 from legendary.utils.game_workarounds import is_opt_enabled, update_workarounds, get_exe_override
 from legendary.utils.savegame_helper import SaveGameHelper
 from legendary.utils.selective_dl import games as sdl_games
 from legendary.utils.manifests import combine_manifests
-from legendary.utils.wine_helpers import read_registry, get_shell_folders, case_insensitive_path_search
+from legendary.lfs.wine_helpers import read_registry, get_shell_folders, case_insensitive_path_search
 
 
 # ToDo: instead of true/false return values for success/failure actually raise an exception that the CLI/GUI

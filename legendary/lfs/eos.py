@@ -4,7 +4,7 @@ import logging
 from legendary.models.game import Game
 
 if os.name == 'nt':
-    from legendary.utils.windows_helpers import *
+    from legendary.lfs.windows_helpers import *
 
 logger = logging.getLogger('EOSUtils')
 # Dummy Game objects to use with Core methods that expect them
