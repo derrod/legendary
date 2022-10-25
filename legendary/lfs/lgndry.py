@@ -90,7 +90,7 @@ class LGDLFS:
         except Exception as e:
             self.log.error(f'Unable to read configuration file, please ensure that file is valid! '
                            f'(Error: {repr(e)})')
-            self.log.warning(f'Continuing with blank config in safe-mode...')
+            self.log.warning('Continuing with blank config in safe-mode...')
             self.config.read_only = True
 
         # make sure "Legendary" section exists
@@ -221,8 +221,7 @@ class LGDLFS:
             f.write(manifest_data)
 
     def get_game_meta(self, app_name):
-        _meta = self._game_metadata.get(app_name, None)
-        if _meta:
+        if _meta := self._game_metadata.get(app_name, None):
             return Game.from_json(_meta)
         return None
 
@@ -233,13 +232,13 @@ class LGDLFS:
         json.dump(json_meta, open(meta_file, 'w'), indent=2, sort_keys=True)
 
     def delete_game_meta(self, app_name):
-        if app_name in self._game_metadata:
-            del self._game_metadata[app_name]
-            meta_file = os.path.join(self.path, 'metadata', f'{app_name}.json')
-            if os.path.exists(meta_file):
-                os.remove(meta_file)
-        else:
+        if app_name not in self._game_metadata:
             raise ValueError(f'Game {app_name} does not exist in metadata DB!')
+
+        del self._game_metadata[app_name]
+        meta_file = os.path.join(self.path, 'metadata', f'{app_name}.json')
+        if os.path.exists(meta_file):
+            os.remove(meta_file)
 
     def get_game_app_names(self):
         return sorted(self._game_metadata.keys())
@@ -264,9 +263,16 @@ class LGDLFS:
                     self.log.warning(f'Failed to delete file "{f}": {e!r}')
 
     def clean_manifests(self, in_use):
-        in_use_files = set(f'{clean_filename(f"{app_name}_{version}")}.manifest' for app_name, version, _ in in_use)
-        in_use_files |= set(f'{clean_filename(f"{app_name}_{platform}_{version}")}.manifest'
-                            for app_name, version, platform in in_use)
+        in_use_files = {
+            f'{clean_filename(f"{app_name}_{version}")}.manifest'
+            for app_name, version, _ in in_use
+        }
+
+        in_use_files |= {
+            f'{clean_filename(f"{app_name}_{platform}_{version}")}.manifest'
+            for app_name, version, platform in in_use
+        }
+
         for f in os.listdir(os.path.join(self.path, 'manifests')):
             if f not in in_use_files:
                 try:
@@ -282,8 +288,7 @@ class LGDLFS:
                 self.log.debug(f'Failed to load installed game data: {e!r}')
                 return None
 
-        game_json = self._installed.get(app_name, None)
-        if game_json:
+        if game_json := self._installed.get(app_name, None):
             return InstalledGame.from_json(game_json)
         return None
 
@@ -392,7 +397,7 @@ class LGDLFS:
     def get_overlay_install_info(self):
         if not self._overlay_install_info:
             try:
-                data = json.load(open(os.path.join(self.path, f'overlay_install.json')))
+                data = json.load(open(os.path.join(self.path, 'overlay_install.json')))
                 self._overlay_install_info = InstalledGame.from_json(data)
             except Exception as e:
                 self.log.debug(f'Failed to load overlay install data: {e!r}')
@@ -440,9 +445,7 @@ class LGDLFS:
 
         def serialise_sets(obj):
             """Turn sets into sorted lists for storage"""
-            if isinstance(obj, set):
-                return sorted(obj)
-            return obj
+            return sorted(obj) if isinstance(obj, set) else obj
 
         json.dump(alias_map, open(os.path.join(self.path, 'aliases.json'), 'w', newline='\n'),
                   indent=2, sort_keys=True, default=serialise_sets)

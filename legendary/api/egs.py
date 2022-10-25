@@ -51,10 +51,7 @@ class EPCAPI:
         self.language_code = lc
         self.country_code = cc
 
-        if timeout > 0:
-            self.request_timeout = timeout
-        else:
-            self.request_timeout = None
+        self.request_timeout = timeout if timeout > 0 else None
 
     def get_auth_url(self):
         login_url = 'https://www.epicgames.com/id/login?redirectUrl='
@@ -236,10 +233,8 @@ class EPCAPI:
         return records
 
     def get_user_cloud_saves(self, app_name='', manifests=False, filenames=None):
-        if app_name and manifests:
-            app_name += '/manifests/'
-        elif app_name:
-            app_name += '/'
+        if app_name:
+            app_name += '/manifests/' if manifests else '/'
 
         user_id = self.user.get('account_id')
 

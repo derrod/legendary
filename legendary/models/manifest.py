@@ -92,8 +92,7 @@ class Manifest:
         _m.file_manifest_list = FML.read(_tmp)
         _m.custom_fields = CustomFields.read(_tmp)
 
-        unhandled_data = _tmp.read()
-        if unhandled_data:
+        if unhandled_data := _tmp.read():
             logger.warning(f'Did not read {len(unhandled_data)} remaining bytes in manifest! '
                            f'This may not be a problem.')
 
@@ -152,10 +151,7 @@ class Manifest:
             self.data = zlib.compress(self.data)
             self.size_compressed = len(self.data)
 
-        if not fp:
-            bio = BytesIO()
-        else:
-            bio = fp
+        bio = fp or BytesIO()
 
         bio.write(struct.pack('<I', self.header_magic))
         bio.write(struct.pack('<I', self.header_size))
@@ -166,10 +162,7 @@ class Manifest:
         bio.write(struct.pack('<I', self.serialisation_version))
         bio.write(self.data)
 
-        if not fp:
-            return bio.getvalue()
-        else:
-            return bio.tell()
+        return bio.tell() if fp else bio.getvalue()
 
 
 class ManifestMeta:
@@ -226,7 +219,7 @@ class ManifestMeta:
 
         # This is a list though I've never seen more than one entry
         entries = struct.unpack('<I', bio.read(4))[0]
-        for i in range(entries):
+        for _ in range(entries):
             _meta.prereq_ids.append(read_fstring(bio))
 
         _meta.prereq_name = read_fstring(bio)
@@ -348,7 +341,7 @@ class CDL:
 
         # the way this data is stored is rather odd, maybe there's a nicer way to write this...
 
-        for i in range(_cdl.count):
+        for _ in range(_cdl.count):
             _cdl.elements.append(ChunkInfo(manifest_version=manifest_version))
 
         # guid, doesn't seem to be a standard like UUID but is fairly straightfoward, 4 bytes, 128 bit.
@@ -495,7 +488,7 @@ class FML:
         _fml.version = struct.unpack('B', bio.read(1))[0]
         _fml.count = struct.unpack('<I', bio.read(4))[0]
 
-        for i in range(_fml.count):
+        for _ in range(_fml.count):
             _fml.elements.append(FileManifest())
 
         for fm in _fml.elements:
@@ -516,14 +509,14 @@ class FML:
         # install tags, no idea what they do, I've only seen them in the Fortnite manifest
         for fm in _fml.elements:
             _elem = struct.unpack('<I', bio.read(4))[0]
-            for i in range(_elem):
+            for _ in range(_elem):
                 fm.install_tags.append(read_fstring(bio))
 
         # Each file is made up of "Chunk Parts" that can be spread across the "chunk stream"
         for fm in _fml.elements:
             _elem = struct.unpack('<I', bio.read(4))[0]
             _offset = 0
-            for i in range(_elem):
+            for _ in range(_elem):
                 chunkp = ChunkPart()
                 _start = bio.tell()
                 _size = struct.unpack('<I', bio.read(4))[0]
@@ -709,15 +702,8 @@ class CustomFields:
         _cf.version = struct.unpack('B', bio.read(1))[0]
         _cf.count = struct.unpack('<I', bio.read(4))[0]
 
-        _keys = []
-        _values = []
-
-        for i in range(_cf.count):
-            _keys.append(read_fstring(bio))
-
-        for i in range(_cf.count):
-            _values.append(read_fstring(bio))
-
+        _keys = [read_fstring(bio) for _ in range(_cf.count)]
+        _values = [read_fstring(bio) for _ in range(_cf.count)]
         _cf._dict = dict(zip(_keys, _values))
 
         if (size_read := bio.tell() - cf_start) != _cf.size:
@@ -766,8 +752,7 @@ class ManifestComparison:
         old_files = {fm.filename: fm.hash for fm in old_manifest.file_manifest_list.elements}
 
         for fm in manifest.file_manifest_list.elements:
-            old_file_hash = old_files.pop(fm.filename, None)
-            if old_file_hash:
+            if old_file_hash := old_files.pop(fm.filename, None):
                 if fm.hash == old_file_hash:
                     comp.unchanged.add(fm.filename)
                 else:

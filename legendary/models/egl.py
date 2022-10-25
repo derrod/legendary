@@ -145,9 +145,9 @@ class EGLManifest:
         tmp.executable = igame.executable
         tmp.main_game_appname = game.app_name  # todo for DLC support this needs to be the base game
         tmp.app_folder_name = game.metadata.get('customAttributes', {}).get('FolderName', {}).get('value', '')
-        tmp.manifest_location = igame.install_path + '/.egstore'
+        tmp.manifest_location = f'{igame.install_path}/.egstore'
         tmp.ownership_token = igame.requires_ot
-        tmp.staging_location = igame.install_path + '/.egstore/bps'
+        tmp.staging_location = f'{igame.install_path}/.egstore/bps'
         tmp.can_run_offline = igame.can_run_offline
         tmp.is_incomplete_install = False
         tmp.needs_validation = igame.needs_verification

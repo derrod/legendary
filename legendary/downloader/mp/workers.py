@@ -51,12 +51,12 @@ class DLWorker(Process):
                 empty = False
             except Empty:
                 if not empty:
-                    logger.debug(f'Queue Empty, waiting for more...')
+                    logger.debug('Queue Empty, waiting for more...')
                 empty = True
                 continue
 
             if isinstance(job, TerminateWorkerTask):  # let worker die
-                logger.debug(f'Worker received termination signal, shutting down...')
+                logger.debug('Worker received termination signal, shutting down...')
                 break
 
             tries = 0
@@ -99,7 +99,7 @@ class DLWorker(Process):
                 break
 
             if not chunk:
-                logger.warning(f'Chunk somehow None?')
+                logger.warning('Chunk somehow None?')
                 self.o_q.put(DownloaderTaskResult(success=False, **job.__dict__))
                 continue
 
@@ -107,7 +107,7 @@ class DLWorker(Process):
             try:
                 size = len(chunk.data)
                 if size > job.shm.size:
-                    logger.fatal(f'Downloaded chunk is longer than SharedMemorySegment!')
+                    logger.fatal('Downloaded chunk is longer than SharedMemorySegment!')
 
                 self.shm.buf[job.shm.offset:job.shm.offset + size] = bytes(chunk.data)
                 del chunk
@@ -130,7 +130,7 @@ class FileWorker(Process):
         self.q = queue
         self.o_q = out_queue
         self.base_path = base_path
-        self.cache_path = cache_path if cache_path else os.path.join(base_path, '.cache')
+        self.cache_path = cache_path or os.path.join(base_path, '.cache')
         self.shm = SharedMemory(name=shm)
         self.log_level = logging.getLogger().level
         self.logging_queue = logging_queue
@@ -143,7 +143,7 @@ class FileWorker(Process):
 
         logger = logging.getLogger(self.name)
         logger.setLevel(self.log_level)
-        logger.debug(f'Download worker reporting for duty!')
+        logger.debug('Download worker reporting for duty!')
 
         last_filename = ''
         current_file = None
@@ -159,7 +159,7 @@ class FileWorker(Process):
                 if isinstance(j, TerminateWorkerTask):
                     if current_file:
                         current_file.close()
-                    logger.debug(f'Worker received termination signal, shutting down...')
+                    logger.debug('Worker received termination signal, shutting down...')
                     # send termination task to results halnder as well
                     self.o_q.put(TerminateWorkerTask())
                     break

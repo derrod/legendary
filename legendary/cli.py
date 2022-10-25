@@ -247,7 +247,7 @@ class LegendaryCLI:
                 elif _store:
                     print(f'  ! This game has to be installed through a third-party store ({_store}, not supported)')
                 else:
-                    print(f'  ! No version information (unknown cause)')
+                    print('  ! No version information (unknown cause)')
             # Games that have assets, but only require a one-time activation before they can be independently installed
             # via a third-party platform (e.g. Uplay)
             if game.partner_link_type:
@@ -380,15 +380,16 @@ class LegendaryCLI:
             writer.writerow(['path', 'hash', 'size', 'install_tags'])
             writer.writerows((fm.filename, fm.hash.hex(), fm.file_size, '|'.join(fm.install_tags)) for fm in files)
         elif args.json:
-            _files = []
-            for fm in files:
-                _files.append(dict(
+            _files = [
+                dict(
                     filename=fm.filename,
                     sha_hash=fm.hash.hex(),
                     install_tags=fm.install_tags,
                     file_size=fm.file_size,
-                    flags=fm.flags,
-                ))
+                    flags=fm.flags
+                )
+                for fm in files
+            ]
             return self._print_json(_files, args.pretty_json)
         else:
             install_tags = set()
@@ -430,7 +431,7 @@ class LegendaryCLI:
         if not self.core.login():
             logger.error('Login failed! Cannot continue with download process.')
             exit(1)
-        logger.info(f'Cleaning saves...')
+        logger.info('Cleaning saves...')
         self.core.clean_saves(self._resolve_aliases(args.app_name), args.delete_incomplete)
 
     def sync_saves(self, args):
@@ -449,10 +450,9 @@ class LegendaryCLI:
 
         # check available saves
         saves = self.core.get_save_games()
-        latest_save = dict()
-
-        for save in sorted(saves, key=lambda a: a.datetime):
-            latest_save[save.app_name] = save
+        latest_save = {
+            save.app_name: save for save in sorted(saves, key=lambda a: a.datetime)
+        }
 
         logger.info(f'Got {len(latest_save)} remote save game(s)')
 
@@ -475,7 +475,7 @@ class LegendaryCLI:
             # if there is no saved save path, try to get one
             if not igame.save_path:
                 if args.yes:
-                    logger.info(f'Save path for this title has not been set, skipping due to --yes')
+                    logger.info('Save path for this title has not been set, skipping due to --yes')
                     continue
 
                 save_path = self.core.get_save_path(igame.app_name, platform=igame.platform)

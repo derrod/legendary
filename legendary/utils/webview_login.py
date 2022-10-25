@@ -22,7 +22,7 @@ except Exception as e:
 
 login_url = 'https://www.epicgames.com/id/login'
 sid_url = 'https://www.epicgames.com/id/api/redirect?'
-logout_url = 'https://www.epicgames.com/id/logout?productName=epic-games&redirectUrl=' + login_url
+logout_url = f'https://www.epicgames.com/id/logout?productName=epic-games&redirectUrl={login_url}'
 goodbye_url = 'https://legendary.gl/goodbye'
 window_js = '''
 window.ue = {
@@ -102,7 +102,7 @@ class MockLauncher:
     def trigger_sid_exchange(self, *args, **kwargs):
         # check if code-based login hasn't already set the destroy flag
         if not self.destroy_on_load:
-            logger.debug(f'Injecting SID JS')
+            logger.debug('Injecting SID JS')
             # inject JS to get SID API response and call our API
             self.window.evaluate_js(get_sid_js)
 
@@ -139,6 +139,6 @@ def do_webview_login(callback_sid=None, callback_code=None):
         return None
 
     if api.callback_result is None:
-        logger.error(f'Login aborted by user.')
+        logger.error('Login aborted by user.')
 
     return api.callback_result

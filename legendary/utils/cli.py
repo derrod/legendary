@@ -1,8 +1,5 @@
 def get_boolean_choice(prompt, default=True):
-    if default:
-        yn = 'Y/n'
-    else:
-        yn = 'y/N'
+    yn = 'Y/n' if default else 'y/N'
 
     choice = input(f'{prompt} [{yn}]: ')
     if not choice:
@@ -21,10 +18,10 @@ def get_int_choice(prompt, default=None, min_choice=None, max_choice=None, retur
 
     while True:
         try:
-            inp = input(prompt)
-            if not inp:
+            if inp := input(prompt):
+                choice = int(inp)
+            else:
                 return default
-            choice = int(inp)
         except ValueError:
             if return_on_invalid:
                 return None
@@ -61,7 +58,7 @@ def sdl_prompt(sdl_data, title):
     examples = ', '.join([g for g in sdl_data.keys() if g != '__required'][:2])
     print(f'Please enter tags of pack(s) to install (space/comma-separated, e.g. "{examples}")')
     print('Leave blank to use defaults (only required data will be downloaded).')
-    choices = input(f'Additional packs [Enter to confirm]: ')
+    choices = input('Additional packs [Enter to confirm]: ')
     if not choices:
         return tags
 

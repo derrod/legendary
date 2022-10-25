@@ -5,7 +5,7 @@ class HiddenAliasSubparsersAction(argparse._SubParsersAction):
     def add_parser(self, name, **kwargs):
         # set prog from the existing prefix
         if kwargs.get('prog') is None:
-            kwargs['prog'] = '%s %s' % (self._prog_prefix, name)
+            kwargs['prog'] = f'{self._prog_prefix} {name}'
 
         aliases = kwargs.pop('aliases', ())
         hide_aliases = kwargs.pop('hide_aliases', False)

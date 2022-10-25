@@ -40,7 +40,7 @@ def delete_filelist(path: str, filenames: List[str],
         _dir, _fn = os.path.split(filename)
         if _dir:
             dirs.add(_dir)
-        
+
         try:
             os.remove(os.path.join(path, _dir, _fn))
         except Exception as e:
@@ -66,14 +66,14 @@ def delete_filelist(path: str, filenames: List[str],
             if not silent:
                 logger.error(f'Failed removing directory "{_dir}" with {e!r}')
             no_error = False
-    
+
     if delete_root_directory:
         try:
             os.rmdir(path)
         except Exception as e:
             if not silent:
                 logger.error(f'Removing game directory failed with {e!r}')
-    
+
     return no_error
 
 
