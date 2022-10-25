@@ -1,5 +1,7 @@
 # coding: utf-8
 
+from __future__ import annotations
+
 import hashlib
 import logging
 import struct
@@ -163,6 +165,43 @@ class Manifest:
         bio.write(self.data)
 
         return bio.tell() if fp else bio.getvalue()
+
+    def apply_delta_manifest(self, delta_manifest: Manifest):
+        added = set()
+        # overwrite file elements with the ones from the delta manifest
+        for idx, file_elem in enumerate(self.file_manifest_list.elements):
+            try:
+                delta_file = delta_manifest.file_manifest_list.get_file_by_path(file_elem.filename)
+                self.file_manifest_list.elements[idx] = delta_file
+                added.add(delta_file.filename)
+            except ValueError:
+                pass
+
+        # add other files that may be missing
+        for delta_file in delta_manifest.file_manifest_list.elements:
+            if delta_file.filename not in added:
+                self.file_manifest_list.elements.append(delta_file)
+        # update count and clear map
+        self.file_manifest_list.count = len(self.file_manifest_list.elements)
+        self.file_manifest_list._path_map = None
+
+        # ensure guid map exists (0 will most likely yield no result, so ignore ValueError)
+        try:
+            self.chunk_data_list.get_chunk_by_guid(0)
+        except ValueError:
+            pass
+
+        # add new chunks from delta manifest to main manifest and again clear maps and update count
+        existing_chunk_guids = self.chunk_data_list._guid_int_map.keys()
+
+        for chunk in delta_manifest.chunk_data_list.elements:
+            if chunk.guid_num not in existing_chunk_guids:
+                self.chunk_data_list.elements.append(chunk)
+
+        self.chunk_data_list.count = len(self.chunk_data_list.elements)
+        self.chunk_data_list._guid_map = None
+        self.chunk_data_list._guid_int_map = None
+        self.chunk_data_list._path_map = None
 
 
 class ManifestMeta:

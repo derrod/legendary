@@ -39,7 +39,6 @@ from legendary.lfs.eos import EOSOverlayApp, query_registry_entries
 from legendary.utils.game_workarounds import is_opt_enabled, update_workarounds, get_exe_override
 from legendary.utils.savegame_helper import SaveGameHelper
 from legendary.utils.selective_dl import games as sdl_games
-from legendary.utils.manifests import combine_manifests
 from legendary.lfs.wine_helpers import read_registry, get_shell_folders, case_insensitive_path_search
 
 
@@ -1325,7 +1324,7 @@ class LegendaryCore:
                 self.log.info(f'Using optimized delta manifest to upgrade from build '
                               f'"{old_manifest.meta.build_id}" to '
                               f'"{new_manifest.meta.build_id}"...')
-                combine_manifests(new_manifest, delta_manifest)
+                new_manifest.apply_delta_manifest(delta_manifest)
             else:
                 self.log.debug(f'No Delta manifest received from CDN.')
 
