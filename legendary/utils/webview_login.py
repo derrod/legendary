@@ -73,6 +73,8 @@ class MockLauncher:
         if 'logout' in url and self.callback_sid:
             # prepare to close browser after logout redirect
             self.destroy_on_load = True
+        elif 'logout' in url:
+            self.inject_js = True
 
     def nop(self, *args, **kwargs):
         return
@@ -124,10 +126,19 @@ class MockLauncher:
 
 def do_webview_login(callback_sid=None, callback_code=None):
     api = MockLauncher(callback_sid=callback_sid, callback_code=callback_code)
+    url = login_url
+
+    if os.name == 'nt':
+        # On Windows we open the logout URL first to invalidate the current cookies (if any).
+        # Additionally, we have to disable JS injection for the first load, as otherwise the user
+        # will get an error for some reason.
+        url = logout_url
+        api.inject_js = False
+
     logger.info('Opening Epic Games login window...')
+    # Open logout URL first to remove existing cookies, then redirect to login.
     window = webview.create_window(f'Legendary {__version__} - Epic Games Account Login',
-                                   url=logout_url if not callback_sid else login_url,
-                                   width=768, height=1024, js_api=api)
+                                   url=url, width=768, height=1024, js_api=api)
     api.window = window
     window.events.loaded += api.on_loaded
 
