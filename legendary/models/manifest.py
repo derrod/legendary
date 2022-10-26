@@ -221,6 +221,8 @@ class ManifestMeta:
         self.prereq_name = ''
         self.prereq_path = ''
         self.prereq_args = ''
+        self.uninstall_action_path = ''
+        self.uninstall_action_args = ''
         # this build id is used for something called "delta file" which I guess I'll have to implement eventually
         self._build_id = ''
 
@@ -265,9 +267,13 @@ class ManifestMeta:
         _meta.prereq_path = read_fstring(bio)
         _meta.prereq_args = read_fstring(bio)
 
-        # apparently there's a newer version that actually stores *a* build id.
-        if _meta.data_version > 0:
+        # Manifest version 18 with data version >= 1 stores build ID
+        if _meta.data_version >= 1:
             _meta._build_id = read_fstring(bio)
+        # Manifest version 21 with data version >= 2 stores uninstall commands
+        if _meta.data_version >= 2:
+            _meta.uninstall_action_path = read_fstring(bio)
+            _meta.uninstall_action_args = read_fstring(bio)
 
         if (size_read := bio.tell()) != _meta.meta_size:
             logger.warning(f'Did not read entire manifest metadata! Version: {_meta.data_version}, '
@@ -569,7 +575,7 @@ class FML:
                     logger.warning(f'Did not read {diff} bytes from chunk part!')
                     bio.seek(diff)
 
-        # MD5 hash + MIME type
+        # MD5 hash + MIME type (Manifest feature level 19)
         if _fml.version >= 1:
             for fm in _fml.elements:
                 _has_md5 = struct.unpack('<I', bio.read(4))[0]
@@ -579,7 +585,7 @@ class FML:
             for fm in _fml.elements:
                 fm.mime_type = read_fstring(bio)
 
-        # SHA256 hash
+        # SHA256 hash (Manifest feature level 20)
         if _fml.version >= 2:
             for fm in _fml.elements:
                 fm.hash_sha256 = bio.read(32)
