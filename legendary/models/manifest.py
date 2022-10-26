@@ -9,6 +9,7 @@ import zlib
 
 from base64 import b64encode
 from io import BytesIO
+from typing import Optional
 
 logger = logging.getLogger('Manifest')
 
@@ -63,7 +64,7 @@ def get_chunk_dir(version):
 
 class Manifest:
     header_magic = 0x44BEC00C
-    serialisation_version = 18
+    default_serialisation_version = 17
 
     def __init__(self):
         self.header_size = 41
@@ -75,10 +76,10 @@ class Manifest:
         self.data = b''
 
         # remainder
-        self.meta = None
-        self.chunk_data_list = None
-        self.file_manifest_list = None
-        self.custom_fields = None
+        self.meta: Optional[ManifestMeta] = None
+        self.chunk_data_list: Optional[CDL] = None
+        self.file_manifest_list: Optional[FML] = None
+        self.custom_fields: Optional[CustomFields] = None
 
     @property
     def compressed(self):
@@ -139,6 +140,26 @@ class Manifest:
     def write(self, fp=None, compress=True):
         body_bio = BytesIO()
 
+        # set serialisation version based on enabled features or original version
+        target_version = max(self.default_serialisation_version, self.meta.feature_level)
+        if self.meta.data_version == 2:
+            target_version = max(21, target_version)
+        elif self.file_manifest_list.version == 2:
+            target_version = max(20, target_version)
+        elif self.file_manifest_list.version == 1:
+            target_version = max(19, target_version)
+        elif self.meta.data_version == 1:
+            target_version = max(18, target_version)
+
+        # Downgrade manifest if unknown newer version
+        if target_version > 21:
+            logger.warning(f'Trying to serialise an unknown target version: {target_version},'
+                           f'clamping to 21.')
+            target_version = 21
+
+        # Ensure metadata will be correct
+        self.meta.feature_level = target_version
+
         self.meta.write(body_bio)
         self.chunk_data_list.write(body_bio)
         self.file_manifest_list.write(body_bio)
@@ -161,7 +182,7 @@ class Manifest:
         bio.write(struct.pack('<I', self.size_compressed))
         bio.write(self.sha_hash)
         bio.write(struct.pack('B', self.stored_as))
-        bio.write(struct.pack('<I', self.serialisation_version))
+        bio.write(struct.pack('<I', target_version))
         bio.write(self.data)
 
         return bio.tell() if fp else bio.getvalue()
@@ -205,8 +226,6 @@ class Manifest:
 
 
 class ManifestMeta:
-    serialisation_version = 0
-
     def __init__(self):
         self.meta_size = 0
         self.data_version = 0
@@ -288,7 +307,7 @@ class ManifestMeta:
         meta_start = bio.tell()
 
         bio.write(struct.pack('<I', 0))  # placeholder size
-        bio.write(struct.pack('B', self.serialisation_version))
+        bio.write(struct.pack('B', self.data_version))
         bio.write(struct.pack('<I', self.feature_level))
         bio.write(struct.pack('B', self.is_file_data))
         bio.write(struct.pack('<I', self.app_id))
@@ -305,8 +324,11 @@ class ManifestMeta:
         write_fstring(bio, self.prereq_path)
         write_fstring(bio, self.prereq_args)
 
-        if self.data_version > 0:
+        if self.data_version >= 1:
             write_fstring(bio, self.build_id)
+        if self.data_version >= 2:
+            write_fstring(bio, self.uninstall_action_path)
+            write_fstring(bio, self.uninstall_action_args)
 
         meta_end = bio.tell()
         bio.seek(meta_start)
@@ -315,8 +337,6 @@ class ManifestMeta:
 
 
 class CDL:
-    serialisation_version = 0
-
     def __init__(self):
         self.version = 0
         self.size = 0
@@ -425,7 +445,7 @@ class CDL:
     def write(self, bio):
         cdl_start = bio.tell()
         bio.write(struct.pack('<I', 0))  # placeholder size
-        bio.write(struct.pack('B', self.serialisation_version))
+        bio.write(struct.pack('B', self.version))
         bio.write(struct.pack('<I', len(self.elements)))
 
         for chunk in self.elements:
@@ -504,8 +524,6 @@ class ChunkInfo:
 
 
 class FML:
-    serialisation_version = 0
-
     def __init__(self):
         self.version = 0
         self.size = 0
@@ -606,7 +624,7 @@ class FML:
     def write(self, bio):
         fml_start = bio.tell()
         bio.write(struct.pack('<I', 0))  # placeholder size
-        bio.write(struct.pack('B', self.serialisation_version))
+        bio.write(struct.pack('B', self.version))
         bio.write(struct.pack('<I', len(self.elements)))
 
         for fm in self.elements:
@@ -631,6 +649,20 @@ class FML:
                 bio.write(struct.pack('<IIII', *cp.guid))
                 bio.write(struct.pack('<I', cp.offset))
                 bio.write(struct.pack('<I', cp.size))
+
+        if self.version >= 1:
+            for fm in self.elements:
+                has_md5 = 1 if fm.hash_md5 else 0
+                bio.write(struct.pack('<I', has_md5))
+                if has_md5:
+                    bio.write(fm.hash_md5)
+
+            for fm in self.elements:
+                write_fstring(bio, fm.mime_type)
+
+        if self.version >= 2:
+            for fm in self.elements:
+                bio.write(fm.hash_sha256)
 
         fml_end = bio.tell()
         bio.seek(fml_start)
@@ -675,6 +707,7 @@ class FileManifest:
             _cp.append('[...]')
             cp_repr = ', '.join(_cp)
 
+        # ToDo add MD5, MIME, SHA256 if those ever become relevant
         return '<FileManifest (filename="{}", symlink_target="{}", hash={}, flags={}, ' \
                'install_tags=[{}], chunk_parts=[{}], file_size={})>'.format(
                     self.filename, self.symlink_target, self.hash.hex(), self.flags,
@@ -711,8 +744,6 @@ class ChunkPart:
 
 
 class CustomFields:
-    serialisation_version = 0
-
     def __init__(self):
         self.size = 0
         self.version = 0
@@ -763,7 +794,7 @@ class CustomFields:
     def write(self, bio):
         cf_start = bio.tell()
         bio.write(struct.pack('<I', 0))  # placeholder size
-        bio.write(struct.pack('B', self.serialisation_version))
+        bio.write(struct.pack('B', self.version))
         bio.write(struct.pack('<I', len(self._dict)))
 
         for key in self.keys():
