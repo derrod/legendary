@@ -826,6 +826,8 @@ class LegendaryCore:
             }
         elif sys_platform == 'darwin' and platform == 'Mac':
             path_vars |= {
+                # Note: EGL actually resolves this to "~/Library/Application Support/Epic", but the only game
+                # I could find using this (Loop Hero) expects it to be "~/Library/Application Support".
                 '{appdata}': os.path.expanduser('~/Library/Application Support'),
                 '{userdir}': os.path.expanduser('~/Documents'),
                 '{userlibrary}': os.path.expanduser('~/Library'),
