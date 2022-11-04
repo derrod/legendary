@@ -57,12 +57,7 @@ jobs:
         path: legendary/dist/*
 
   deb:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: ['ubuntu-20.04', 'ubuntu-22.04']
-      fail-fast: false
-      max-parallel: 2
+    runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v2
