@@ -47,6 +47,7 @@ jobs:
         --onefile
         --name legendary
         ${{ steps.strip.outputs.option }}
+        -i ../assets/windows_icon.ico
         cli.py
       env:
         PYTHONOPTIMIZE: 1
@@ -72,7 +73,6 @@ jobs:
         python3-wheel
 
     - name: Webview Dependencies
-      if: matrix.os == 'ubuntu-22.04'
       run: sudo apt install 
         python3-webview
         python3-gi
