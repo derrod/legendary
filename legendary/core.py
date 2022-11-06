@@ -999,9 +999,22 @@ class LegendaryCore:
                 if not os.path.exists(_save_dir):
                     os.makedirs(_save_dir)
 
-            if clean_dir:
+            if app_name and clean_dir:
+                game = self.lgd.get_game_meta(app_name)
+                custom_attr = game.metadata['customAttributes']
+                include_f = exclude_f = None
+
+                # Make sure to only delete files that match the include/exclude filters.
+                # This is particularly import for games that store save games in their install dir...
+                if (_include := custom_attr.get('CloudIncludeList', {}).get('value', None)) is not None:
+                    include_f = _include.split(',')
+                if (_exclude := custom_attr.get('CloudExcludeList', {}).get('value', None)) is not None:
+                    exclude_f = _exclude.split(',')
+
+                sgh = SaveGameHelper()
+                save_files = sgh.get_deletion_list(_save_dir, include_f, exclude_f)
                 self.log.info('Deleting old save files...')
-                delete_folder(_save_dir)
+                delete_filelist(_save_dir, save_files, silent=True)
 
             self.log.info(f'Downloading "{fname.split("/", 2)[2]}"...')
             # download manifest

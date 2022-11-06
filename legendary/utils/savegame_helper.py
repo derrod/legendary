@@ -167,3 +167,21 @@ class SaveGameHelper:
 
         # return dict with created files for uploading/whatever
         return self.files
+
+    def get_deletion_list(self, save_folder, include_filter=None, exclude_filter=None):
+        files = []
+        for _dir, _, _files in os.walk(save_folder):
+            for _file in _files:
+                _file_path = os.path.join(_dir, _file)
+                _file_path_rel = os.path.relpath(_file_path, save_folder).replace('\\', '/')
+
+                if include_filter and not _filename_matches(_file_path_rel, include_filter):
+                    self.log.debug(f'Excluding "{_file_path_rel}" (does not match include filter)')
+                    continue
+                elif exclude_filter and _filename_matches(_file_path_rel, exclude_filter):
+                    self.log.debug(f'Excluding "{_file_path_rel}" (does match exclude filter)')
+                    continue
+
+                files.append(_file_path_rel)
+
+        return files
