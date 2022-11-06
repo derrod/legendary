@@ -474,7 +474,7 @@ class LegendaryCLI:
 
             # if there is no saved save path, try to get one
             if not igame.save_path:
-                if args.yes:
+                if args.yes and not args.accept_path:
                     logger.info('Save path for this title has not been set, skipping due to --yes')
                     continue
 
@@ -486,6 +486,11 @@ class LegendaryCLI:
                 if '%' in save_path or '{' in save_path:
                     logger.warning('Path contains unprocessed variables, please enter the correct path manually.')
                     yn = False
+                    # When accept_path is set we don't want to fall back to interactive mode
+                    if args.accept_path:
+                        continue
+                elif args.accept_path:
+                    yn = True
                 else:
                     yn = get_boolean_choice('Is this correct?')
 
@@ -2805,6 +2810,8 @@ def main():
                                    help='Override savegame path (requires single app name to be specified)')
     sync_saves_parser.add_argument('--disable-filters', dest='disable_filters', action='store_true',
                                    help='Disable save game file filtering')
+    sync_saves_parser.add_argument('--accept-path', dest='accept_path', action='store_true',
+                                   help=argparse.SUPPRESS)
 
     clean_saves_parser.add_argument('--delete-incomplete', dest='delete_incomplete', action='store_true',
                                     help='Delete incomplete save files')
