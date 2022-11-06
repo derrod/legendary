@@ -22,13 +22,9 @@ jobs:
       with:
         python-version: '3.9'
 
-    - name: Python components
-      run: pip3 install --upgrade
-        setuptools
-        wheel
-
     - name: Legendary dependencies and build tools
       run: pip3 install --upgrade
+        setuptools
         pyinstaller
         requests
 
