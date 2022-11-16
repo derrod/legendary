@@ -41,6 +41,10 @@ it has to be run from a terminal (e.g. PowerShell)
   + (optional) `pywebview` for webview-based login
   + (optional) `setuptools` and `wheel` for setup/building
 
+- Scoop package:
+  + [Scoop](https://scoop.sh/)
+  + [`games` bucket](https://github.com/Calinou/scoop-games)
+
 **Note:** Running Windows applications on Linux or macOS requires [Wine](https://www.winehq.org/).
 
 ## How to run/install
@@ -61,11 +65,37 @@ If you always want to have the latest features and fixes available then using th
 
 ### Prebuilt Standalone Binary (Windows, macOS, and Linux)
 
+#### Directly
+
 Download the `legendary` or `legendary.exe` binary from [the latest release](https://github.com/derrod/legendary/releases/latest)
 and move it to somewhere in your `$PATH`/`%PATH%`. Don't forget to `chmod +x` it on Linux/macOS.
 
 The Windows .exe and Linux/macOS executable were created with PyInstaller and will run standalone even without python being installed.
 Note that on Linux glibc >= 2.25 is required, so older distributions such as Ubuntu 16.04 or Debian stretch will not work.
+
+### Scoop (Windows)
+
+Legendary is available through [Scoop](https://scoop.sh) via the `games` Bucket. This installation method will automatically download the
+latest [**prebuilt standalone binary**](https://github.com/derrod/legendary/releases/latest) and add it to your system's `$PATH`/`%PATH%.`
+
+> **Note:** Scoop is currently only available in a standalone [Windows PowerShell Terminal](https://learn.microsoft.com/en-us/powershell/),
+> or a Windows PowerShell Terminal running through [Windows Terminal](https://apps.microsoft.com/store/detail/windows-terminal/9N0DX20HK701?hl=en-au&gl=au).
+> - Windows Terminal is only available on [Windows 11](https://www.microsoft.com/en-us/software-download/windows11)
+
+#### Installation / Uninstallation&colon;
+
+To install Legendary via Scoop, simply run:
+
+```powershell
+scoop bucket add games
+scoop install legendary
+```
+
+To uninstall Legendary via Scoop, simply run:
+
+```powershell
+scoop uninstall legendary
+```
 
 ### Python Package (any)
 
