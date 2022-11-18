@@ -2618,7 +2618,7 @@ def main():
                               metavar='<New alias>', nargs='?')
 
     cx_parser.add_argument('app_name', metavar='<App Name>', nargs='?',
-                           help='App name to configure, will configure defaults if ommited')
+                           help='App name to configure, will configure defaults if omitted')
 
     move_parser.add_argument('app_name', metavar='<App Name>', help='Name of the app')
     move_parser.add_argument('new_path', metavar='<New Base Path>', help='Directory to move game folder to')
