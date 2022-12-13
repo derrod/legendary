@@ -124,6 +124,9 @@ class EPCAPI:
         if 'error' in j:
             self.log.warning(f'Login to EGS API failed with errorCode: {j["errorCode"]}')
             raise InvalidCredentialsError(j['errorCode'])
+        elif r.status_code >= 400:
+            self.log.error(f'EGS API responded with status {r.status_code} but no error in response: {j}')
+            raise InvalidCredentialsError('Unknown error')
 
         self.session.headers['Authorization'] = f'bearer {j["access_token"]}'
         # only set user info when using non-anonymous login
