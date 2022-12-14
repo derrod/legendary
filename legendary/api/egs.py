@@ -121,8 +121,12 @@ class EPCAPI:
             r.raise_for_status()
 
         j = r.json()
-        if 'error' in j:
-            self.log.warning(f'Login to EGS API failed with errorCode: {j["errorCode"]}')
+        if 'errorCode' in j:
+            if j['errorCode'] == 'errors.com.epicgames.oauth.corrective_action_required':
+                self.log.error(f'{j["errorMessage"]} ({j["correctiveAction"]}), '
+                               f'open the following URL to take action: {j["continuationUrl"]}')
+            else:
+                self.log.error(f'Login to EGS API failed with errorCode: {j["errorCode"]}')
             raise InvalidCredentialsError(j['errorCode'])
         elif r.status_code >= 400:
             self.log.error(f'EGS API responded with status {r.status_code} but no error in response: {j}')
