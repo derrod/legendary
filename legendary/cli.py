@@ -1071,23 +1071,23 @@ class LegendaryCLI:
                 if tip_url := self.core.get_game_tip(igame.app_name):
                     print(f'\nThis game may require additional setup, see: {tip_url}\n')
 
-            old_igame = self.core.get_installed_game(game.app_name)
-            if old_igame and args.repair_mode and os.path.exists(repair_file):
-                if old_igame.needs_verification:
-                    old_igame.needs_verification = False
+                old_igame = self.core.get_installed_game(game.app_name)
+                if old_igame and args.repair_mode and os.path.exists(repair_file):
+                    if old_igame.needs_verification:
+                        old_igame.needs_verification = False
+                        self.core.install_game(old_igame)
+
+                    logger.debug('Removing repair file.')
+                    os.remove(repair_file)
+
+                # check if install tags have changed, if they did; try deleting files that are no longer required.
+                if old_igame and old_igame.install_tags != igame.install_tags:
+                    old_igame.install_tags = igame.install_tags
+                    self.logger.info('Deleting now untagged files.')
+                    self.core.uninstall_tag(old_igame)
                     self.core.install_game(old_igame)
 
-                logger.debug('Removing repair file.')
-                os.remove(repair_file)
-
-            # check if install tags have changed, if they did; try deleting files that are no longer required.
-            if old_igame and old_igame.install_tags != igame.install_tags:
-                old_igame.install_tags = igame.install_tags
-                self.logger.info('Deleting now untagged files.')
-                self.core.uninstall_tag(old_igame)
-                self.core.install_game(old_igame)
-
-            logger.info(f'Finished installation process in {end_t - start_t:.02f} seconds.')
+                logger.info(f'Finished installation process in {end_t - start_t:.02f} seconds.')
 
     def _handle_postinstall(self, postinstall, igame, skip_prereqs=False):
         print('\nThis game lists the following prerequisites to be installed:')
