@@ -17,6 +17,7 @@ from threading import Condition, Thread
 from legendary.downloader.mp.workers import DLWorker, FileWorker
 from legendary.models.downloading import *
 from legendary.models.manifest import ManifestComparison, Manifest
+from legendary.utils.cli import get_size
 
 
 class DLManager(Process):
@@ -724,13 +725,13 @@ class DLManager(Process):
             self.log.info(f'= Progress: {perc:.02f}% ({processed_chunks}/{num_chunk_tasks}), '
                           f'Running for {rt_hours:02d}:{rt_minutes:02d}:{rt_seconds:02d}, '
                           f'ETA: {hours:02d}:{minutes:02d}:{seconds:02d}')
-            self.log.info(f' - Downloaded: {total_dl / 1024 / 1024:.02f} MiB, '
-                          f'Written: {total_write / 1024 / 1024:.02f} MiB')
-            self.log.info(f' - Cache usage: {total_used:.02f} MiB, active tasks: {self.active_tasks}')
-            self.log.info(f' + Download\t- {dl_speed / 1024 / 1024:.02f} MiB/s (raw) '
-                          f'/ {dl_unc_speed / 1024 / 1024:.02f} MiB/s (decompressed)')
-            self.log.info(f' + Disk\t- {w_speed / 1024 / 1024:.02f} MiB/s (write) / '
-                          f'{r_speed / 1024 / 1024:.02f} MiB/s (read)')
+            self.log.info(f' - Downloaded: {get_size(total_dl)}, '
+                          f'Written: {get_size(total_write)}')
+            self.log.info(f' - Cache usage: {get_size(total_used)} , active tasks: {self.active_tasks}')
+            self.log.info(f' + Download\t- {get_size(dl_speed)}/s (raw) '
+                          f'/ {get_size(dl_unc_speed)}/s (decompressed)')
+            self.log.info(f' + Disk\t- {get_size(w_speed)}/s (write) / '
+                          f'{get_size(r_speed)}/s (read)')
 
             # send status update to back to instantiator (if queue exists)
             if self.status_queue:

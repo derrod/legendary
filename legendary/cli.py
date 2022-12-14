@@ -21,7 +21,7 @@ from legendary import __version__, __codename__
 from legendary.core import LegendaryCore
 from legendary.models.exceptions import InvalidCredentialsError
 from legendary.models.game import SaveGameStatus, VerifyResult, Game
-from legendary.utils.cli import get_boolean_choice, get_int_choice, sdl_prompt, strtobool
+from legendary.utils.cli import get_boolean_choice, get_int_choice, sdl_prompt, strtobool, get_size
 from legendary.lfs.crossover import *
 from legendary.utils.custom_parser import HiddenAliasSubparsersAction
 from legendary.utils.env import is_windows_mac_or_pyi
@@ -974,12 +974,12 @@ class LegendaryCLI:
 
             exit(0)
 
-        logger.info(f'Install size: {analysis.install_size / 1024 / 1024:.02f} MiB')
+        logger.info(f'Install size: {get_size(analysis.install_size)}')
         compression = (1 - (analysis.dl_size / analysis.uncompressed_dl_size)) * 100
-        logger.info(f'Download size: {analysis.dl_size / 1024 / 1024:.02f} MiB '
+        logger.info(f'Download size: {get_size(analysis.dl_size)} '
                     f'(Compression savings: {compression:.01f}%)')
-        logger.info(f'Reusable size: {analysis.reuse_size / 1024 / 1024:.02f} MiB (chunks) / '
-                    f'{analysis.unchanged / 1024 / 1024:.02f} MiB (unchanged / skipped)')
+        logger.info(f'Reusable size: {get_size(analysis.reuse_size)} (chunks) / '
+                    f'{get_size(analysis.unchanged)} (unchanged / skipped)')
         logger.info('Downloads are resumable, you can interrupt the download with '
                     'CTRL-C and resume it using the same command later on.')
 
@@ -1932,7 +1932,7 @@ class LegendaryCLI:
         self.core.lgd.clean_tmp_data()
 
         after = self.core.lgd.get_dir_size()
-        logger.info(f'Cleanup complete! Removed {(before - after) / 1024 / 1024:.02f} MiB.')
+        logger.info(f'Cleanup complete! Removed {get_size(before - after)}.')
 
     def activate(self, args):
         if not self.core.login():
@@ -2253,8 +2253,8 @@ class LegendaryCLI:
                     return
 
             logger.info(f'Install directory: {igame.install_path}')
-            logger.info(f'Install size: {ares.install_size / 1024 / 1024:.2f} MiB')
-            logger.info(f'Download size: {ares.dl_size / 1024 / 1024:.2f} MiB')
+            logger.info(f'Install size: {get_size(ares.install_size)}')
+            logger.info(f'Download size: {get_size(ares.dl_size)}')
 
             if not args.yes:
                 if not get_boolean_choice('Do you want to install the overlay?'):
@@ -2382,7 +2382,7 @@ class LegendaryCLI:
                 default_choice = None
                 for i, bottle in enumerate(usable_bottles, start=1):
                     extra = []
-                    
+
                     if cx_version in bottle['cx_versions']:
                         if app_name in bottle['compatible_apps']:
                             extra.append('recommended')
@@ -2425,8 +2425,8 @@ class LegendaryCLI:
                                                                     base_url=install_candidate.get('base_url'))
 
                 logger.info(f'Bottle install directory: {path}')
-                logger.info(f'Bottle size: {ares.install_size / 1024 / 1024:.2f} MiB')
-                logger.info(f'Download size: {ares.dl_size / 1024 / 1024:.2f} MiB')
+                logger.info(f'Bottle size: {get_size(ares.install_size)}')
+                logger.info(f'Download size: {get_size(ares.dl_size)}')
 
                 if not args.yes:
                     if not get_boolean_choice('Do you want to download the selected bottle?'):
