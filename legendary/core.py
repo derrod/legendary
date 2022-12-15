@@ -1229,7 +1229,13 @@ class LegendaryCore:
 
         for url in manifest_urls:
             self.log.debug(f'Trying to download manifest from "{url}"...')
-            r = self.egs.unauth_session.get(url)
+            try:
+                r = self.egs.unauth_session.get(url, timeout=10.0)
+            except Exception as e:
+                self.log.warning(f'Unable to download manifest from "{urlparse(url).netloc}" '
+                                 f'(Exception: {e!r}), trying next URL...')
+                continue
+
             if r.status_code == 200:
                 manifest_bytes = r.content
                 break
