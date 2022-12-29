@@ -2730,7 +2730,7 @@ def main():
                                help='Launch Origin to activate or run the game.')
     launch_parser.add_argument('--json', dest='json', action='store_true',
                                help='Print launch information as JSON and exit')
-    launch_parser.add_argument('--wait', dest='wait', action='store_true', help='Wait for game to finish running')
+    launch_parser.add_argument('--wait', dest='wait', action='store_true', help='Wait for the game to finish running')
 
     if os.name != 'nt':
         launch_parser.add_argument('--wine', dest='wine_bin', action='store', metavar='<wine binary>',
