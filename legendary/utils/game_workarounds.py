@@ -20,6 +20,11 @@ _exe_overrides = {
         'linux': 'Base/Binaries/Win64EOS/CivilizationVI.exe',
         'win32': 'LaunchPad/LaunchPad.exe'
     }
+    '49550aa9fcd74552ae07c4e9f2c262fe': {  # marvel's midnight suns
+        'darwin': 'MidnightSuns/Binaries/Win64/MidnightSuns-Win64-Shipping.exe',
+        'linux': 'MidnightSuns/Binaries/Win64/MidnightSuns-Win64-Shipping.exe',
+        'win32': 'MidnightSuns/Binaries/Win64/MidnightSuns-Win64-Shipping.exe'
+    }
 }
 
 
