@@ -371,10 +371,14 @@ class LegendaryCLI:
 
         if args.install_tag:
             files = [fm for fm in files if args.install_tag in fm.install_tags]
-
+        if args.hashlistfile:
+            for fm in files:
+             with open(args.hashlistfile+".sha1", "a") as f:
+               print(f'{fm.hash.hex()} *{fm.filename}', file=f)
         if args.hashlist:
             for fm in files:
                 print(f'{fm.hash.hex()} *{fm.filename}')
+        
         elif args.csv or args.tsv:
             writer = csv.writer(stdout, dialect='excel-tab' if args.tsv else 'excel', lineterminator='\n')
             writer.writerow(['path', 'hash', 'size', 'install_tags'])
@@ -2794,6 +2798,8 @@ def main():
     list_files_parser.add_argument('--tsv', dest='tsv', action='store_true', help='Output in TSV format')
     list_files_parser.add_argument('--json', dest='json', action='store_true', help='Output in JSON format')
     list_files_parser.add_argument('--hashlist', dest='hashlist', action='store_true',
+                                   help='Output file hash list in hashcheck/sha1sum -c compatible format')
+    list_files_parser.add_argument('--hashlistfile', dest='hashlistfile', action='store', metavar='<path>',
                                    help='Output file hash list in hashcheck/sha1sum -c compatible format')
     list_files_parser.add_argument('--install-tag', dest='install_tag', action='store', metavar='<tag>',
                                    type=str, help='Show only files with specified install tag')
