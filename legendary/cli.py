@@ -2800,7 +2800,7 @@ def main():
     list_files_parser.add_argument('--hashlist', dest='hashlist', action='store_true',
                                    help='Output file hash list in hashcheck/sha1sum -c compatible format')
     list_files_parser.add_argument('--hashlistfile', dest='hashlistfile', action='store', metavar='<path>',
-                                   help='Output file hash list in hashcheck/sha1sum -c compatible format')
+                                   help='Output file hash list in hashcheck/sha1sum -c compatible format as file eg --hashlistfile pathtofile')
     list_files_parser.add_argument('--install-tag', dest='install_tag', action='store', metavar='<tag>',
                                    type=str, help='Show only files with specified install tag')
 
