@@ -1383,7 +1383,7 @@ class LegendaryCore:
                 self.log.info(f'"{base_path}" does not exist, creating...')
                 os.makedirs(base_path)
 
-            install_path = os.path.normpath(os.path.join(base_path, game_folder))
+            install_path = os.path.normpath(os.path.join(base_path, game_folder.strip()))
 
         # check for write access on the install path or its parent directory if it doesn't exist yet
         base_path = os.path.dirname(install_path)
