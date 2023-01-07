@@ -6,6 +6,7 @@ import csv
 import json
 import logging
 import os
+import shutil
 import shlex
 import subprocess
 import time
@@ -2507,20 +2508,28 @@ class LegendaryCLI:
         old_base, game_folder = os.path.split(igame.install_path.replace('\\', '/'))
         new_path = os.path.join(args.new_path, game_folder)
         logger.info(f'Moving "{game_folder}" from "{old_base}" to "{args.new_path}"')
-
         if not args.skip_move:
+            if not os.path.exists(args.new_path):
+                os.makedirs(args.new_path)
+            if os.stat(args.new_path).st_dev != os.stat(igame.install_path).st_dev:
+                choice = get_boolean_choice(f'Moving files to another drive can cause errors when running the game, '
+                                            f'however, it is unlikely to happen. Do you still wish to continue? (default=no)', default=False)
+                if not choice:
+                    logger.info(f'To move it without a risk move the folder manually to {new_path} '
+                                f'and run "legendary move {app_name} "{args.new_path}" --skip-move"')
+                    print("Aborting...")
+                    return
+            if os.path.exists(new_path):
+                logger.error(f'The target path already contains a folder called "{game_folder}", '
+                             f'please remove or rename it first.')
+                return
             try:
-                if not os.path.exists(args.new_path):
-                    os.makedirs(args.new_path)
-
-                os.rename(igame.install_path, new_path)
+                shutil.move(igame.install_path, new_path)
             except Exception as e:
-                if isinstance(e, OSError) and e.errno == 18:
-                    logger.error(f'Moving to a different drive is not supported. Move the folder manually to '
-                                 f'"{new_path}" and run "legendary move {app_name} "{args.new_path}" --skip-move"')
-                elif isinstance(e, FileExistsError):
-                    logger.error(f'The target path already contains a folder called "{game_folder}", '
-                                 f'please remove or rename it first.')
+                if isinstance(e, shutil.Error):
+                    logger.error(f'Cannot move the folder into itself.')
+                elif isinstance(e, PermissionError):
+                    logger.error(f'Cannot move the directory "{igame.install_path}", lacking write permission to it.')
                 else:
                     logger.error(f'Moving failed with unknown error {e!r}.')
                     logger.info(f'Try moving the folder manually to "{new_path}" and running '
