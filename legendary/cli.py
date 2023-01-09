@@ -2515,6 +2515,10 @@ class LegendaryCLI:
                 logger.error(f'The target path already contains a folder called "{game_folder}", '
                              f'please remove or rename it first.')
                 return
+            logger.info('This process could be cancelled and reverted by interrupting it with CTRL-C')
+            if not get_boolean_choice(f'Are you sure you wish to move "{igame.title}" from "{old_base}" to "{args.new_path}"?'):
+                print('Aborting...')
+                exit(0)
             try:
                 total_files, total_chunks = scan_dir(igame.install_path)
                 copied_files = 0
@@ -2566,6 +2570,11 @@ class LegendaryCLI:
                     logger.error(f'Moving failed with unknown error {e!r}.')
                     logger.info(f'Try moving the folder manually to "{new_path}" and running '
                                 f'"legendary move {app_name} "{args.new_path}" --skip-move"')
+                return
+            except KeyboardInterrupt:
+                # TODO: Make it resumable
+                shutil.rmtree(new_path)
+                logger.info("The process has been cancelled.")
                 return
         else:
             logger.info(f'Not moving, just rewriting legendary metadata...')
