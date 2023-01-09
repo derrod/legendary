@@ -72,6 +72,7 @@ jobs:
         --deb-suggests python3-webview
         --maintainer "Rodney <rodney@rodney.io>"
         --category python
+        --depends "python3 >= 3.9"
         setup.py
 
     - name: Os version
