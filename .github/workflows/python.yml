@@ -60,23 +60,19 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Dependencies
-      run: sudo apt install
-        python3-all
-        python3-stdeb
-        dh-python
-        python3-requests
-        python3-setuptools
-        python3-wheel
-
-    - name: Webview Dependencies
-      run: sudo apt install 
-        python3-webview
-        python3-gi
-        python3-gi-cairo
-        gir1.2-gtk-3.0
+      run: |
+        sudo apt install ruby
+        sudo gem install fpm
 
     - name: Build
-      run: python3 setup.py --command-packages=stdeb.command bdist_deb
+      run: fpm
+        --input-type python
+        --output-type deb
+        --python-package-name-prefix python3
+        --deb-suggests python3-webview
+        --maintainer "Rodney <rodney@rodney.io>"
+        --category python
+        setup.py
 
     - name: Os version
       id: os_version
@@ -87,4 +83,4 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         name: ${{ steps.os_version.outputs.version }}-deb-package
-        path: deb_dist/*.deb
+        path: ./*.deb
