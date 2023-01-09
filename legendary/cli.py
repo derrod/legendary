@@ -2511,14 +2511,6 @@ class LegendaryCLI:
         if not args.skip_move:
             if not os.path.exists(args.new_path):
                 os.makedirs(args.new_path)
-            if os.stat(args.new_path).st_dev != os.stat(igame.install_path).st_dev:
-                choice = get_boolean_choice(f'Moving files to another drive can cause errors when running the game, '
-                                            f'however, it is unlikely to happen. Do you still wish to continue? (default=no)', default=False)
-                if not choice:
-                    logger.info(f'To move it without a risk move the folder manually to {new_path} '
-                                f'and run "legendary move {app_name} "{args.new_path}" --skip-move"')
-                    print("Aborting...")
-                    return
             if os.path.exists(new_path):
                 logger.error(f'The target path already contains a folder called "{game_folder}", '
                              f'please remove or rename it first.')
