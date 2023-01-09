@@ -22,7 +22,7 @@ from legendary import __version__, __codename__
 from legendary.core import LegendaryCore
 from legendary.models.exceptions import InvalidCredentialsError
 from legendary.models.game import SaveGameStatus, VerifyResult, Game
-from legendary.utils.cli import get_boolean_choice, get_int_choice, sdl_prompt, strtobool
+from legendary.utils.cli import get_boolean_choice, get_int_choice, sdl_prompt, strtobool, scan_dir
 from legendary.lfs.crossover import *
 from legendary.utils.custom_parser import HiddenAliasSubparsersAction
 from legendary.utils.env import is_windows_mac_or_pyi
@@ -2524,7 +2524,47 @@ class LegendaryCLI:
                              f'please remove or rename it first.')
                 return
             try:
-                shutil.move(igame.install_path, new_path)
+                total_files, total_chunks = scan_dir(igame.install_path)
+                copied_files = 0
+                last_copied_chunks = 0
+                copied_chunks = 0
+                last = start = time.perf_counter()
+                def copy_function(src, dst, *, follow_symlinks=True):
+                    nonlocal total_files, copied_files
+                    nonlocal total_chunks, last_copied_chunks, copied_chunks
+                    nonlocal last, start
+                    
+                    shutil.copy2(src, dst, follow_symlinks=follow_symlinks)
+                    size = os.path.getsize(dst)
+                    last_copied_chunks += size
+                    copied_chunks += size
+                    copied_files += 1
+
+                    now = time.perf_counter()
+                    runtime = now - start
+                    delta = now - last
+                    if delta < 0.5 and copied_files < total_files: # to prevent spamming the console
+                        return
+
+                    last = now
+                    speed = last_copied_chunks / delta
+                    last_copied_chunks = 0
+                    perc = copied_files / total_files * 100
+
+                    average_speed = copied_chunks / runtime
+                    estimate = (total_chunks - copied_chunks) / average_speed
+                    minutes, seconds = int(estimate//60), int(estimate%60)
+                    hours, minutes = int(minutes//60), int(minutes%60)
+
+                    rt_minutes, rt_seconds = int(runtime//60), int(runtime%60)
+                    rt_hours, rt_minutes = int(rt_minutes//60), int(rt_minutes%60)
+
+                    logger.info(f'= Progress: {perc:.02f}% ({copied_files}/{total_files}), ')
+                    logger.info(f' + Running for {rt_hours:02d}:{rt_minutes:02d}:{rt_seconds:02d}, ')
+                    logger.info(f' + ETA: {hours:02d}:{minutes:02d}:{seconds:02d}')
+                    logger.info(f' + Speed: {speed / 1024 / 1024:.02f} MiB/s')
+
+                shutil.move(igame.install_path, new_path, copy_function=copy_function)
             except Exception as e:
                 if isinstance(e, shutil.Error):
                     logger.error(f'Cannot move the folder into itself.')
