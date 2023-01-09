@@ -16,9 +16,9 @@ jobs:
       max-parallel: 3
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v4
       with:
         python-version: '3.9'
 
@@ -48,7 +48,7 @@ jobs:
       env:
         PYTHONOPTIMIZE: 1
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
         name: ${{ runner.os }}-package
         path: legendary/dist/*
@@ -57,7 +57,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Dependencies
       run: sudo apt install
@@ -84,7 +84,7 @@ jobs:
         source /etc/os-release
         echo ::set-output name=version::$NAME-$VERSION_ID
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
         name: ${{ steps.os_version.outputs.version }}-deb-package
         path: deb_dist/*.deb
