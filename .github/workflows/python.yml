@@ -16,9 +16,9 @@ jobs:
       max-parallel: 3
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v4
       with:
         python-version: '3.9'
 
@@ -48,7 +48,7 @@ jobs:
       env:
         PYTHONOPTIMIZE: 1
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
         name: ${{ runner.os }}-package
         path: legendary/dist/*
@@ -57,26 +57,23 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Dependencies
-      run: sudo apt install
-        python3-all
-        python3-stdeb
-        dh-python
-        python3-requests
-        python3-setuptools
-        python3-wheel
-
-    - name: Webview Dependencies
-      run: sudo apt install 
-        python3-webview
-        python3-gi
-        python3-gi-cairo
-        gir1.2-gtk-3.0
+      run: |
+        sudo apt install ruby
+        sudo gem install fpm
 
     - name: Build
-      run: python3 setup.py --command-packages=stdeb.command bdist_deb
+      run: fpm
+        --input-type python
+        --output-type deb
+        --python-package-name-prefix python3
+        --deb-suggests python3-webview
+        --maintainer "Rodney <rodney@rodney.io>"
+        --category python
+        --depends "python3 >= 3.9"
+        setup.py
 
     - name: Os version
       id: os_version
@@ -84,7 +81,7 @@ jobs:
         source /etc/os-release
         echo ::set-output name=version::$NAME-$VERSION_ID
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
         name: ${{ steps.os_version.outputs.version }}-deb-package
-        path: deb_dist/*.deb
+        path: ./*.deb
