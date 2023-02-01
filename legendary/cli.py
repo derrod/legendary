@@ -2511,60 +2511,102 @@ class LegendaryCLI:
         if not args.skip_move:
             if not os.path.exists(args.new_path):
                 os.makedirs(args.new_path)
-            if os.path.exists(new_path):
-                logger.error(f'The target path already contains a folder called "{game_folder}", '
-                             f'please remove or rename it first.')
+            if shutil._destinsrc(igame.install_path, new_path):
+                logger.error(f'Cannot move the folder into itself.')
                 return
-            logger.info('This process could be cancelled and reverted by interrupting it with CTRL-C')
+            if (shutil._is_immutable(igame.install_path) or (not os.access(igame.install_path, os.W_OK) \
+                    and os.listdir(igame.install_path) and sys_platform == 'darwin')):
+                logger.error(f'Cannot move the directory "{igame.install_path}", lacking write permission to it.')
+                return
+            existing_files = dict(__total__ = 0)
+            existing_chunks = 0
+            if os.path.exists(new_path):
+                if not get_boolean_choice(f'"{game_folder}" is found in the target path, would you like to resume moving this game?'):
+                    return
+                logger.info('Attempting to resume the process... DO NOT PANIC IF IT LOOKS STUCK')
+                manifest_data, _ = self.core.get_installed_manifest(igame.app_name)
+                if manifest_data is None:
+                    logger.critical(f'Manifest appears to be missing! To repair, run "legendary repair '
+                                    f'{args.app_name} --repair-and-update", this will however redownload all files '
+                                    f'that do not match the latest manifest in their entirety.')
+                    return
+                manifest = self.core.load_manifest(manifest_data)
+                files = manifest.file_manifest_list.elements
+                if config_tags := self.core.lgd.config.get(args.app_name, 'install_tags', fallback=None):
+                    install_tags = set(i.strip() for i in config_tags.split(','))
+                    file_list = [
+                        (f.filename, f.sha_hash.hex())
+                        for f in files
+                        if any(it in install_tags for it in f.install_tags) or not f.install_tags
+                    ]
+                else:
+                    file_list = [(f.filename, f.sha_hash.hex()) for f in files]
+                for result, path, _, bytes_read in validate_files(new_path, file_list):
+                    if result == VerifyResult.HASH_MATCH:
+                        path = path.replace('\\', '/').split('/')
+                        dir, filename = ('/'.join(path[:-1]), path[-1]) # 'foo/bar/baz.txt' -> ('foo/bar', 'baz.txt')
+                        if dir not in existing_files:
+                            existing_files[dir] = []
+                        existing_files[dir].append(filename)
+                        existing_files['__total__'] += 1
+                        existing_chunks += bytes_read
+
+            def _ignore(dir, existing_files, game_folder):
+                dir = dir.replace('\\', '/').split(f'{game_folder}')[1:][0]
+                if dir.startswith('/'): dir = dir[1:]
+                return existing_files.get(dir, [])
+            ignore = lambda dir, _: _ignore(dir, existing_files, game_folder)
+
+            logger.info('This process could be stopped and resumed by interrupting it with CTRL-C')
             if not get_boolean_choice(f'Are you sure you wish to move "{igame.title}" from "{old_base}" to "{args.new_path}"?'):
                 print('Aborting...')
                 exit(0)
+
             try:
-                total_files, total_chunks = scan_dir(igame.install_path)
-                copied_files = 0
-                last_copied_chunks = 0
-                copied_chunks = 0
-                last = start = time.perf_counter()
-                def copy_function(src, dst, *, follow_symlinks=True):
-                    nonlocal total_files, copied_files
-                    nonlocal total_chunks, last_copied_chunks, copied_chunks
-                    nonlocal last, start
-                    
-                    shutil.copy2(src, dst, follow_symlinks=follow_symlinks)
+                data = dict(
+                    **dict(zip(('total_files', 'total_chunks'), scan_dir(igame.install_path))),
+                    copied_files = 0 + existing_files['__total__'],
+                    last_copied_chunks = 0,
+                    copied_chunks = 0 + existing_chunks,
+                    **dict.fromkeys(('start', 'last'), time.perf_counter())
+                )
+                def _copy_function(src, dst, data):
+                    shutil.copy2(src, dst, follow_symlinks=True)
                     size = os.path.getsize(dst)
-                    last_copied_chunks += size
-                    copied_chunks += size
-                    copied_files += 1
+                    data['last_copied_chunks'] += size
+                    data['copied_chunks'] += size
+                    data['copied_files'] += 1
 
                     now = time.perf_counter()
-                    runtime = now - start
-                    delta = now - last
-                    if delta < 0.5 and copied_files < total_files: # to prevent spamming the console
+                    runtime = now - data['start']
+                    delta = now - data['last']
+                    if delta < 1 and data['copied_files'] < data['total_files']: # to prevent spamming the console
                         return
 
-                    last = now
-                    speed = last_copied_chunks / delta
-                    last_copied_chunks = 0
-                    perc = copied_files / total_files * 100
+                    data['last'] = now
+                    speed = data['last_copied_chunks'] / delta
+                    data['last_copied_chunks'] = 0
+                    perc = data['copied_files'] / data['total_files'] * 100
 
-                    average_speed = copied_chunks / runtime
-                    estimate = (total_chunks - copied_chunks) / average_speed
+                    average_speed = data['copied_chunks'] / runtime
+                    estimate = (data['total_chunks'] - data['copied_chunks']) / average_speed
                     minutes, seconds = int(estimate//60), int(estimate%60)
                     hours, minutes = int(minutes//60), int(minutes%60)
 
                     rt_minutes, rt_seconds = int(runtime//60), int(runtime%60)
                     rt_hours, rt_minutes = int(rt_minutes//60), int(rt_minutes%60)
 
-                    logger.info(f'= Progress: {perc:.02f}% ({copied_files}/{total_files}), ')
+                    logger.info(f'= Progress: {perc:.02f}% ({data["copied_files"]}/{data["total_files"]}), ')
                     logger.info(f' + Running for {rt_hours:02d}:{rt_minutes:02d}:{rt_seconds:02d}, ')
                     logger.info(f' + ETA: {hours:02d}:{minutes:02d}:{seconds:02d}')
                     logger.info(f' + Speed: {speed / 1024 / 1024:.02f} MiB/s')
 
-                shutil.move(igame.install_path, new_path, copy_function=copy_function)
+                def copy_function(src, dst, *_, **__):
+                    _copy_function(src, dst, data)
+
+                shutil.copytree(igame.install_path, new_path, copy_function=copy_function, dirs_exist_ok=True, ignore=ignore)
             except Exception as e:
-                if isinstance(e, shutil.Error):
-                    logger.error(f'Cannot move the folder into itself.')
-                elif isinstance(e, PermissionError):
+                if isinstance(e, PermissionError):
                     logger.error(f'Cannot move the directory "{igame.install_path}", lacking write permission to it.')
                 else:
                     logger.error(f'Moving failed with unknown error {e!r}.')
@@ -2572,10 +2614,13 @@ class LegendaryCLI:
                                 f'"legendary move {app_name} "{args.new_path}" --skip-move"')
                 return
             except KeyboardInterrupt:
-                # TODO: Make it resumable
-                shutil.rmtree(new_path)
-                logger.info("The process has been cancelled.")
+                logger.info('The process has been cancelled.')
                 return
+            try:
+                shutil.rmtree(igame.install_path)
+            except KeyboardInterrupt:
+                logger.info('The process cannot be cancelled now. Please wait patiently for a few seconds.')
+                shutil.rmtree(igame.install_path)
         else:
             logger.info(f'Not moving, just rewriting legendary metadata...')
 
