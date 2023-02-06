@@ -20,6 +20,37 @@ def get_shell_folders(registry, wine_pfx):
     return folders
 
 
+def case_insensitive_file_search(path: str) -> str:
+    """
+    Similar to case_insensitive_path_search: Finds a file case-insensitively
+    Note that this *does* work on Windows, although it's rather pointless
+    """
+    path_parts = os.path.normpath(path).split(os.sep)
+    # If path_parts[0] is empty, we're on Unix and thus start searching at /
+    if not path_parts[0]:
+        path_parts[0] = '/'
+
+    computed_path = path_parts[0]
+    for part in path_parts[1:]:
+        # If the computed directory does not exist, add all remaining parts as-is to at least return a valid path
+        # at the end
+        if not os.path.exists(computed_path):
+            computed_path = os.path.join(computed_path, part)
+            continue
+
+        # First try to find an exact match
+        actual_file_or_dirname = part if os.path.exists(os.path.join(computed_path, part)) else None
+
+        # If there is no case-sensitive match, find a case-insensitive one
+        if not actual_file_or_dirname:
+            actual_file_or_dirname = next((
+                x for x in os.listdir(computed_path)
+                if x.lower() == part.lower()
+            ), part)
+        computed_path = os.path.join(computed_path, actual_file_or_dirname)
+    return computed_path
+
+
 def case_insensitive_path_search(path):
     """
     Attempts to find a path case-insensitively
