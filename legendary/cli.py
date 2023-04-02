@@ -40,6 +40,8 @@ logger = logging.getLogger('cli')
 
 class LegendaryCLI:
     def __init__(self, override_config=None, api_timeout=None):
+        if sys.stdout.encoding == 'gbk' :
+            sys.stdout.reconfigure(encoding='gb18030')
         self.core = LegendaryCore(override_config, timeout=api_timeout)
         self.logger = logging.getLogger('cli')
         self.logging_queue = None
