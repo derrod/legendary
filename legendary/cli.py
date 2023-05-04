@@ -1650,18 +1650,18 @@ class LegendaryCLI:
                     if dlc['entitlementName'] in owned_entitlements:
                         owned_dlc.append((installable, None, dlc['title'], dlc['id']))
                     elif installable:
-                        app_name = dlc['releaseInfo'][0]['appId']
-                        if app_name in owned_app_names:
-                            owned_dlc.append((installable, app_name, dlc['title'], dlc['id']))
+                        dlc_app_name = dlc['releaseInfo'][0]['appId']
+                        if dlc_app_name in owned_app_names:
+                            owned_dlc.append((installable, dlc_app_name, dlc['title'], dlc['id']))
 
                 if owned_dlc:
                     human_list = []
                     json_list = []
-                    for installable, app_name, title, dlc_id in owned_dlc:
-                        json_list.append(dict(app_name=app_name, title=title,
+                    for installable, dlc_app_name, title, dlc_id in owned_dlc:
+                        json_list.append(dict(app_name=dlc_app_name, title=title,
                                               installable=installable, id=dlc_id))
                         if installable:
-                            human_list.append(f'App name: {app_name}, Title: "{title}"')
+                            human_list.append(f'App name: {dlc_app_name}, Title: "{title}"')
                         else:
                             human_list.append(f'Title: "{title}" (no installation required)')
                     game_infos.append(InfoItem('Owned DLC', 'owned_dlc', human_list, json_list))
