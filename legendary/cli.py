@@ -415,7 +415,11 @@ class LegendaryCLI:
         print('Save games:')
         for save in sorted(saves, key=lambda a: a.app_name + a.manifest_name):
             if save.app_name != last_app:
-                game_title = self.core.get_game(save.app_name).app_title
+                if game := self.core.get_game(save.app_name):
+                    game_title = game.app_title
+                else:
+                    game_title = 'Unknown'
+
                 last_app = save.app_name
                 print(f'- {game_title} ("{save.app_name}")')
             print(' +', save.manifest_name)
