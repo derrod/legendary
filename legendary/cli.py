@@ -449,7 +449,7 @@ class LegendaryCLI:
             igames = [igame]
 
         # check available saves
-        saves = self.core.get_save_games()
+        saves = self.core.get_save_games(args.app_name if args.app_name else '')
         latest_save = {
             save.app_name: save for save in sorted(saves, key=lambda a: a.datetime)
         }
