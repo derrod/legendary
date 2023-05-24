@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = [
+    "legendary",
+    "legendary.api",
+    "legendary.downloader",
+    "legendary.downloader.mp",
+    "legendary.lfs",
+    "legendary.models",
+    "legendary.utils",
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "legendary.__version__"}
+
+[project]
+name = "legendary"
+description = "Free and open-source replacement for the Epic Games Launcher application"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {file = "LICENSE"}
+authors = [
+  {name = "Rodney", email = "rodney@rodney.io" }
+]
+classifiers = [
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.9",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft",
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Games/Entertainment",
+    "Development Status :: 4 - Beta",
+]
+dependencies = [
+  "requests < 3.0"
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+webview = ["pywebview >= 3.4"]
+webview_gtk = ["pywebview>=3.4", "PyGObject"]
+
+[project.urls]
+"Homepage" = "https://github.com/derrod/legendary"
+
+[project.scripts]
+legendary = "legendary.cli:main"
