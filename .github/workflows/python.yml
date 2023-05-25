@@ -22,14 +22,18 @@ jobs:
       with:
         python-version: '3.9'
 
-    - name: Legendary dependencies and build tools
-      run: pip3 install --upgrade
+    - name: Update packaging tools
+      run: pip install --upgrade
+        pip
+        wheel
         setuptools
-        pyinstaller
-        requests
+        pipenv
+
+    - name: Install dependencies
+      run: pipenv install --system --dev
 
     - name: Optional dependencies (WebView)
-      run: pip3 install --upgrade pywebview
+      run: pipenv install --system --categories="webview"
       if: runner.os != 'macOS'
 
     - name: Set strip option on non-Windows
@@ -37,7 +41,7 @@ jobs:
       run: echo ::set-output name=option::--strip
       if: runner.os != 'Windows'
 
-    - name: Build
+    - name: Build pyinstaller
       working-directory: legendary
       run: pyinstaller
         --onefile
@@ -61,10 +65,10 @@ jobs:
 
     - name: Dependencies
       run: |
-        sudo apt install ruby
-        sudo gem install fpm
+        apt install ruby
+        gem install fpm
 
-    - name: Build
+    - name: Build fpm
       run: fpm
         --input-type python
         --output-type deb
@@ -73,7 +77,6 @@ jobs:
         --maintainer "Rodney <rodney@rodney.io>"
         --category python
         --depends "python3 >= 3.9"
-        setup.py
 
     - name: Os version
       id: os_version
