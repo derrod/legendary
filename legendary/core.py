@@ -509,6 +509,7 @@ class LegendaryCore:
         ignore = set(i.app_name for i in self.get_assets())
 
         for libitem in self.egs.get_library_items():
+            libitem['appName'] = libitem['appName'].strip()  # handle issues with \t etc.
             if libitem['namespace'] == 'ue' and skip_ue:
                 continue
             if libitem['appName'] in ignore:
