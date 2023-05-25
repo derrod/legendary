@@ -1,0 +1,20 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+requests = "~= 2.31"
+
+[dev-packages]
+
+[requires]
+python_version = "3.9"
+python_full_version = "3.9.16"
+
+[webview]
+pywebview = "~= 4.1"
+
+[webview_gtk]
+pywebview = "~= 4.1"
+pygobject = "~= 3.44"

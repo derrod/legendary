@@ -36,13 +36,13 @@ classifiers = [
     "Development Status :: 4 - Beta",
 ]
 dependencies = [
-  "requests < 3.0"
+  "requests ~= 2.31"
 ]
 dynamic = ["version"]
 
 [project.optional-dependencies]
-webview = ["pywebview >= 3.4"]
-webview_gtk = ["pywebview>=3.4", "PyGObject"]
+webview = ["pywebview ~= 4.1"]
+webview_gtk = ["pywebview ~= 4.1", "PyGObject ~= 3.44"]
 
 [project.urls]
 "Homepage" = "https://github.com/derrod/legendary"

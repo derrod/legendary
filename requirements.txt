@@ -1,1 +1,11 @@
-requests<3.0
+-i https://pypi.org/simple
+certifi==2023.5.7 ; python_version >= '3.6'
+charset-normalizer==3.1.0 ; python_full_version >= '3.7.0'
+idna==3.4 ; python_version >= '3.5'
+requests==2.31.0
+urllib3==2.0.2 ; python_version >= '3.7'
+bottle==0.12.25
+proxy-tools==0.1.0
+pywebview==4.1
+pycairo==1.23.0 ; python_version >= '3.7'
+pygobject==3.44.1
