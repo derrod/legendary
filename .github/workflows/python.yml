@@ -41,7 +41,7 @@ jobs:
       run: echo ::set-output name=option::--strip
       if: runner.os != 'Windows'
 
-    - name: Build pyinstaller
+    - name: Build
       working-directory: legendary
       run: pyinstaller
         --onefile
@@ -68,7 +68,7 @@ jobs:
         apt install ruby
         gem install fpm
 
-    - name: Build fpm
+    - name: Build
       run: fpm
         --input-type python
         --output-type deb
@@ -78,7 +78,7 @@ jobs:
         --category python
         --depends "python3 >= 3.9"
 
-    - name: Os version
+    - name: OS version
       id: os_version
       run: |
         source /etc/os-release
