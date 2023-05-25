@@ -65,7 +65,8 @@ jobs:
 
     - name: Dependencies
       run: |
-        apt install ruby
+        apt-get update
+        apt-get install --yes ruby
         gem install fpm
 
     - name: Build
@@ -77,6 +78,7 @@ jobs:
         --maintainer "Rodney <rodney@rodney.io>"
         --category python
         --depends "python3 >= 3.9"
+        legendary
 
     - name: OS version
       id: os_version
