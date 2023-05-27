@@ -2539,6 +2539,10 @@ class LegendaryCLI:
 
 
 def main():
+    # Set output encoding to UTF-8 if not outputting to a terminal
+    if not stdout.isatty():
+        stdout.reconfigure(encoding='utf-8')
+
     parser = argparse.ArgumentParser(description=f'Legendary v{__version__} - "{__codename__}"')
     parser.register('action', 'parsers', HiddenAliasSubparsersAction)
 
