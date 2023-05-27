@@ -439,7 +439,10 @@ class LegendaryCore:
             game = Game(app_name=app_name, app_title=eg_meta['title'], metadata=eg_meta, asset_infos=assets[app_name])
             self.lgd.set_game_meta(game.app_name, game)
             games[app_name] = game
-            still_needs_update.remove(app_name)
+            try:
+                still_needs_update.remove(app_name)
+            except KeyError:
+                pass
 
         # setup and teardown of thread pool takes some time, so only do it when it makes sense.
         still_needs_update = {e[0] for e in fetch_list}
