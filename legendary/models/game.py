@@ -56,6 +56,9 @@ class Game:
     base_urls: List[str] = field(default_factory=list)
     metadata: Dict = field(default_factory=dict)
 
+    def __post_init__(self):
+        self.app_name = self.app_name.removesuffix('\t')
+
     def app_version(self, platform='Windows'):
         if platform not in self.asset_infos:
             return None
