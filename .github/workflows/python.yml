@@ -22,14 +22,18 @@ jobs:
       with:
         python-version: '3.9'
 
-    - name: Legendary dependencies and build tools
-      run: pip3 install --upgrade
+    - name: Update packaging tools
+      run: pip install --upgrade
+        pip
+        wheel
         setuptools
-        pyinstaller
-        requests
+        pipenv
+
+    - name: Install dependencies
+      run: pipenv install --system --dev
 
     - name: Optional dependencies (WebView)
-      run: pip3 install --upgrade pywebview
+      run: pipenv install --system --categories="webview"
       if: runner.os != 'macOS'
 
     - name: Set strip option on non-Windows
@@ -59,10 +63,12 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Dependencies
-      run: |
-        sudo apt install ruby
-        sudo gem install fpm
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.0'
+
+    - name: Install fpm
+      run: gem install fpm
 
     - name: Build
       run: fpm
@@ -75,7 +81,7 @@ jobs:
         --depends "python3 >= 3.9"
         setup.py
 
-    - name: Os version
+    - name: OS version
       id: os_version
       run: |
         source /etc/os-release
