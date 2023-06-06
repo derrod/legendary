@@ -23,7 +23,7 @@ from legendary.api.egs import EPCAPI
 from legendary.api.lgd import LGDAPI
 from legendary.downloader.mp.manager import DLManager
 from legendary.lfs.egl import EPCLFS
-from legendary.lfs.lgndry import LGDLFS
+from legendary.lfs.lgndry import LGDLFS, LockedUserData
 from legendary.lfs.utils import clean_filename, delete_folder, delete_filelist, get_dir_size
 from legendary.models.downloading import AnalysisResult, ConditionCheckResult
 from legendary.models.egl import EGLManifest
@@ -131,7 +131,8 @@ class LegendaryCore:
         Handles authentication via authorization code (either retrieved manually or automatically)
         """
         try:
-            self.lgd.userdata = self.egs.start_session(authorization_code=code)
+            with self.lgd.user_lock() as user_lock:
+                user_lock.data = self.egs.start_session(authorization_code=code)
             return True
         except Exception as e:
             self.log.error(f'Logging in failed with {e!r}, please try again.')
@@ -142,7 +143,8 @@ class LegendaryCore:
         Handles authentication via exchange token (either retrieved manually or automatically)
         """
         try:
-            self.lgd.userdata = self.egs.start_session(exchange_token=code)
+            with self.lgd.user_lock() as user_lock:
+                user_lock.data = self.egs.start_session(exchange_token=code)
             return True
         except Exception as e:
             self.log.error(f'Logging in failed with {e!r}, please try again.')
@@ -171,22 +173,23 @@ class LegendaryCore:
             raise ValueError('No login session in config')
         refresh_token = re_data['Token']
         try:
-            self.lgd.userdata = self.egs.start_session(refresh_token=refresh_token)
+            with self.lgd.user_lock() as user_lock:
+                user_lock.data = self.egs.start_session(refresh_token=refresh_token)
             return True
         except Exception as e:
             self.log.error(f'Logging in failed with {e!r}, please try again.')
             return False
 
-    def login(self, force_refresh=False) -> bool:
+    def _login(self, user_lock: LockedUserData, force_refresh=False) -> bool:
         """
         Attempts logging in with existing credentials.
 
         raises ValueError if no existing credentials or InvalidCredentialsError if the API return an error
         """
-        if not self.lgd.userdata:
+        if not user_lock.data:
             raise ValueError('No saved credentials')
-        elif self.logged_in and self.lgd.userdata['expires_at']:
-            dt_exp = datetime.fromisoformat(self.lgd.userdata['expires_at'][:-1])
+        elif self.logged_in and user_lock.data['expires_at']:
+            dt_exp = datetime.fromisoformat(user_lock.data['expires_at'][:-1])
             dt_now = datetime.utcnow()
             td = dt_now - dt_exp
 
@@ -212,8 +215,8 @@ class LegendaryCore:
             except Exception as e:
                 self.log.warning(f'Checking for EOS Overlay updates failed: {e!r}')
 
-        if self.lgd.userdata['expires_at'] and not force_refresh:
-            dt_exp = datetime.fromisoformat(self.lgd.userdata['expires_at'][:-1])
+        if user_lock.data['expires_at'] and not force_refresh:
+            dt_exp = datetime.fromisoformat(user_lock.data['expires_at'][:-1])
             dt_now = datetime.utcnow()
             td = dt_now - dt_exp
 
@@ -221,7 +224,7 @@ class LegendaryCore:
             if dt_exp > dt_now and abs(td.total_seconds()) > 600:
                 self.log.info('Trying to re-use existing login session...')
                 try:
-                    self.egs.resume_session(self.lgd.userdata)
+                    self.egs.resume_session(user_lock.data)
                     self.logged_in = True
                     return True
                 except InvalidCredentialsError as e:
@@ -233,7 +236,7 @@ class LegendaryCore:
 
         try:
             self.log.info('Logging in...')
-            userdata = self.egs.start_session(self.lgd.userdata['refresh_token'])
+            userdata = self.egs.start_session(user_lock.data['refresh_token'])
         except InvalidCredentialsError:
             self.log.error('Stored credentials are no longer valid! Please login again.')
             self.lgd.invalidate_userdata()
@@ -242,9 +245,13 @@ class LegendaryCore:
             self.log.error(f'HTTP request for login failed: {e!r}, please try again later.')
             return False
 
-        self.lgd.userdata = userdata
+        user_lock.data = userdata
         self.logged_in = True
         return True
+
+    def login(self, force_refresh=False) -> bool:
+        with self.lgd.user_lock() as user_lock:
+            return self._login(user_lock, force_refresh)
 
     def update_check_enabled(self):
         return not self.lgd.config.getboolean('Legendary', 'disable_update_check', fallback=False)
@@ -726,8 +733,8 @@ class LegendaryCore:
         elif not install.can_run_offline:
             self.log.warning('Game is not approved for offline use and may not work correctly.')
 
-        account_id = self.lgd.userdata['account_id']
-        user_name = user or self.lgd.userdata['displayName']
+        account_id = self.lgd.immutable_user_properties['account_id']
+        user_name = user or self.lgd.immutable_user_properties['displayName']
 
         params.egl_parameters.extend([
             '-AUTH_LOGIN=unused',
@@ -767,8 +774,8 @@ class LegendaryCore:
     def get_origin_uri(self, app_name: str, offline: bool = False) -> str:
         token = '0' if offline else self.egs.get_game_token()['code']
 
-        user_name = self.lgd.userdata['displayName']
-        account_id = self.lgd.userdata['account_id']
+        user_name = self.lgd.immutable_user_properties['displayName']
+        account_id = self.lgd.immutable_user_properties['account_id']
         parameters = [
             ('AUTH_PASSWORD', token),
             ('AUTH_TYPE', 'exchangecode'),
@@ -817,7 +824,7 @@ class LegendaryCore:
         # the following variables are known:
         path_vars = {
             '{installdir}': igame.install_path,
-            '{epicid}': self.lgd.userdata['account_id']
+            '{epicid}': self.lgd.immutable_user_properties['account_id']
         }
 
         if sys_platform == 'win32':

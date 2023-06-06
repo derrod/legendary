@@ -7,6 +7,7 @@ import logging
 from collections import defaultdict
 from pathlib import Path
 from time import time
+from filelock import FileLock
 
 from .utils import clean_filename
 
@@ -14,6 +15,40 @@ from legendary.models.game import *
 from legendary.utils.aliasing import generate_aliases
 from legendary.models.config import LGDConf
 from legendary.utils.env import is_windows_mac_or_pyi
+
+
+class LockedUserData(FileLock):
+    def __init__(self, user_data_path: str):
+        super().__init__(user_data_path + '.lock')
+        self._user_data_path = user_data_path
+        self._user_data = None
+        self._initial_user_data = None
+
+    def __enter__(self):
+        super().__enter__()
+        if os.path.exists(self._user_data_path):
+            with open(self._user_data_path, 'r') as f:
+                self._user_data = json.load(f)
+                self._initial_user_data = self._user_data
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        super().__exit__(exc_type, exc_val, exc_tb)
+        if self._user_data != self._initial_user_data:
+            if self._user_data is not None:
+                with open(self._user_data_path, 'w') as f:
+                    json.dump(self._user_data, f, indent=2, sort_keys=True)
+            else:
+                if os.path.exists(self._user_data_path):
+                    os.remove(self._user_data_path)
+
+    @property
+    def data(self):
+        return self._user_data
+
+    @data.setter
+    def data(self, new_data):
+        self._user_data = new_data
 
 
 class LGDLFS:
@@ -130,31 +165,26 @@ class LGDLFS:
             except Exception as e:
                 self.log.debug(f'Loading aliases failed with {e!r}')
 
+    def user_lock(self) -> LockedUserData:
+        return LockedUserData(os.path.join(self.path, 'user.json'))
+
     @property
-    def userdata(self):
-        if self._user_data is not None:
-            return self._user_data
-
-        try:
-            self._user_data = json.load(open(os.path.join(self.path, 'user.json')))
-            return self._user_data
-        except Exception as e:
-            self.log.debug(f'Failed to load user data: {e!r}')
-            return None
-
-    @userdata.setter
-    def userdata(self, userdata):
-        if userdata is None:
-            raise ValueError('Userdata is none!')
-
-        self._user_data = userdata
-        json.dump(userdata, open(os.path.join(self.path, 'user.json'), 'w'),
-                  indent=2, sort_keys=True)
+    def immutable_user_properties(self) -> dict[str, str] | None:
+        with self.user_lock() as user_lock:
+            immutable_data = user_lock.data
+        if immutable_data is None:
+            return immutable_data
+        del immutable_data['access_token']
+        del immutable_data['expires_at']
+        del immutable_data['expires_in']
+        del immutable_data['refresh_token']
+        del immutable_data['refresh_expires']
+        del immutable_data['refresh_expires_at']
+        return immutable_data
 
     def invalidate_userdata(self):
-        self._user_data = None
-        if os.path.exists(os.path.join(self.path, 'user.json')):
-            os.remove(os.path.join(self.path, 'user.json'))
+        with self.user_lock() as user_lock:
+            user_lock.data = None
 
     @property
     def entitlements(self):

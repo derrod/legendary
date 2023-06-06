@@ -133,7 +133,7 @@ class LegendaryCLI:
             try:
                 if self.core.auth_import():
                     logger.info('Successfully imported login session from EGS!')
-                    logger.info(f'Now logged in as user "{self.core.lgd.userdata["displayName"]}"')
+                    logger.info(f'Now logged in as user "{self.core.lgd.immutable_user_properties["displayName"]}"')
                     return
                 else:
                     logger.warning('Login session from EGS seems to no longer be valid.')
@@ -163,7 +163,7 @@ class LegendaryCLI:
                     auth_code = auth_code.strip('"')
             else:
                 if do_webview_login(callback_code=self.core.auth_ex_token):
-                    logger.info(f'Successfully logged in as "{self.core.lgd.userdata["displayName"]}" via WebView')
+                    logger.info(f'Successfully logged in as "{self.core.lgd.immutable_user_properties["displayName"]}" via WebView')
                 else:
                     logger.error('WebView login attempt failed, please see log for details.')
                 return
@@ -179,9 +179,9 @@ class LegendaryCLI:
             return
 
         if exchange_token and self.core.auth_ex_token(exchange_token):
-            logger.info(f'Successfully logged in as "{self.core.lgd.userdata["displayName"]}"')
+            logger.info(f'Successfully logged in as "{self.core.lgd.immutable_user_properties["displayName"]}"')
         elif auth_code and self.core.auth_code(auth_code):
-            logger.info(f'Successfully logged in as "{self.core.lgd.userdata["displayName"]}"')
+            logger.info(f'Successfully logged in as "{self.core.lgd.immutable_user_properties["displayName"]}"')
         else:
             logger.error('Login attempt failed, please see log for details.')
 
@@ -1505,11 +1505,12 @@ class LegendaryCLI:
             # if automatic checks are off force an update here
             self.core.check_for_updates(force=True)
 
-        if not self.core.lgd.userdata:
-            user_name = '<not logged in>'
-            args.offline = True
-        else:
-            user_name = self.core.lgd.userdata['displayName']
+        with self.core.lgd.user_lock() as user_lock:
+            if not user_lock.data:
+                user_name = '<not logged in>'
+                args.offline = True
+            else:
+                user_name = user_lock.data['displayName']
 
         games_available = len(self.core.get_game_list(update_assets=not args.offline))
         games_installed = len(self.core.get_installed_list())
