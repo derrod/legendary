@@ -1596,6 +1596,21 @@ class LegendaryCore:
             results.warnings.add('You may want to consider trying one of the following executables '
                                  f'(see README for launch parameter/config option usage):\n{alt_str}')
 
+        # Detect EOS service
+        eos_installer = next((f for f in analysis.manifest_comparison.added
+                              if 'epiconlineservicesinstaller' in f.lower()), None)
+        has_bootstrapper = any('eosbootstrapper' in f.lower() for f in analysis.manifest_comparison.added)
+
+        if eos_installer:
+            results.warnings.add('This game ships the Epic Online Services Windows service, '
+                                 'it may have to be installed for the game to work properly. '
+                                 f'To do so, run "{eos_installer}" inside the game directory '
+                                 f'after the install has finished.')
+        elif has_bootstrapper:
+            results.warnings.add('This game ships the Epic Online Services bootstrapper. '
+                                 'The Epic Online Services Windows service may have to be '
+                                 'installed manually for the game to function properly.')
+
         return results
 
     def get_default_install_dir(self, platform='Windows'):
