@@ -3,12 +3,15 @@
 import os
 import shutil
 import hashlib
+import json
 import logging
 
 from pathlib import Path
 from sys import stdout
 from time import perf_counter
 from typing import List, Iterator
+
+from filelock import FileLock
 
 from legendary.models.game import VerifyResult
 
@@ -153,3 +156,45 @@ def clean_filename(filename):
 
 def get_dir_size(path):
     return sum(f.stat().st_size for f in Path(path).glob('**/*') if f.is_file())
+
+
+class LockedJSONData(FileLock):
+    def __init__(self, file_path: str):
+        super().__init__(file_path + '.lock')
+
+        self._file_path = file_path
+        self._data = None
+        self._initial_data = None
+
+    def __enter__(self):
+        super().__enter__()
+
+        if os.path.exists(self._file_path):
+            with open(self._file_path, 'r', encoding='utf-8') as f:
+                self._data = json.load(f)
+                self._initial_data = self._data
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        super().__exit__(exc_type, exc_val, exc_tb)
+
+        if self._data != self._initial_data:
+            if self._data is not None:
+                with open(self._file_path, 'w', encoding='utf-8') as f:
+                    json.dump(self._data, f, indent=2, sort_keys=True)
+            else:
+                if os.path.exists(self._file_path):
+                    os.remove(self._file_path)
+
+    @property
+    def data(self):
+        return self._data
+
+    @data.setter
+    def data(self, new_data):
+        if new_data is None:
+            raise ValueError('Invalid new data, use clear() explicitly to reset file data')
+        self._data = new_data
+
+    def clear(self):
+        self._data = None

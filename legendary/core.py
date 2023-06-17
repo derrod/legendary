@@ -131,7 +131,8 @@ class LegendaryCore:
         Handles authentication via authorization code (either retrieved manually or automatically)
         """
         try:
-            self.lgd.userdata = self.egs.start_session(authorization_code=code)
+            with self.lgd.userdata_lock as lock:
+                lock.data = self.egs.start_session(authorization_code=code)
             return True
         except Exception as e:
             self.log.error(f'Logging in failed with {e!r}, please try again.')
@@ -142,7 +143,8 @@ class LegendaryCore:
         Handles authentication via exchange token (either retrieved manually or automatically)
         """
         try:
-            self.lgd.userdata = self.egs.start_session(exchange_token=code)
+            with self.lgd.userdata_lock as lock:
+                lock.data = self.egs.start_session(exchange_token=code)
             return True
         except Exception as e:
             self.log.error(f'Logging in failed with {e!r}, please try again.')
@@ -171,22 +173,23 @@ class LegendaryCore:
             raise ValueError('No login session in config')
         refresh_token = re_data['Token']
         try:
-            self.lgd.userdata = self.egs.start_session(refresh_token=refresh_token)
+            with self.lgd.userdata_lock as lock:
+                lock.data = self.egs.start_session(refresh_token=refresh_token)
             return True
         except Exception as e:
             self.log.error(f'Logging in failed with {e!r}, please try again.')
             return False
 
-    def login(self, force_refresh=False) -> bool:
+    def _login(self, lock, force_refresh=False) -> bool:
         """
         Attempts logging in with existing credentials.
 
         raises ValueError if no existing credentials or InvalidCredentialsError if the API return an error
         """
-        if not self.lgd.userdata:
+        if not lock.data:
             raise ValueError('No saved credentials')
-        elif self.logged_in and self.lgd.userdata['expires_at']:
-            dt_exp = datetime.fromisoformat(self.lgd.userdata['expires_at'][:-1])
+        elif self.logged_in and lock.data['expires_at']:
+            dt_exp = datetime.fromisoformat(lock.data['expires_at'][:-1])
             dt_now = datetime.utcnow()
             td = dt_now - dt_exp
 
@@ -212,8 +215,8 @@ class LegendaryCore:
             except Exception as e:
                 self.log.warning(f'Checking for EOS Overlay updates failed: {e!r}')
 
-        if self.lgd.userdata['expires_at'] and not force_refresh:
-            dt_exp = datetime.fromisoformat(self.lgd.userdata['expires_at'][:-1])
+        if lock.data['expires_at'] and not force_refresh:
+            dt_exp = datetime.fromisoformat(lock.data['expires_at'][:-1])
             dt_now = datetime.utcnow()
             td = dt_now - dt_exp
 
@@ -221,7 +224,7 @@ class LegendaryCore:
             if dt_exp > dt_now and abs(td.total_seconds()) > 600:
                 self.log.info('Trying to re-use existing login session...')
                 try:
-                    self.egs.resume_session(self.lgd.userdata)
+                    self.egs.resume_session(lock.data)
                     self.logged_in = True
                     return True
                 except InvalidCredentialsError as e:
@@ -233,7 +236,7 @@ class LegendaryCore:
 
         try:
             self.log.info('Logging in...')
-            userdata = self.egs.start_session(self.lgd.userdata['refresh_token'])
+            userdata = self.egs.start_session(lock.data['refresh_token'])
         except InvalidCredentialsError:
             self.log.error('Stored credentials are no longer valid! Please login again.')
             self.lgd.invalidate_userdata()
@@ -242,9 +245,13 @@ class LegendaryCore:
             self.log.error(f'HTTP request for login failed: {e!r}, please try again later.')
             return False
 
-        self.lgd.userdata = userdata
+        lock.data = userdata
         self.logged_in = True
         return True
+
+    def login(self, force_refresh=False) -> bool:
+        with self.lgd.userdata_lock as lock:
+            return self._login(lock, force_refresh=force_refresh)
 
     def update_check_enabled(self):
         return not self.lgd.config.getboolean('Legendary', 'disable_update_check', fallback=False)

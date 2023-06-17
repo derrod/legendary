@@ -37,7 +37,8 @@ setup(
     install_requires=[
         'requests<3.0',
         'setuptools',
-        'wheel'
+        'wheel',
+        'filelock'
     ],
     extras_require=dict(
         webview=['pywebview>=3.4'],
