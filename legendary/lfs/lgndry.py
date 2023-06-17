@@ -9,6 +9,8 @@ from collections import defaultdict
 from pathlib import Path
 from time import time
 
+from filelock import FileLock
+
 from .utils import clean_filename, LockedJSONData
 
 from legendary.models.game import *
@@ -113,6 +115,8 @@ class LGDLFS:
         if not self.config.has_option('Legendary', 'disable_update_notice'):
             self.config.set('Legendary', '; Disables the notice about an available update on exit')
             self.config.set('Legendary', 'disable_update_notice', 'false' if is_windows_mac_or_pyi() else 'true')
+
+        self._installed_lock = FileLock(os.path.join(self.path, 'installed.json') + '.lock')
 
         try:
             self._installed = json.load(open(os.path.join(self.path, 'installed.json')))
@@ -292,6 +296,27 @@ class LGDLFS:
                     os.remove(os.path.join(self.path, 'manifests', f))
                 except Exception as e:
                     self.log.warning(f'Failed to delete file "{f}": {e!r}')
+
+    def lock_installed(self) -> bool:
+        """
+        Locks the install data. We do not care about releasing this lock.
+        If it is acquired by a Legendary instance it should own the lock until it exits.
+        Some operations such as egl sync may be simply skipped if a lock cannot be acquired
+        """
+        if self._installed_lock.is_locked:
+            return True
+
+        try:
+            self._installed_lock.acquire(blocking=False)
+            # reload data in case it has been updated elsewhere
+            try:
+                self._installed = json.load(open(os.path.join(self.path, 'installed.json')))
+            except Exception as e:
+                self.log.debug(f'Failed to load installed game data: {e!r}')
+
+            return True
+        except TimeoutError:
+            return False
 
     def get_installed_game(self, app_name):
         if self._installed is None:

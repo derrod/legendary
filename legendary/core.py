@@ -1749,6 +1749,9 @@ class LegendaryCore:
     def egl_import(self, app_name):
         if not self.asset_valid(app_name):
             raise ValueError(f'To-be-imported game {app_name} not in game asset database!')
+        if not self.lgd.lock_installed():
+            self.log.warning('Could not acquire lock for EGL import')
+            return
 
         self.log.debug(f'Importing "{app_name}" from EGL')
         # load egl json file
@@ -1796,9 +1799,12 @@ class LegendaryCore:
 
         # mark game as installed
         _ = self._install_game(lgd_igame)
-        return
 
     def egl_export(self, app_name):
+        if not self.lgd.lock_installed():
+            self.log.warning('Could not acquire lock for EGL import')
+            return
+
         self.log.debug(f'Exporting "{app_name}" to EGL')
         # load igame/game
         lgd_game = self.get_game(app_name)
@@ -1860,6 +1866,10 @@ class LegendaryCore:
         """
         Sync game installs between Legendary and the Epic Games Launcher
         """
+        if not self.lgd.lock_installed():
+            self.log.warning('Could not acquire lock for EGL sync')
+            return
+
         # read egl json files
         if app_name:
             lgd_igame = self._get_installed_game(app_name)

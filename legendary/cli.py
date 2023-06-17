@@ -315,7 +315,7 @@ class LegendaryCLI:
 
         print('\nInstalled games:')
         for game in games:
-            if game.install_size == 0:
+            if game.install_size == 0 and self.core.lgd.lock_installed():
                 logger.debug(f'Updating missing size for {game.app_name}')
                 m = self.core.load_manifest(self.core.get_installed_manifest(game.app_name)[0])
                 game.install_size = sum(fm.file_size for fm in m.file_manifest_list.elements)
@@ -472,12 +472,15 @@ class LegendaryCLI:
             logger.info(f'Checking "{igame.title}" ({igame.app_name})')
             # override save path only if app name is specified
             if args.app_name and args.save_path:
+                if not self.core.lgd.lock_installed():
+                    logger.error('Unable to lock install data, cannot modify save path.')
+                    break
                 logger.info(f'Overriding save path with "{args.save_path}"...')
                 igame.save_path = args.save_path
                 self.core.lgd.set_installed_game(igame.app_name, igame)
 
-            # if there is no saved save path, try to get one
-            if not igame.save_path:
+            # if there is no saved save path, try to get one, skip if we cannot get a install data lock
+            if not igame.save_path and self.core.lgd.lock_installed():
                 if args.yes and not args.accept_path:
                     logger.info('Save path for this title has not been set, skipping due to --yes')
                     continue
@@ -796,6 +799,11 @@ class LegendaryCLI:
             subprocess.Popen(command, env=full_env)
 
     def install_game(self, args):
+        if not self.core.lgd.lock_installed():
+            logger.fatal('Failed to acquire installed data lock, only one instance of Legendary may '
+                         'install/import/move applications at a time.')
+            return
+
         args.app_name = self._resolve_aliases(args.app_name)
         if self.core.is_installed(args.app_name):
             igame = self.core.get_installed_game(args.app_name)
@@ -1129,6 +1137,11 @@ class LegendaryCLI:
             logger.info('Automatic installation not available on Linux.')
 
     def uninstall_game(self, args):
+        if not self.core.lgd.lock_installed():
+            logger.fatal('Failed to acquire installed data lock, only one instance of Legendary may '
+                         'install/import/move applications at a time.')
+            return
+
         args.app_name = self._resolve_aliases(args.app_name)
         igame = self.core.get_installed_game(args.app_name)
         if not igame:
@@ -1259,6 +1272,11 @@ class LegendaryCLI:
                 logger.info(f'Run "legendary repair {args.app_name}" to repair your game installation.')
 
     def import_game(self, args):
+        if not self.core.lgd.lock_installed():
+            logger.fatal('Failed to acquire installed data lock, only one instance of Legendary may '
+                         'install/import/move applications at a time.')
+            return
+
         # make sure path is absolute
         args.app_path = os.path.abspath(args.app_path)
         args.app_name = self._resolve_aliases(args.app_name)
@@ -1354,6 +1372,11 @@ class LegendaryCLI:
         logger.info(f'{"DLC" if game.is_dlc else "Game"} "{game.app_title}" has been imported.')
 
     def egs_sync(self, args):
+        if not self.core.lgd.lock_installed():
+            logger.fatal('Failed to acquire installed data lock, only one instance of Legendary may '
+                         'install/import/move applications at a time.')
+            return
+
         if args.unlink:
             logger.info('Unlinking and resetting EGS and LGD sync...')
             self.core.lgd.config.remove_option('Legendary', 'egl_programdata')
@@ -2509,6 +2532,11 @@ class LegendaryCLI:
             logger.info('Saved choices to configuration.')
 
     def move(self, args):
+        if not self.core.lgd.lock_installed():
+            logger.fatal('Failed to acquire installed data lock, only one instance of Legendary may '
+                         'install/import/move applications at a time.')
+            return
+
         app_name = self._resolve_aliases(args.app_name)
         igame = self.core.get_installed_game(app_name, skip_sync=True)
         if not igame:
