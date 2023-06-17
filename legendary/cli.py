@@ -976,6 +976,11 @@ class LegendaryCLI:
                 self.core.uninstall_tag(old_igame)
                 self.core.install_game(old_igame)
 
+            # check if the version changed, this can happen for DLC that gets a version bump with no actual file changes
+            if old_igame and old_igame.version != igame.version:
+                old_igame.version = igame.version
+                self.core.install_game(old_igame)
+
             exit(0)
 
         logger.info(f'Install size: {analysis.install_size / 1024 / 1024:.02f} MiB')
