@@ -1,4 +1,4 @@
 """Legendary!"""
 
-__version__ = '0.20.32'
-__codename__ = 'Dark Energy (hotfix #6)'
+__version__ = '0.20.33'
+__codename__ = 'Undue Alarm'
