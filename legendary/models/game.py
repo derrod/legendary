@@ -149,6 +149,7 @@ class InstalledGame:
     needs_verification: bool = False
     platform: str = 'Windows'
     prereq_info: Optional[Dict] = None
+    uninstaller: Optional[Dict] = None
     requires_ot: bool = False
     save_path: Optional[str] = None
 
@@ -165,6 +166,7 @@ class InstalledGame:
         tmp.executable = json.get('executable', '')
         tmp.launch_parameters = json.get('launch_parameters', '')
         tmp.prereq_info = json.get('prereq_info', None)
+        tmp.uninstaller = json.get('uninstaller', None)
 
         tmp.can_run_offline = json.get('can_run_offline', False)
         tmp.requires_ot = json.get('requires_ot', False)

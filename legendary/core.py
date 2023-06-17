@@ -1472,6 +1472,11 @@ class LegendaryCore:
             prereq = dict(ids=new_manifest.meta.prereq_ids, name=new_manifest.meta.prereq_name,
                           path=new_manifest.meta.prereq_path, args=new_manifest.meta.prereq_args)
 
+        uninstaller = None
+        if new_manifest.meta.uninstall_action_path:
+            uninstaller = dict(path=new_manifest.meta.uninstall_action_path,
+                               args=new_manifest.meta.uninstall_action_args)
+
         offline = game.metadata.get('customAttributes', {}).get('CanRunOffline', {}).get('value', 'true')
         ot = game.metadata.get('customAttributes', {}).get('OwnershipToken', {}).get('value', 'false')
 
@@ -1495,7 +1500,7 @@ class LegendaryCore:
                               can_run_offline=offline == 'true', requires_ot=ot == 'true',
                               is_dlc=base_game is not None, install_size=anlres.install_size,
                               egl_guid=egl_guid, install_tags=file_install_tag,
-                              platform=platform)
+                              platform=platform, uninstaller=uninstaller)
 
         return dlm, anlres, igame
 
