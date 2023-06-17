@@ -1175,17 +1175,10 @@ class LegendaryCLI:
     def _handle_uninstaller(self, igame, yes=False):
         uninstaller = igame.uninstaller
 
-        print('\nThis game lists the following prerequisites to be installed:')
-        print(f'- {" ".join((uninstaller["path"], uninstaller["args"]))}\n')
-
-        # default to yes
-        c = 'y'
-        if not yes:
-            choice = input('Do you wish to run the uninstaller? ([y]es, [n]o): ')
-            if choice:
-                c = choice.lower()[0]
-
-        if c == 'y':  # set to installed and launch installation
+        print('\nThis game provides the following uninstaller:')
+        print(f'- {uninstaller["path"]} {uninstaller["args"]}\n')
+        
+        if yes or get_boolean_choice('Do you wish to run the uninstaller?', default=True):
             logger.info('Running uninstaller...')
             req_path, req_exec = os.path.split(uninstaller['path'])
             work_dir = os.path.join(igame.install_path, req_path)
@@ -1195,8 +1188,6 @@ class LegendaryCLI:
                 p.wait()
             except Exception as e:
                 logger.error(f'Failed to run uninstaller: {e!r}')
-        elif c != 'n':
-            print('Invalid choice, not running uninstaller...')
 
     def verify_game(self, args, print_command=True, repair_mode=False, repair_online=False):
         args.app_name = self._resolve_aliases(args.app_name)
