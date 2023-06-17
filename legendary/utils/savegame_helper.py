@@ -22,11 +22,14 @@ def _filename_matches(filename, patterns):
     """
 
     for pattern in patterns:
-        if pattern.endswith('/'):
-            # pat is a directory, check if path starts with it
-            if filename.startswith(pattern):
-                return True
-        elif fnmatch(filename, pattern):
+        # Pattern is a directory, just check if path starts with it
+        if pattern.endswith('/') and filename.startswith(pattern):
+            return True
+        # Check if pattern is a suffix of filename
+        if filename.endswith(pattern):
+            return True
+        # Check if pattern with wildcards ('*') matches
+        if fnmatch(filename, pattern):
             return True
 
     return False
