@@ -1153,6 +1153,9 @@ class LegendaryCLI:
                 print('Aborting...')
                 exit(0)
 
+        if os.name == 'nt' and igame.uninstaller and not args.skip_uninstaller:
+            self._handle_uninstaller(igame, args.yes)
+
         try:
             if not igame.is_dlc:
                 # Remove DLC first so directory is empty when game uninstall runs
@@ -1168,6 +1171,32 @@ class LegendaryCLI:
             logger.info('Game has been uninstalled.')
         except Exception as e:
             logger.warning(f'Removing game failed: {e!r}, please remove {igame.install_path} manually.')
+
+    def _handle_uninstaller(self, igame, yes=False):
+        uninstaller = igame.uninstaller
+
+        print('\nThis game lists the following prerequisites to be installed:')
+        print(f'- {" ".join((uninstaller["path"], uninstaller["args"]))}\n')
+
+        # default to yes
+        c = 'y'
+        if not yes:
+            choice = input('Do you wish to run the uninstaller? ([y]es, [n]o): ')
+            if choice:
+                c = choice.lower()[0]
+
+        if c == 'y':  # set to installed and launch installation
+            logger.info('Running uninstaller...')
+            req_path, req_exec = os.path.split(uninstaller['path'])
+            work_dir = os.path.join(igame.install_path, req_path)
+            fullpath = os.path.join(work_dir, req_exec)
+            try:
+                p = subprocess.Popen([fullpath, uninstaller['args']], cwd=work_dir, shell=True)
+                p.wait()
+            except Exception as e:
+                logger.error(f'Failed to run uninstaller: {e!r}')
+        elif c != 'n':
+            print('Invalid choice, not running uninstaller...')
 
     def verify_game(self, args, print_command=True, repair_mode=False, repair_online=False):
         args.app_name = self._resolve_aliases(args.app_name)
@@ -2757,6 +2786,8 @@ def main():
 
     uninstall_parser.add_argument('--keep-files', dest='keep_files', action='store_true',
                                   help='Keep files but remove game from Legendary database')
+    uninstall_parser.add_argument('--skip-uninstaller', dest='skip_uninstaller', action='store_true',
+                                  help='Skip running the uninstaller')
 
     launch_parser.add_argument('--offline', dest='offline', action='store_true',
                                default=False, help='Skip login and launch game without online authentication')
