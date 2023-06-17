@@ -1780,6 +1780,17 @@ class LegendaryCLI:
             else:
                 manifest_info.append(InfoItem('Prerequisites', 'prerequisites', None, None))
 
+            if manifest.meta.uninstall_action_path:
+                human_list = [
+                    f'Uninstaller path: {manifest.meta.uninstall_action_path}',
+                    f'Uninstaller args: {manifest.meta.uninstall_action_args or "(None)"}',
+                ]
+                manifest_info.append(InfoItem('Uninstaller', 'uninstaller', human_list,
+                                              dict(path=manifest.meta.uninstall_action_path,
+                                                   args=manifest.meta.uninstall_action_args)))
+            else:
+                manifest_info.append(InfoItem('Uninstaller', 'uninstaller', None, None))
+
             install_tags = {''}
             for fm in manifest.file_manifest_list.elements:
                 for tag in fm.install_tags:
