@@ -27,6 +27,7 @@ jobs:
         setuptools
         pyinstaller
         requests
+        filelock
 
     - name: Optional dependencies (WebView)
       run: pip3 install --upgrade pywebview
