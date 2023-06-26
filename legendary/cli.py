@@ -579,8 +579,8 @@ class LegendaryCLI:
             logger.error(f'Game {app_name} is not currently installed!')
             exit(1)
 
-        if igame.is_dlc:
-            logger.error(f'{app_name} is DLC; please launch the base game instead!')
+        if igame.is_dlc and not igame.executable:
+            logger.error(f'{app_name} is DLC without an executable; please launch the base game instead!')
             exit(1)
 
         if not os.path.exists(igame.install_path):
