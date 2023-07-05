@@ -1676,7 +1676,7 @@ class LegendaryCLI:
             # Find custom launch options, if available
             launch_options = []
             i = 1
-            while f'extraLaunchOption_{i:03d}_Name' in game.metadata['customAttributes']:
+            while f'extraLaunchOption_{i:03d}_Name' in game.metadata.get('customAttributes', {}):
                 launch_options.append((
                     game.metadata['customAttributes'][f'extraLaunchOption_{i:03d}_Name']['value'],
                     game.metadata['customAttributes'][f'extraLaunchOption_{i:03d}_Args']['value']
