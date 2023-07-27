@@ -984,6 +984,10 @@ class LegendaryCLI:
                 self.core.uninstall_tag(old_igame)
                 self.core.install_game(old_igame)
 
+            if old_igame.install_tags:
+                self.core.lgd.config.set(game.app_name, 'install_tags', ','.join(old_igame.install_tags))
+                self.core.lgd.save_config()
+
             # check if the version changed, this can happen for DLC that gets a version bump with no actual file changes
             if old_igame and old_igame.version != igame.version:
                 old_igame.version = igame.version
@@ -1225,7 +1229,7 @@ class LegendaryCLI:
                        key=lambda a: a.filename.lower())
 
         # build list of hashes
-        if config_tags := self.core.lgd.config.get(args.app_name, 'install_tags', fallback=None):
+        if config_tags := self.core.lgd.config.get(args.app_name, 'install_tags', fallback=None) is not None:
             install_tags = set(i.strip() for i in config_tags.split(','))
             file_list = [
                 (f.filename, f.sha_hash.hex())
