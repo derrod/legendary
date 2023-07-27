@@ -239,7 +239,7 @@ class LegendaryCore:
             userdata = self.egs.start_session(lock.data['refresh_token'])
         except InvalidCredentialsError:
             self.log.error('Stored credentials are no longer valid! Please login again.')
-            self.lgd.invalidate_userdata()
+            lock.clear()
             return False
         except (HTTPError, ConnectionError) as e:
             self.log.error(f'HTTP request for login failed: {e!r}, please try again later.')
