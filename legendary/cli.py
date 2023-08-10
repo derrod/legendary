@@ -104,11 +104,11 @@ class LegendaryCLI:
 
                 if not egl_wine_pfx:
                     logger.info('Please enter the path to the Wine prefix that has EGL installed')
-                    wine_pfx = input('Path [empty input to quit]: ').strip()
-                    if not wine_pfx:
+                    egl_wine_pfx = input('Path [empty input to quit]: ').strip()
+                    if not egl_wine_pfx:
                         print('Empty input, quitting...')
                         exit(0)
-                    if not os.path.exists(wine_pfx) and os.path.isdir(wine_pfx):
+                    if not os.path.exists(egl_wine_pfx) and os.path.isdir(egl_wine_pfx):
                         print('Path is invalid (does not exist)!')
                         exit(1)
 
