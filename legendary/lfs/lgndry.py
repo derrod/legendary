@@ -26,7 +26,9 @@ class LGDLFS:
     def __init__(self, config_file=None):
         self.log = logging.getLogger('LGDLFS')
 
-        if config_path := os.environ.get('XDG_CONFIG_HOME'):
+        if config_path := os.environ.get('LEGENDARY_CONFIG_PATH'):
+            self.path = os.path.join(config_path, 'legendary')
+        elif config_path := os.environ.get('XDG_CONFIG_HOME'):
             self.path = os.path.join(config_path, 'legendary')
         else:
             self.path = os.path.expanduser('~/.config/legendary')
