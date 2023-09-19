@@ -54,12 +54,13 @@ class LegendaryCore:
     """
     _egl_version = '11.0.1-14907503+++Portal+Release-Live'
 
-    def __init__(self, override_config=None, timeout=10.0):
+    def __init__(self, override_config=None, timeout=10.0, proxy=""):
         self.log = logging.getLogger('Core')
-        self.egs = EPCAPI(timeout=timeout)
+        self.egs = EPCAPI(timeout=timeout, proxy=proxy)
         self.lgd = LGDLFS(config_file=override_config)
         self.egl = EPCLFS()
         self.lgdapi = LGDAPI()
+        self.proxy = proxy
 
         # on non-Windows load the programdata path from config
         if os.name != 'nt':
@@ -99,6 +100,8 @@ class LegendaryCore:
         :return: exchange code
         """
         s = session()
+        if self.proxy != "":
+            s.proxies.update({'http': f'socks5://{self.proxy}', 'https': f'socks5://{self.proxy}', 'socks5': f'socks5://{self.proxy}'})
         s.headers.update({
             'X-Epic-Event-Action': 'login',
             'X-Epic-Event-Category': 'login',
@@ -1459,7 +1462,7 @@ class LegendaryCore:
 
         dlm = DLManager(install_path, base_url, resume_file=resume_file, status_q=status_q,
                         max_shared_memory=max_shm * 1024 * 1024, max_workers=max_workers,
-                        dl_timeout=dl_timeout)
+                        dl_timeout=dl_timeout, proxy=self.proxy)
         anlres = dlm.run_analysis(manifest=new_manifest, old_manifest=old_manifest,
                                   patch=not disable_patching, resume=not force,
                                   file_prefix_filter=file_prefix_filter,

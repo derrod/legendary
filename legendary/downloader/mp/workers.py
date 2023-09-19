@@ -20,11 +20,14 @@ from legendary.models.downloading import (
 
 class DLWorker(Process):
     def __init__(self, name, queue, out_queue, shm, max_retries=7,
-                 logging_queue=None, dl_timeout=10):
+                 logging_queue=None, dl_timeout=10, proxy=""):
         super().__init__(name=name)
         self.q = queue
         self.o_q = out_queue
+        self.proxy = proxy
         self.session = requests.session()
+        if proxy != "":
+            self.session.proxies.update({'http': f'socks5://{self.proxy}', 'https': f'socks5://{self.proxy}', 'socks5': f'socks5://{self.proxy}'})
         self.session.headers.update({
             'User-Agent': 'EpicGamesLauncher/11.0.1-14907503+++Portal+Release-Live Windows/10.0.19041.1.256.64bit'
         })

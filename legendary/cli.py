@@ -39,8 +39,8 @@ logger = logging.getLogger('cli')
 
 
 class LegendaryCLI:
-    def __init__(self, override_config=None, api_timeout=None):
-        self.core = LegendaryCore(override_config, timeout=api_timeout)
+    def __init__(self, override_config=None, api_timeout=None, proxy=""):
+        self.core = LegendaryCore(override_config, timeout=api_timeout, proxy=proxy)
         self.logger = logging.getLogger('cli')
         self.logging_queue = None
 
@@ -2631,6 +2631,9 @@ def main():
     parser.add_argument('-A', '--api-timeout', dest='api_timeout', action='store',
                         type=float, default=10, metavar='<seconds>',
                         help='API HTTP request timeout (default: 10 seconds)')
+    parser.add_argument('-p', '--proxy', dest='proxy', action='store',
+                        type=str, default="", metavar='<proxy>',
+                        help='SOCKS5 proxy setting (ex. 127.0.0.1:1080)')
 
     # all the commands
     subparsers = parser.add_subparsers(title='Commands', dest='subparser_name', metavar='<command>')
@@ -3023,7 +3026,7 @@ def main():
                 subprocess.Popen(['cmd', '/K', 'echo>nul'])
         return
 
-    cli = LegendaryCLI(override_config=args.config_file, api_timeout=args.api_timeout)
+    cli = LegendaryCLI(override_config=args.config_file, api_timeout=args.api_timeout, proxy=args.proxy)
     ql = cli.setup_threaded_logging()
 
     config_ll = cli.core.lgd.config.get('Legendary', 'log_level', fallback='info')
