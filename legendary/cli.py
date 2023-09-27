@@ -1231,7 +1231,7 @@ class LegendaryCLI:
                        key=lambda a: a.filename.lower())
 
         # build list of hashes
-        if config_tags := self.core.lgd.config.get(args.app_name, 'install_tags', fallback=None) is not None:
+        if (config_tags := self.core.lgd.config.get(args.app_name, 'install_tags', fallback=None)) is not None:
             install_tags = set(i.strip() for i in config_tags.split(','))
             file_list = [
                 (f.filename, f.sha_hash.hex())
