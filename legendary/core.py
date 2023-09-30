@@ -517,6 +517,8 @@ class LegendaryCore:
         _dlc = defaultdict(list)
         # get all the appnames we have to ignore
         ignore = set(i.app_name for i in self.get_assets())
+        # broken old app name that we should always ignore
+        ignore |= {'1'}
 
         for libitem in self.egs.get_library_items():
             if libitem['namespace'] == 'ue' and skip_ue:
