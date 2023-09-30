@@ -371,6 +371,8 @@ class LegendaryCLI:
 
         if args.install_tag:
             files = [fm for fm in files if args.install_tag in fm.install_tags]
+        elif args.install_tag is not None:
+            files = [fm for fm in files if not fm.install_tags]
 
         if args.hashlist:
             for fm in files:
