@@ -911,7 +911,7 @@ class LegendaryCLI:
             if config_tags:
                 self.core.lgd.config.remove_option(game.app_name, 'install_tags')
                 config_tags = None
-            self.core.lgd.config.set(game.app_name, 'disable_sdl', True)
+            self.core.lgd.config.set(game.app_name, 'disable_sdl', 'true')
             sdl_enabled = False
         # just disable SDL, but keep config tags that have been manually specified
         elif config_disable_sdl or args.disable_sdl:
