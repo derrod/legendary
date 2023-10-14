@@ -1,7 +1,6 @@
 # coding: utf-8
 
 import os
-import requests
 import time
 import logging
 
@@ -9,6 +8,9 @@ from logging.handlers import QueueHandler
 from multiprocessing import Process
 from multiprocessing.shared_memory import SharedMemory
 from queue import Empty
+
+import requests
+from requests.adapters import HTTPAdapter, DEFAULT_POOLBLOCK
 
 from legendary.models.chunk import Chunk
 from legendary.models.downloading import (
@@ -18,9 +20,22 @@ from legendary.models.downloading import (
 )
 
 
+class BindingHTTPAdapter(HTTPAdapter):
+    def __init__(self, addr):
+        self.__attrs__.append('addr')
+        self.addr = addr
+        super().__init__()
+
+    def init_poolmanager(
+            self, connections, maxsize, block=DEFAULT_POOLBLOCK, **pool_kwargs
+    ):
+        pool_kwargs['source_address'] = (self.addr, 0)
+        super().init_poolmanager(connections, maxsize, block, **pool_kwargs)
+
+
 class DLWorker(Process):
     def __init__(self, name, queue, out_queue, shm, max_retries=7,
-                 logging_queue=None, dl_timeout=10):
+                 logging_queue=None, dl_timeout=10, bind_addr=None):
         super().__init__(name=name)
         self.q = queue
         self.o_q = out_queue
@@ -33,6 +48,12 @@ class DLWorker(Process):
         self.log_level = logging.getLogger().level
         self.logging_queue = logging_queue
         self.dl_timeout = float(dl_timeout) if dl_timeout else 10.0
+
+        # optionally bind an address
+        if bind_addr:
+            adapter = BindingHTTPAdapter(bind_addr)
+            self.session.mount('https://', adapter)
+            self.session.mount('http://', adapter)
 
     def run(self):
         # we have to fix up the logger before we can start

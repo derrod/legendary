@@ -967,7 +967,8 @@ class LegendaryCLI:
                                                           disable_delta=args.disable_delta,
                                                           override_delta_manifest=args.override_delta_manifest,
                                                           preferred_cdn=args.preferred_cdn,
-                                                          disable_https=args.disable_https)
+                                                          disable_https=args.disable_https,
+                                                          bind_ip=args.bind_ip)
 
         # game is either up-to-date or hasn't changed, so we have nothing to do
         if not analysis.dl_size:
@@ -2782,6 +2783,8 @@ def main():
                                 help='Automatically install all DLCs with the base game')
     install_parser.add_argument('--skip-dlcs', dest='skip_dlcs', action='store_true',
                                 help='Do not ask about installing DLCs.')
+    install_parser.add_argument('--bind', dest='bind_ip', action='store', metavar='<IPs>', type=str,
+                                help='Comma-separated list of IPs to bind to for downloading')
 
     uninstall_parser.add_argument('--keep-files', dest='keep_files', action='store_true',
                                   help='Keep files but remove game from Legendary database')
