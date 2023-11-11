@@ -126,11 +126,12 @@ class DLWorker(Process):
 
             # decompress stuff
             try:
-                size = len(chunk.data)
+                data = chunk.data
+                size = len(data)
                 if size > job.shm.size:
                     logger.fatal('Downloaded chunk is longer than SharedMemorySegment!')
 
-                self.shm.buf[job.shm.offset:job.shm.offset + size] = bytes(chunk.data)
+                self.shm.buf[job.shm.offset:job.shm.offset + size] = data
                 del chunk
                 self.o_q.put(DownloaderTaskResult(success=True, size_decompressed=size,
                                                   size_downloaded=compressed, **job.__dict__))
@@ -271,7 +272,7 @@ class FileWorker(Process):
                     if j.shared_memory:
                         shm_offset = j.shared_memory.offset + j.chunk_offset
                         shm_end = shm_offset + j.chunk_size
-                        current_file.write(self.shm.buf[shm_offset:shm_end].tobytes())
+                        current_file.write(self.shm.buf[shm_offset:shm_end])
                     elif j.cache_file:
                         with open(os.path.join(self.cache_path, j.cache_file), 'rb') as f:
                             if j.chunk_offset:
