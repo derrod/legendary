@@ -144,7 +144,7 @@ class LegendaryCLI:
 
         exchange_token = ''
         auth_code = ''
-        if not args.auth_code and not args.session_id:
+        if not args.auth_code and not args.session_id and not args.ex_token:
             # only import here since pywebview import is slow
             from legendary.utils.webview_login import webview_available, do_webview_login
 
