@@ -576,6 +576,9 @@ class LegendaryCLI:
         if args.origin:
             return self._launch_origin(args)
 
+        if args.steam and sys_platform == 'linux':
+            return self._launch_steam(app_name, args)
+
         igame = self.core.get_installed_game(app_name)
         if not igame:
             logger.error(f'Game {app_name} is not currently installed!')
@@ -703,7 +706,9 @@ class LegendaryCLI:
             if params.environment:
                 logger.debug('Environment overrides: {}'.format(', '.join(
                     f'{k}={v}' for k, v in params.environment.items())))
-            subprocess.Popen(full_params, cwd=params.working_directory, env=full_env)
+            p = subprocess.Popen(full_params, cwd=params.working_directory, env=full_env)
+            if args.wait:
+                p.wait()
 
     def _launch_origin(self, args):
         game = self.core.get_game(app_name=args.app_name)
@@ -801,6 +806,50 @@ class LegendaryCLI:
 
             logger.debug(f'Opening Origin URI with command: {shlex.join(command)}')
             subprocess.Popen(command, env=full_env)
+
+    def _launch_steam(self, app_name, args):
+        def exit_error(msg, errcode=1):
+            print('https://legendary.gl/steam_error?code=' + msg)
+            exit(errcode)
+
+        igame = self.core.get_installed_game(app_name)
+        if not igame:
+            exit_error(f'not_installed')
+        if igame.is_dlc:
+            exit_error(f'is_dlc')
+        if not os.path.exists(igame.install_path):
+            exit_error(f'install_dir_missing')
+
+        # override with config value
+        args.offline = self.core.is_offline_game(app_name) or args.offline
+        if not args.offline:
+            logger.info('Logging in...')
+            try:
+                if not self.core.login():
+                    exit_error('login_failed')
+            except ValueError:
+                exit_error('login_failed_no_credentials')
+
+            if not args.skip_version_check and not self.core.is_noupdate_game(app_name):
+                logger.info('Checking for updates...')
+                try:
+                    latest = self.core.get_asset(app_name, update=True, platform=igame.platform)
+                except ValueError:
+                    exit_error('metadata_missing')
+
+                if latest.build_version != igame.version:
+                    exit_error('app_outdated')
+
+        params = self.core.get_launch_parameters(app_name=app_name, offline=args.offline,
+                                                 user=args.user_name_override,
+                                                 language=args.language, disable_wine=True)
+
+        full_params = []
+        full_params.extend(params.game_parameters)
+        full_params.extend(params.user_parameters)
+        full_params.extend(params.egl_parameters)
+        logger.debug(f'Launch parameters: {shlex.join(full_params)}')
+        print(shlex.join(full_params))
 
     def install_game(self, args):
         if not self.core.lgd.lock_installed():
@@ -2612,6 +2661,13 @@ class LegendaryCLI:
         self.core.install_game(igame)
         logger.info('Finished.')
 
+    def steam_sync(self, args):
+        if not self.core.login():
+            logger.error('Login failed!')
+            return
+
+        self.core.steam_sync()
+
 
 def main():
     # Set output encoding to UTF-8 if not outputting to a terminal
@@ -2662,6 +2718,7 @@ def main():
     list_saves_parser = subparsers.add_parser('list-saves', help='List available cloud saves')
     move_parser = subparsers.add_parser('move', help='Move specified app name to a new location')
     status_parser = subparsers.add_parser('status', help='Show legendary status information')
+    steam_parser = subparsers.add_parser('steam-sync', help='Setup/Run Steam Sync')
     sync_saves_parser = subparsers.add_parser('sync-saves', help='Sync cloud saves')
     uninstall_parser = subparsers.add_parser('uninstall', help='Uninstall (delete) a game')
     verify_parser = subparsers.add_parser('verify', help='Verify a game\'s local files',
@@ -2814,6 +2871,10 @@ def main():
                                help='Launch Origin to activate or run the game.')
     launch_parser.add_argument('--json', dest='json', action='store_true',
                                help='Print launch information as JSON and exit')
+    launch_parser.add_argument('--wait', dest='wait', action='store_true',
+                               help='Wait until child process exits')
+    # hidden option for Steam sync launch
+    launch_parser.add_argument('--steam', dest='steam', action='store_true', help=argparse.SUPPRESS)
 
     if os.name != 'nt':
         launch_parser.add_argument('--wine', dest='wine_bin', action='store', metavar='<wine binary>',
@@ -3010,8 +3071,8 @@ def main():
 
         if args.full_help:
             # Commands that should not be shown in full help/list of commands (e.g. aliases)
-            _hidden_commands = {'download', 'update', 'repair', 'get-token',
-                                'import-game', 'verify-game', 'list-games'}
+            _hidden_commands = {'download', 'update', 'repair', 'get-token', 'import-game',
+                                'verify-game', 'list-games'}
             # Print the help for all of the subparsers. Thanks stackoverflow!
             print('Individual command help:')
             subparsers = next(a for a in parser._actions if isinstance(a, argparse._SubParsersAction))
@@ -3099,6 +3160,8 @@ def main():
             cli.crossover_setup(args)
         elif args.subparser_name == 'move':
             cli.move(args)
+        elif args.subparser_name == 'steam-sync':
+            cli.steam_sync(args)
     except KeyboardInterrupt:
         logger.info('Command was aborted via KeyboardInterrupt, cleaning up...')
 

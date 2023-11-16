@@ -140,6 +140,7 @@ class InstalledGame:
     base_urls: List[str] = field(default_factory=list)
     can_run_offline: bool = False
     egl_guid: str = ''
+    steam_appid: int = 0
     executable: str = ''
     install_size: int = 0
     install_tags: List[str] = field(default_factory=list)
@@ -177,6 +178,7 @@ class InstalledGame:
         tmp.platform = json.get('platform', 'Windows')
         tmp.install_size = json.get('install_size', 0)
         tmp.egl_guid = json.get('egl_guid', '')
+        tmp.steam_appid = json.get('steam_appid', 0)
         tmp.install_tags = json.get('install_tags', [])
         return tmp
 

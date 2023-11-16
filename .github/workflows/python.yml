@@ -28,9 +28,12 @@ jobs:
         pyinstaller
         requests
         filelock
+        pefile
+        vdf
+        Pillow
 
     - name: Optional dependencies (WebView)
-      run: pip3 install --upgrade pywebview
+      run: pip3 install --upgrade "pywebview<4.0"
       if: runner.os != 'macOS'
 
     - name: Set strip option on non-Windows

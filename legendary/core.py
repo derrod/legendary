@@ -40,6 +40,7 @@ from legendary.utils.game_workarounds import is_opt_enabled, update_workarounds,
 from legendary.utils.savegame_helper import SaveGameHelper
 from legendary.utils.selective_dl import games as sdl_games
 from legendary.lfs.wine_helpers import read_registry, get_shell_folders, case_insensitive_path_search
+from legendary.utils.steam import SteamHelper
 
 
 # ToDo: instead of true/false return values for success/failure actually raise an exception that the CLI/GUI
@@ -574,8 +575,12 @@ class LegendaryCore:
 
     def get_installed_game(self, app_name, skip_sync=False) -> InstalledGame:
         igame = self._get_installed_game(app_name)
-        if not skip_sync and igame and self.egl_sync_enabled and igame.egl_guid and not igame.is_dlc:
-            self.egl_sync(app_name)
+        if not skip_sync and igame:
+            if self.egl_sync_enabled and igame.egl_guid and not igame.is_dlc:
+                self.egl_sync(app_name)
+            if self.steam_sync_enabled and igame.steam_appid and not igame.is_dlc:
+                self.steam_sync(app_name)
+
             return self._get_installed_game(app_name)
         else:
             return igame
@@ -2109,6 +2114,188 @@ class LegendaryCore:
         path = mac_get_bottle_path(bottle_name)
         if os.path.exists(path):
             delete_folder(path, recursive=True)
+
+    @property
+    def steam_sync_enabled(self):
+        return self.lgd.config.getboolean('Legendary', 'steam_sync', fallback=False)
+
+    def _steam_export(self, sh: SteamHelper, shortcuts: dict, igame: InstalledGame):
+        def shortcut_exists(app_id):
+            for shortcut in shortcuts['shortcuts'].values():
+                if (shortcut['appid'] + 2**32) == app_id:
+                    return True
+            return False
+
+        if igame.steam_appid and shortcut_exists(igame.steam_appid):
+            return False
+
+        entry = sh.create_shortcut_entry(igame, igame.steam_appid)
+
+        idx = 0
+        while str(idx) in shortcuts['shortcuts']:
+            idx += 1
+
+        shortcuts['shortcuts'][str(idx)] = entry
+        # add appid to installed game
+        igame.steam_appid = entry['appid'] + 2**32
+        self._install_game(igame)
+
+        # todo only do this if no wine is configured for this app
+        if sys_platform == 'linux':
+            sh.set_compat_tool(igame.steam_appid, 'proton_experimental')
+
+        return True
+
+    def _steam_remove(self):
+        # todo remove icons and shit as well
+        pass
+
+    def steam_sync(self, app_name=None, is_install=False, steam_path=None,
+                   legendary_bin=None, steam_user=None, refresh_artwork=False):
+        try:
+            steam_path = steam_path or self.lgd.config.get('Legendary', 'steam_path', fallback=None)
+            legendary_bin = legendary_bin or self.lgd.config.get('Legendary', 'legendary_binary', fallback=None)
+            sh = SteamHelper(steam_path, legendary_bin, self.lgd.path)
+            if sys_platform == 'linux':
+                sh.ensure_launch_script()
+        except RuntimeError as e:
+            self.log.error(f'SteamHelper failed to initialize: {e!r}')
+            return
+        except FileNotFoundError:
+            self.log.error('Steam installation not found, please specify the installation directory '
+                           'via the config (steam_path) or command line (--steam-path).')
+            return
+
+        if sh.is_steam_running():
+            if not is_install:
+                # todo use better exception
+                raise RuntimeError('Steam is running, please close it before running this command.')
+            else:
+                self.log.warning('Steam is still running, please restart it to reload Legendary shortcuts.')
+
+        _ = sh.get_user_dir(steam_user or self.lgd.config.get('Legendary', 'steam_user', fallback=None))
+        shortcuts = sh.read_shortcuts()
+        if sys_platform == 'linux':
+            sh.read_config()
+
+        any_changes = False
+
+        if app_name:
+            igame = self._get_installed_game(app_name)
+            any_changes = self._steam_export(sh, shortcuts, igame)
+        else:
+            for igame in self._get_installed_list():
+                any_changes = self._steam_export(sh, shortcuts, igame) or any_changes
+
+        # todo remove uninstalled games from shortcuts
+
+        if any_changes:
+            sh.write_shortcuts(shortcuts)
+            if sys_platform == 'linux':
+                sh.write_config()
+        elif not refresh_artwork:
+            return
+
+        # Download cover art and stuff
+        self.log.info('Downloading Steam Library artwork, this may take a while...')
+
+        for igame in self._get_installed_list():
+            if not igame.steam_appid:
+                continue
+
+            sh.create_grid_json(igame.steam_appid)
+            game = self.get_game(igame.app_name)
+            # go through all available image files and download if necessary
+            banner = logo = tall = None
+
+            # todo SteamDB instead
+            # todo move this into Steam Helper
+            for img in game.metadata.get('keyImages', []):
+                img_url = img['url']
+                img_type = img['type']
+                url_fname = img_url.rpartition('/')[2]
+
+                if '.' not in url_fname:
+                    self.log.debug(f'Image url for {igame.app_name} does not have a file extension.')
+                    # extension doesn't really matter, Steam will determine the type when loading
+                    ext = 'jpg' if img['type'] != 'DieselGameBoxLogo' else 'png'
+                else:
+                    ext = url_fname.rpartition('.')[2]
+
+                if img_type == 'DieselGameBox' or img_type == 'DieselGameBoxWide':
+                    # Sometimes DieselGameBox doesn't exist but DieselGameBoxWide does.
+                    # In cases where both exist they appear to be the same image.
+                    filename = f'{igame.steam_appid}_hero.{ext}'
+                elif img_type == 'DieselGameBoxLogo':
+                    filename = f'{igame.steam_appid}_logo.{ext}'
+                elif img_type == 'DieselGameBoxTall':
+                    filename = f'{igame.steam_appid}p_epic.{ext}'
+                elif img_type == 'Thumbnail':
+                    # If this is square use it instead of manually extracting the icon
+                    if img['height'] == img['width']:
+                        filename = f'{igame.steam_appid}_icon.{ext}'
+                    else:
+                        self.log.debug(f'Non-square thumbnail: {img_url}')
+                        continue
+                else:
+                    self.log.debug(f'Unknown EGS image type: {img["type"]}')
+                    continue
+
+                file_path = os.path.join(sh.grid_path, filename)
+                if not os.path.exists(file_path) or refresh_artwork:
+                    self.log.debug(f'Downloading {img["url"]} to {filename}')
+                    r = self.egs.unauth_session.get(img['url'], timeout=20.0)
+                    if r.status_code == 200:
+                        # save component image for big picture/box generation
+                        if img_type == 'DieselGameBox' or img_type == 'DieselGameBoxWide':
+                            banner = r.content
+                        elif img_type == 'DieselGameBoxLogo':
+                            logo = r.content
+                        elif img_type == 'DieselGameBoxTall':
+                            tall = r.content
+
+                        with open(file_path, 'wb') as f:
+                            f.write(r.content)
+
+            # assemble the banner (Steam calls it "header") for big picture
+            if banner:
+                # Big Picture banner image
+                banner_id = sh.get_header_id(igame)
+                banner_file = os.path.join(sh.grid_path, f'{banner_id}.jpg')
+                if not os.path.exists(banner_file) or refresh_artwork:
+                    with open(banner_file, 'wb') as f:
+                        f.write(sh.make_header_image(banner, logo))
+
+                # Deck UI banner image
+                banner_file = os.path.join(sh.grid_path, f'{igame.steam_appid}.png')
+                if not os.path.exists(banner_file) or refresh_artwork:
+                    with open(banner_file, 'wb') as f:
+                        f.write(sh.make_banner_image(banner, logo))
+
+            # If the logo exists as a separate file we need to manually generate the "tall" box art as well
+            if tall and logo:
+                box_file = os.path.join(sh.grid_path, f'{igame.steam_appid}p.png')
+
+                if not os.path.exists(box_file) or refresh_artwork:
+                    with open(box_file, 'wb') as f:
+                        f.write(sh.make_tall_box(tall, logo))
+
+            # steam can read exe icons directly, but that doesn't handle alpha correctly, so do it ourselves.
+            icon_fie = os.path.join(sh.grid_path, f'{igame.steam_appid}_icon.png')
+            if not os.path.exists(icon_fie) or refresh_artwork:
+                try:
+                    icon = sh.make_icon(igame)
+                    if icon:
+                        with open(icon_fie, 'wb') as f:
+                            f.write(icon)
+                except Exception as e:
+                    self.log.warning(f'Getting Steam icon failed with {e!r}')
+        # todo figure out how to set Proton by default
+
+        self.log.info('Done, Steam may now be restarted.')
+
+    def steam_unlink(self):
+        pass
 
     def exit(self):
         """
