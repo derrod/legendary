@@ -525,6 +525,8 @@ class LegendaryCore:
                 continue
             if libitem['appName'] in ignore:
                 continue
+            if libitem['sandboxType'] == 'PRIVATE':
+                continue
 
             game = self.lgd.get_game_meta(libitem['appName'])
             if not game or force_refresh:
