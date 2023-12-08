@@ -162,7 +162,8 @@ class LegendaryCLI:
                 else:
                     auth_code = auth_code.strip('"')
             else:
-                if do_webview_login(callback_code=self.core.auth_ex_token):
+                if do_webview_login(callback_code=self.core.auth_ex_token,
+                                    user_agent=f'EpicGamesLauncher/{self.core.get_egl_version()}'):
                     logger.info(f'Successfully logged in as "{self.core.lgd.userdata["displayName"]}" via WebView')
                 else:
                     logger.error('WebView login attempt failed, please see log for details.')

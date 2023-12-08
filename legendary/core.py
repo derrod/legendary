@@ -301,6 +301,9 @@ class LegendaryCore:
         if lgd_config := version_info.get('legendary_config'):
             self.webview_killswitch = lgd_config.get('webview_killswitch', False)
 
+    def get_egl_version(self):
+        return self._egl_version
+
     def get_update_info(self):
         return self.lgd.get_cached_version()['data'].get('release_info')
 

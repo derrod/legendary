@@ -124,7 +124,7 @@ class MockLauncher:
             self.window.load_url(logout_url)
 
 
-def do_webview_login(callback_sid=None, callback_code=None):
+def do_webview_login(callback_sid=None, callback_code=None, user_agent=None):
     api = MockLauncher(callback_sid=callback_sid, callback_code=callback_code)
     url = login_url
 
@@ -143,7 +143,7 @@ def do_webview_login(callback_sid=None, callback_code=None):
     window.events.loaded += api.on_loaded
 
     try:
-        webview.start()
+        webview.start(user_agent=user_agent)
     except Exception as we:
         logger.error(f'Running webview failed with {we!r}. If this error persists try the manual '
                      f'login process by adding --disable-webview to your command line.')
