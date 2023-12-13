@@ -1704,6 +1704,9 @@ class LegendaryCLI:
             else:
                 game_infos.append(InfoItem('Extra launch options', 'launch_options', None, []))
 
+            game_infos.append(InfoItem('Command Line', 'command_line', game.additional_command_line,
+                                       game.additional_command_line))
+
             # list all owned DLC based on entitlements
             if entitlements and not game.is_dlc:
                 owned_entitlements = {i['entitlementName'] for i in entitlements}
