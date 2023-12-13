@@ -92,6 +92,12 @@ class Game:
         return self.metadata and (self.metadata.get('customAttributes', {}).get('CloudSaveFolder_MAC') is not None)
 
     @property
+    def additional_command_line(self):
+        if not self.metadata:
+            return None
+        return self.metadata.get('customAttributes', {}).get('AdditionalCommandLine', {}).get('value', None)
+
+    @property
     def catalog_item_id(self):
         if not self.metadata:
             return None

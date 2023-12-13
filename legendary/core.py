@@ -733,6 +733,13 @@ class LegendaryCore:
                 self.log.warning(f'Parsing predefined launch parameters failed with: {e!r}, '
                                  f'input: {install.launch_parameters}')
 
+        if meta_args := game.additional_command_line:
+            try:
+                params.game_parameters.extend(shlex.split(meta_args.strip(), posix=False))
+            except ValueError as e:
+                self.log.warning(f'Parsing metadata launch parameters failed with: {e!r}, '
+                                 f'input: {install.launch_parameters}')
+
         game_token = ''
         if not offline:
             self.log.info('Getting authentication token...')
