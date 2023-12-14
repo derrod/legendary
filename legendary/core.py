@@ -689,9 +689,10 @@ class LegendaryCore:
                               disable_wine: bool = False,
                               executable_override: str = None,
                               crossover_app: str = None,
-                              crossover_bottle: str = None) -> LaunchParameters:
+                              crossover_bottle: str = None,
+                              addon_app_name: str = None) -> LaunchParameters:
         install = self.lgd.get_installed_game(app_name)
-        game = self.lgd.get_game_meta(app_name)
+        game = self.lgd.get_game_meta(addon_app_name if addon_app_name else app_name)
 
         # Disable wine for non-Windows executables (e.g. native macOS)
         if not install.platform.startswith('Win'):

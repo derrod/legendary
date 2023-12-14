@@ -568,6 +568,7 @@ class LegendaryCLI:
 
     def launch_game(self, args, extra):
         app_name = self._resolve_aliases(args.app_name)
+        addon_app_name = None
 
         # Interactive CrossOver setup
         if args.crossover and sys_platform == 'darwin':
@@ -578,6 +579,13 @@ class LegendaryCLI:
             return self._launch_origin(args)
 
         igame = self.core.get_installed_game(app_name)
+        if not igame and (game := self.core.get_game(app_name)) is not None:
+            # override installed game with base title
+            if game.is_launchable_addon:
+                addon_app_name = app_name
+                app_name = game.metadata['mainGameItem']['releaseInfo'][0]['appId']
+                igame = self.core.get_installed_game(app_name)
+
         if not igame:
             logger.error(f'Game {app_name} is not currently installed!')
             exit(1)
@@ -622,7 +630,8 @@ class LegendaryCLI:
                                                  disable_wine=args.no_wine,
                                                  executable_override=args.executable_override,
                                                  crossover_app=args.crossover_app,
-                                                 crossover_bottle=args.crossover_bottle)
+                                                 crossover_bottle=args.crossover_bottle,
+                                                 addon_app_name=addon_app_name)
 
         if args.set_defaults:
             self.core.lgd.config[app_name] = dict()
