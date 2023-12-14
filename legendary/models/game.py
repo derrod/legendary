@@ -98,6 +98,12 @@ class Game:
         return self.metadata.get('customAttributes', {}).get('AdditionalCommandLine', {}).get('value', None)
 
     @property
+    def is_launchable_addon(self):
+        if not self.metadata:
+            return False
+        return any(m['path'] == 'addons/launchable' for m in self.metadata.get('categories', []))
+
+    @property
     def catalog_item_id(self):
         if not self.metadata:
             return None
