@@ -579,7 +579,7 @@ class LegendaryCLI:
             return self._launch_origin(args)
 
         igame = self.core.get_installed_game(app_name)
-        if not igame and (game := self.core.get_game(app_name)) is not None:
+        if (not igame or not igame.executable) and (game := self.core.get_game(app_name)) is not None:
             # override installed game with base title
             if game.is_launchable_addon:
                 addon_app_name = app_name
