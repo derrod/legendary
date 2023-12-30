@@ -66,7 +66,11 @@ class Game:
         return self.metadata and 'mainGameItem' in self.metadata
 
     @property
-    def third_party_store(self):
+    def is_origin_game(self) -> bool:
+        return self.third_party_store and self.third_party_store.lower() in ['origin', 'the ea app']
+
+    @property
+    def third_party_store(self) -> Optional[str]:
         if not self.metadata:
             return None
         return self.metadata.get('customAttributes', {}).get('ThirdPartyManagedApp', {}).get('value', None)

@@ -242,7 +242,7 @@ class LegendaryCLI:
             # a third-party application (such as Origin).
             if not version:
                 _store = game.third_party_store
-                if _store == 'Origin':
+                if game.is_origin_game:
                     print(f'  - This game has to be activated, installed, and launched via Origin, use '
                           f'"legendary launch --origin {game.app_name}" to activate and/or run the game.')
                 elif _store:
@@ -722,7 +722,7 @@ class LegendaryCLI:
                          f'to fetch data for Origin titles before using this command.')
             return
 
-        if not game.third_party_store or game.third_party_store != 'Origin':
+        if not game.is_origin_game:
             logger.error(f'The specified game is not an Origin title.')
             return
 
@@ -856,7 +856,7 @@ class LegendaryCLI:
 
         if store := game.third_party_store:
             logger.error(f'The selected title has to be installed via a third-party store: {store}')
-            if store == 'Origin':
+            if game.is_origin_game:
                 logger.info(f'For Origin games use "legendary launch --origin {args.app_name}" to '
                             f'activate and/or run the game.')
             exit(0)
@@ -2125,7 +2125,7 @@ class LegendaryCLI:
                 logger.info('Redeemed all outstanding Uplay codes.')
         elif args.origin:
             na_games, _ = self.core.get_non_asset_library_items(skip_ue=True)
-            origin_games = [game for game in na_games if game.third_party_store == 'Origin']
+            origin_games = [game for game in na_games if game.is_origin_game]
 
             if not origin_games:
                 logger.info('No redeemable games found.')
