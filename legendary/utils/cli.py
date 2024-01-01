@@ -1,3 +1,5 @@
+import os
+
 def get_boolean_choice(prompt, default=True):
     yn = 'Y/n' if default else 'y/N'
 
@@ -89,3 +91,15 @@ def strtobool(val):
     else:
         raise ValueError("invalid truth value %r" % (val,))
 
+def scan_dir(src):
+    files = 0
+    chunks = 0
+    for entry in os.scandir(src):
+        if entry.is_dir():
+            cnt, sz = scan_dir(entry.path)
+            files += cnt
+            chunks += sz
+        else:
+            files += 1
+            chunks += entry.stat().st_size
+    return files, chunks
