@@ -305,7 +305,7 @@ usage: legendary crossover [-h] [--reset] [--download] [--ignore-version]
 
 positional arguments:
   <App Name>            App name to configure, will configure defaults if
-                        ommited
+                        omitted
 
 optional arguments:
   -h, --help            show this help message and exit
