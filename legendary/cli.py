@@ -1657,7 +1657,7 @@ class LegendaryCLI:
             else:
                 logger.info('Game not installed and offline mode enabled, cannot load manifest.')
         elif game:
-            entitlements = self.core.egs.get_user_entitlements()
+            entitlements = self.core.egs.get_user_entitlements_full()
             egl_meta = self.core.egs.get_game_info(game.namespace, game.catalog_item_id)
             game.metadata = egl_meta
             # Get manifest if asset exists for current platform
@@ -2046,7 +2046,7 @@ class LegendaryCLI:
             redeemed = {k['gameId'] for k in key_list if k['redeemedOnUplay']}
 
             games = self.core.get_game_list()
-            entitlements = self.core.egs.get_user_entitlements()
+            entitlements = self.core.egs.get_user_entitlements_full()
             owned_entitlements = {i['entitlementName'] for i in entitlements}
 
             uplay_games = []

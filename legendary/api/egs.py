@@ -186,12 +186,23 @@ class EPCAPI:
         r.raise_for_status()
         return r.json()
 
-    def get_user_entitlements(self):
+    def get_user_entitlements(self, start=0):
         user_id = self.user.get('account_id')
         r = self.session.get(f'https://{self._entitlements_host}/entitlement/api/account/{user_id}/entitlements',
-                             params=dict(start=0, count=5000), timeout=self.request_timeout)
+                             params=dict(start=start, count=1000), timeout=self.request_timeout)
         r.raise_for_status()
         return r.json()
+
+    def get_user_entitlements_full(self):
+        ret = []
+
+        while True:
+            resp = self.get_user_entitlements(start=len(ret))
+            ret.extend(resp)
+            if len(resp) < 1000:
+                break
+
+        return ret
 
     def get_game_info(self, namespace, catalog_item_id, timeout=None):
         r = self.session.get(f'https://{self._catalog_host}/catalog/api/shared/namespace/{namespace}/bulk/items',
