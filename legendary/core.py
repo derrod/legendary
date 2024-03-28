@@ -526,6 +526,8 @@ class LegendaryCore:
         for libitem in self.egs.get_library_items():
             if libitem['namespace'] == 'ue' and skip_ue:
                 continue
+            if 'appName' not in libitem:
+                continue
             if libitem['appName'] in ignore:
                 continue
             if libitem['sandboxType'] == 'PRIVATE':
