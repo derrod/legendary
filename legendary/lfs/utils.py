@@ -159,10 +159,10 @@ def get_dir_size(path):
 
 
 class LockedJSONData(FileLock):
-    def __init__(self, file_path: str):
-        super().__init__(file_path + '.lock')
+    def __init__(self, lock_file: str):
+        super().__init__(lock_file + '.lock')
 
-        self._file_path = file_path
+        self._file_path = lock_file
         self._data = None
         self._initial_data = None
 
