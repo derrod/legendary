@@ -1495,7 +1495,7 @@ class LegendaryCore:
                                args=new_manifest.meta.uninstall_action_args)
 
         offline = game.metadata.get('customAttributes', {}).get('CanRunOffline', {}).get('value', 'true')
-        ot = game.metadata.get('customAttributes', {}).get('OwnershipToken', {}).get('value', 'false')
+        ot = game.metadata.get('customAttributes', {}).get('OwnershipToken', {}).get('value', 'false').lower()
 
         if file_install_tag is None:
             file_install_tag = []
@@ -1761,7 +1761,7 @@ class LegendaryCore:
                           path=new_manifest.meta.prereq_path, args=new_manifest.meta.prereq_args)
 
         offline = game.metadata.get('customAttributes', {}).get('CanRunOffline', {}).get('value', 'true')
-        ot = game.metadata.get('customAttributes', {}).get('OwnershipToken', {}).get('value', 'false')
+        ot = game.metadata.get('customAttributes', {}).get('OwnershipToken', {}).get('value', 'false').lower()
         igame = InstalledGame(app_name=game.app_name, title=game.app_title, prereq_info=prereq, base_urls=base_urls,
                               install_path=app_path, version=new_manifest.meta.build_version, is_dlc=game.is_dlc,
                               executable=new_manifest.meta.launch_exe, can_run_offline=offline == 'true',
