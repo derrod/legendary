@@ -255,7 +255,8 @@ class LegendaryCLI:
                 _type = game.partner_link_type
                 if _type == 'ubisoft':
                     print('  - This game can be activated directly on your Ubisoft account and does not require '
-                          'legendary to install/run. Use "legendary activate --uplay" and follow the instructions.')
+                          'legendary to install/run. This game requires Ubisoft Connect to be installed. '
+                          'Use "legendary activate --uplay" and follow the instructions.')
                 else:
                     print(f'  ! This app requires linking to a third-party account (name: "{_type}", not supported)')
 
