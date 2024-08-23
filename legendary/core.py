@@ -431,26 +431,40 @@ class LegendaryCore:
                 continue
 
             game = self.lgd.get_game_meta(app_name)
-            asset_updated = False
+            asset_updated = sidecar_updated = False
             if game:
                 asset_updated = any(game.app_version(_p) != app_assets[_p].build_version for _p in app_assets.keys())
+                # assuming sidecar data is the same for all platforms, just check the baseline (Windows) for updates.
+                sidecar_updated = (app_assets['Windows'].sidecar_rev > 0 and
+                                   (not game.sidecar or game.sidecar.rev != app_assets['Windows'].sidecar_rev))
                 games[app_name] = game
 
-            if update_assets and (not game or force_refresh or (game and asset_updated)):
+            if update_assets and (not game or force_refresh or (game and (asset_updated or sidecar_updated))):
                 self.log.debug(f'Scheduling metadata update for {app_name}')
                 # namespace/catalog item are the same for all platforms, so we can just use the first one
                 _ga = next(iter(app_assets.values()))
-                fetch_list.append((app_name, _ga.namespace, _ga.catalog_item_id))
+                fetch_list.append((app_name, _ga.namespace, _ga.catalog_item_id, sidecar_updated))
                 meta_updated = True
 
         def fetch_game_meta(args):
-            app_name, namespace, catalog_item_id = args
+            app_name, namespace, catalog_item_id, update_sidecar = args
             eg_meta = self.egs.get_game_info(namespace, catalog_item_id, timeout=10.0)
             if not eg_meta:
                 self.log.warning(f'App {app_name} does not have any metadata!')
                 eg_meta = dict(title='Unknown')
 
-            game = Game(app_name=app_name, app_title=eg_meta['title'], metadata=eg_meta, asset_infos=assets[app_name])
+            sidecar = None
+            if update_sidecar:
+                self.log.debug(f'Updating sidecar information for {app_name}...')
+                manifest_api_response = self.egs.get_game_manifest(namespace, catalog_item_id, app_name)
+                # sidecar data is a JSON object encoded as a string for some reason
+                manifest_info = manifest_api_response['elements'][0]
+                if 'sidecar' in manifest_info:
+                    sidecar_json = json.loads(manifest_info['sidecar']['config'])
+                    sidecar = Sidecar(config=sidecar_json, rev=manifest_info['sidecar']['rvn'])
+
+            game = Game(app_name=app_name, app_title=eg_meta['title'], metadata=eg_meta, asset_infos=assets[app_name],
+                        sidecar=sidecar)
             self.lgd.set_game_meta(game.app_name, game)
             games[app_name] = game
             try:
@@ -477,7 +491,7 @@ class LegendaryCore:
                 if use_threads:
                     self.log.warning(f'Fetching metadata for {app_name} failed, retrying')
                 _ga = next(iter(app_assets.values()))
-                fetch_game_meta((app_name, _ga.namespace, _ga.catalog_item_id))
+                fetch_game_meta((app_name, _ga.namespace, _ga.catalog_item_id, True))
                 game = games[app_name]
 
             if game.is_dlc and platform in app_assets:
@@ -783,6 +797,10 @@ class LegendaryCore:
             f'-epiclocale={language_code}',
             f'-epicsandboxid={game.namespace}'
         ])
+
+        if sidecar := game.sidecar:
+            if deployment_id := sidecar.config.get('deploymentId', None):
+                params.egl_parameters.append(f'-epicdeploymentid={deployment_id}')
 
         if extra_args:
             params.user_parameters.extend(extra_args)
