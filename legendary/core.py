@@ -446,6 +446,10 @@ class LegendaryCore:
         def fetch_game_meta(args):
             app_name, namespace, catalog_item_id = args
             eg_meta = self.egs.get_game_info(namespace, catalog_item_id, timeout=10.0)
+            if not eg_meta:
+                self.log.warning(f'App {app_name} does not have any metadata!')
+                eg_meta = dict(title='Unknown')
+
             game = Game(app_name=app_name, app_title=eg_meta['title'], metadata=eg_meta, asset_infos=assets[app_name])
             self.lgd.set_game_meta(game.app_name, game)
             games[app_name] = game
