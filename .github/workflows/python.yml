@@ -11,12 +11,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ['ubuntu-20.04', 'windows-2019', 'macos-11']
+        os: ['ubuntu-24.04', 'windows-latest', 'macos-13']
       fail-fast: false
       max-parallel: 3
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - uses: actions/setup-python@v4
       with:
@@ -49,7 +49,7 @@ jobs:
       env:
         PYTHONOPTIMIZE: 1
 
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: ${{ runner.os }}-package
         path: legendary/dist/*
@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Dependencies
       run: |
@@ -82,7 +82,7 @@ jobs:
         source /etc/os-release
         echo ::set-output name=version::$NAME-$VERSION_ID
 
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: ${{ steps.os_version.outputs.version }}-deb-package
         path: ./*.deb
