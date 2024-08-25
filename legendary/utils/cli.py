@@ -1,3 +1,6 @@
+from typing import Union
+
+
 def get_boolean_choice(prompt, default=True):
     yn = 'Y/n' if default else 'y/N'
 
@@ -89,3 +92,9 @@ def strtobool(val):
     else:
         raise ValueError("invalid truth value %r" % (val,))
 
+
+def get_size(b: Union[int, float]) -> str:
+    for i in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei"]:
+        if b < 1024:
+            return f"{b:.2f}{i}B"
+        b /= 1024
