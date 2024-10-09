@@ -535,15 +535,15 @@ class LegendaryCLI:
                     logger.warning('Run the command again with appropriate force parameter to effectively pick the save')
                     continue
                 else:
-                    result = get_int_choice('Which saves should be kept? Type the number corresponding to preferred action (local - 1/remote - 2/cancel - 3)',
+                    result = get_int_choice('Which saves should be kept? Type the number corresponding to preferred action (remote - 1/local - 2/cancel - 3)',
                                             default=3, min_choice=1, max_choice=3)
                     if result == 1:
-                        self.core.upload_save(igame.app_name, igame.save_path, dt_l, args.disable_filters)
+                        self.core.download_saves(igame.app_name, save_dir=igame.save_path, clean_dir=True,
+                                                 manifest_name=latest_save[igame.app_name].manifest_name)
                         igame.save_timestamp = time.time()
                         self.core.lgd.set_installed_game(igame.app_name, igame)
                     elif result == 2:
-                        self.core.download_saves(igame.app_name, save_dir=igame.save_path, clean_dir=True,
-                                         manifest_name=latest_save[igame.app_name].manifest_name)
+                        self.core.upload_save(igame.app_name, igame.save_path, dt_l, args.disable_filters)
                         igame.save_timestamp = time.time()
                         self.core.lgd.set_installed_game(igame.app_name, igame)
                     else:
