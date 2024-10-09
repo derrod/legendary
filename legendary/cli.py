@@ -516,7 +516,7 @@ class LegendaryCLI:
                 igame.save_path = save_path
                 self.core.lgd.set_installed_game(igame.app_name, igame)
 
-            res, (dt_l, dt_r) = self.core.check_savegame_state(igame.save_path, latest_save.get(igame.app_name))
+            res, (dt_l, dt_r) = self.core.check_savegame_state(igame.save_path, igame.save_timestamp, latest_save.get(igame.app_name))
 
             if res == SaveGameStatus.NO_SAVE:
                 logger.info('No cloud or local savegame found.')
@@ -525,6 +525,30 @@ class LegendaryCLI:
             if res == SaveGameStatus.SAME_AGE and not (args.force_upload or args.force_download):
                 logger.info(f'Save game for "{igame.title}" is up to date, skipping...')
                 continue
+
+            if res == SaveGameStatus.CONFLICT and not (args.force_upload or args.force_download):
+                logger.info(f'Cloud save for "{igame.title}" is in conflict:')
+                logger.info(f'- Cloud save date: {dt_r.strftime("%Y-%m-%d %H:%M:%S")}')
+                logger.info(f'- Local save date: {dt_l.strftime("%Y-%m-%d %H:%M:%S")}')
+
+                if args.yes:
+                    logger.warning('Run the command again with appropriate force parameter to effectively pick the save')
+                    continue
+                else:
+                    result = get_int_choice('Which saves should be kept? Type the number corresponding to preferred action (remote - 1/local - 2/cancel - 3)',
+                                            default=3, min_choice=1, max_choice=3)
+                    if result == 1:
+                        self.core.download_saves(igame.app_name, save_dir=igame.save_path, clean_dir=True,
+                                                 manifest_name=latest_save[igame.app_name].manifest_name)
+                        igame.save_timestamp = time.time()
+                        self.core.lgd.set_installed_game(igame.app_name, igame)
+                    elif result == 2:
+                        self.core.upload_save(igame.app_name, igame.save_path, dt_l, args.disable_filters)
+                        igame.save_timestamp = time.time()
+                        self.core.lgd.set_installed_game(igame.app_name, igame)
+                    else:
+                        logger.info(f'Skipping action for: "{igame.title}"...')
+                        continue
 
             if (res == SaveGameStatus.REMOTE_NEWER and not args.force_upload) or args.force_download:
                 if res == SaveGameStatus.REMOTE_NEWER:  # only print this info if not forced
@@ -547,6 +571,8 @@ class LegendaryCLI:
                 logger.info('Downloading remote savegame...')
                 self.core.download_saves(igame.app_name, save_dir=igame.save_path, clean_dir=True,
                                          manifest_name=latest_save[igame.app_name].manifest_name)
+                igame.save_timestamp = time.time()
+                self.core.lgd.set_installed_game(igame.app_name, igame)
             elif res == SaveGameStatus.LOCAL_NEWER or args.force_upload:
                 if res == SaveGameStatus.LOCAL_NEWER:
                     logger.info(f'Local save for "{igame.title}" is newer')
@@ -566,6 +592,8 @@ class LegendaryCLI:
                         continue
                 logger.info('Uploading local savegame...')
                 self.core.upload_save(igame.app_name, igame.save_path, dt_l, args.disable_filters)
+                igame.save_timestamp = time.time()
+                self.core.lgd.set_installed_game(igame.app_name, igame)
 
     def launch_game(self, args, extra):
         app_name = self._resolve_aliases(args.app_name)

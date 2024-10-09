@@ -961,7 +961,7 @@ class LegendaryCore:
 
         return absolute_path
 
-    def check_savegame_state(self, path: str, save: SaveGameFile) -> (SaveGameStatus, (datetime, datetime)):
+    def check_savegame_state(self, path: str, sync_timestamp: Optional[float], save: SaveGameFile) -> tuple[SaveGameStatus, tuple[datetime, datetime]]:
         latest = 0
         for _dir, _, _files in os.walk(path):
             for _file in _files:
@@ -971,8 +971,7 @@ class LegendaryCore:
         if not latest and not save:
             return SaveGameStatus.NO_SAVE, (None, None)
 
-        # timezones are fun!
-        dt_local = datetime.fromtimestamp(latest).replace(tzinfo=self.local_timezone).astimezone(timezone.utc)
+        dt_local = datetime.fromtimestamp(latest, tz=timezone.utc)
         if not save:
             return SaveGameStatus.LOCAL_NEWER, (dt_local, None)
 
@@ -980,7 +979,15 @@ class LegendaryCore:
         if not latest:
             return SaveGameStatus.REMOTE_NEWER, (None, dt_remote)
 
-        self.log.debug(f'Local save date: {str(dt_local)}, Remote save date: {str(dt_remote)}')
+        dt_sync_time = datetime.fromtimestamp(sync_timestamp or 0, tz=timezone.utc)
+        self.log.debug(f'Local save date: {str(dt_local)}, Remote save date: {str(dt_remote)}, Last sync: {str(dt_sync_time)}')
+
+        # Pickup possible conflict
+        if sync_timestamp:
+            remote_updated = (dt_remote - dt_sync_time).total_seconds() > 60
+            local_updated = (dt_local - dt_sync_time).total_seconds() > 60
+            if remote_updated and local_updated:
+                return SaveGameStatus.CONFLICT, (dt_local, dt_remote)
 
         # Ideally we check the files themselves based on manifest,
         # this is mostly a guess but should be accurate enough.
