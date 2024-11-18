@@ -47,7 +47,7 @@ class LGDLFS:
         self._overlay_update_info = None
         self._overlay_install_info = None
         # Config with game specific settings (e.g. start parameters, env variables)
-        self.config = LGDConf(comment_prefixes='/', allow_no_value=True)
+        self.config = LGDConf(comment_prefixes=(';', '#', '/'), allow_no_value=True)
 
         if config_file:
             # if user specified a valid relative/absolute path use that,
