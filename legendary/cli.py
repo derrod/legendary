@@ -352,7 +352,7 @@ class LegendaryCLI:
         # check if we even need to log in
         if args.override_manifest:
             logger.info(f'Loading manifest from "{args.override_manifest}"')
-            manifest_data, _ = self.core.get_uri_manifest(args.override_manifest)
+            manifest_data = self.core.get_uri_manifest(args.override_manifest)
         elif self.core.is_installed(args.app_name) and not args.force_download:
             logger.info(f'Loading installed manifest for "{args.app_name}"')
             manifest_data, _ = self.core.get_installed_manifest(args.app_name)
