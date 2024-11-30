@@ -1348,8 +1348,6 @@ class LegendaryCore:
             else:
                 old_manifest = self.load_manifest(old_bytes)
 
-        base_urls = game.base_urls
-
         # The EGS client uses plaintext HTTP by default for the purposes of enabling simple DNS based
         # CDN redirection to a (local) cache. In Legendary this will be a config option.
         disable_https = disable_https or self.lgd.config.getboolean('Legendary', 'disable_https', fallback=False)
@@ -1357,12 +1355,13 @@ class LegendaryCore:
         if override_manifest:
             self.log.info(f'Overriding manifest with "{override_manifest}"')
             new_manifest_data = self.get_uri_manifest(override_manifest)
+            _, base_urls, _ = self.get_cdn_urls(game, platform)
         else:
             new_manifest_data, base_urls = self.get_cdn_manifest(game, platform, disable_https=disable_https)
-            # overwrite base urls in metadata with current ones to avoid using old/dead CDNs
-            game.base_urls = base_urls
-            # save base urls to game metadata
-            self.lgd.set_game_meta(game.app_name, game)
+        # overwrite base urls in metadata with current ones to avoid using old/dead CDNs
+        game.base_urls = base_urls
+        # save base urls to game metadata
+        self.lgd.set_game_meta(game.app_name, game)
 
         self.log.info('Parsing game manifest...')
         new_manifest = self.load_manifest(new_manifest_data)
