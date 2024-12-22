@@ -48,7 +48,9 @@ class ChunkTask:
     chunk_guid: int
     chunk_offset: int = 0
     chunk_size: int = 0
-    # Whether this chunk can be removed from memory/disk after having been written
+    # Chunk should be added to the disk cache
+    cache: bool = False
+    # Whether this chunk can be removed from disk after having been written
     cleanup: bool = False
     # Path to the file the chunk is read from (if not from memory)
     chunk_file: Optional[str] = None
@@ -64,6 +66,7 @@ class TaskFlags(Flag):
     RELEASE_MEMORY = auto()
     MAKE_EXECUTABLE = auto()
     SILENT = auto()
+    CLEAR_CACHE = auto()
 
 
 @dataclass

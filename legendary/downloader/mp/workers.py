@@ -170,6 +170,9 @@ class FileWorker(Process):
         last_filename = ''
         current_file = None
 
+        if not os.path.exists(self.cache_path):
+            os.makedirs(self.cache_path)
+
         while True:
             try:
                 try:
@@ -275,8 +278,6 @@ class FileWorker(Process):
                         current_file.write(self.shm.buf[shm_offset:shm_end])
                     elif j.cache_file:
                         with open(os.path.join(self.cache_path, j.cache_file), 'rb') as f:
-                            if j.chunk_offset:
-                                f.seek(j.chunk_offset)
                             current_file.write(f.read(j.chunk_size))
                     elif j.old_file:
                         with open(os.path.join(self.base_path, j.old_file), 'rb') as f:
