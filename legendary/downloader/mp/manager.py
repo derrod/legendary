@@ -318,6 +318,28 @@ class DLManager(Process):
                             analysis_res.reuse_size += cp.size
                             break
 
+        # determine whether a chunk part is currently in written files
+        reusable_written = defaultdict(dict)
+        cur_written_cps = defaultdict(list)
+        for cur_file in fmlist:
+            cur_file_cps = dict()
+            cur_file_offset = 0
+            for cp in cur_file.chunk_parts:
+                key = (cp.guid_num, cp.offset, cp.size)
+                for wr_file_name, wr_file_offset, wr_cp_offset, wr_cp_end_offset in cur_written_cps[cp.guid_num]:
+                    # check if new chunk part is wholly contained in a written chunk part
+                    cur_cp_end_offset = cp.offset + cp.size
+                    if wr_cp_offset <= cp.offset and wr_cp_end_offset >= cur_cp_end_offset:
+                        references[cp.guid_num] -= 1
+                        reuse_offset = wr_file_offset + (cp.offset - wr_cp_offset)
+                        reusable_written[cur_file.filename][key] = (wr_file_name, reuse_offset)
+                        break
+                cur_file_cps[cp.guid_num] = (cur_file.filename, cur_file_offset, cp.offset, cp.offset + cp.size)
+                cur_file_offset += cp.size
+
+            for guid, value in cur_file_cps.items():
+                cur_written_cps[guid].append(value)
+
         last_cache_size = current_cache_size = 0
         # set to determine whether a file is currently cached or not
         cached = set()
@@ -338,6 +360,7 @@ class DLManager(Process):
                 continue
 
             existing_chunks = re_usable.get(current_file.filename, None)
+            written_chunks = reusable_written.get(current_file.filename, None)
             chunk_tasks = []
             reused = 0
 
@@ -345,10 +368,13 @@ class DLManager(Process):
                 ct = ChunkTask(cp.guid_num, cp.offset, cp.size)
 
                 # re-use the chunk from the existing file if we can
-                if existing_chunks and (cp.guid_num, cp.offset, cp.size) in existing_chunks:
+                key = (cp.guid_num, cp.offset, cp.size)
+                if existing_chunks and key in existing_chunks:
                     reused += 1
                     ct.chunk_file = current_file.filename
-                    ct.chunk_offset = existing_chunks[(cp.guid_num, cp.offset, cp.size)]
+                    ct.chunk_offset = existing_chunks[key]
+                elif written_chunks and key in written_chunks:
+                    ct.chunk_file, ct.chunk_offset = written_chunks[key]
                 else:
                     # add to DL list if not already in it
                     if cp.guid_num not in chunks_in_dl_list:
