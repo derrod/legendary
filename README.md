@@ -459,6 +459,8 @@ optional arguments:
   --exclude <prefix>    Exclude files starting with <prefix> (case
                         insensitive)
   --install-tag <tag>   Only download files with the specified install tag
+  --read-files          Read duplicated parts from already saved files, do not
+                        keep them in RAM
   --enable-reordering   Enable reordering optimization to reduce RAM
                         requirements during download (may have adverse results
                         for some titles)
@@ -670,6 +672,8 @@ log_level = debug
 max_memory = 2048
 ; maximum number of worker processes when downloading (fewer workers will be slower, but also use less system resources)
 max_workers = 8
+; Enables reading duplicated data from files during download (decreases RAM usage but increases disk I/O)
+read_files = false
 ; default install directory
 install_dir = /mnt/tank/games
 ; locale override, must be in RFC 1766 format (e.g. "en-US")
