@@ -1327,6 +1327,7 @@ class LegendaryCore:
                          override_old_manifest: str = '', override_base_url: str = '',
                          platform: str = 'Windows', file_prefix_filter: list = None,
                          file_exclude_filter: list = None, file_install_tag: list = None,
+                         read_files: bool = False,
                          dl_optimizations: bool = False, dl_timeout: int = 10,
                          repair: bool = False, repair_use_latest: bool = False,
                          disable_delta: bool = False, override_delta_manifest: str = '',
@@ -1487,6 +1488,9 @@ class LegendaryCore:
         if not max_shm:
             max_shm = self.lgd.config.getint('Legendary', 'max_memory', fallback=2048)
 
+        if not read_files:
+            read_files = self.lgd.config.getboolean('Legendary', 'read_files', fallback=False)
+
         if dl_optimizations or is_opt_enabled(game.app_name, new_manifest.meta.build_version):
             self.log.info('Download order optimizations are enabled.')
             process_opt = True
@@ -1499,12 +1503,26 @@ class LegendaryCore:
         dlm = DLManager(install_path, base_url, resume_file=resume_file, status_q=status_q,
                         max_shared_memory=max_shm * 1024 * 1024, max_workers=max_workers,
                         dl_timeout=dl_timeout, bind_ip=bind_ip)
-        anlres = dlm.run_analysis(manifest=new_manifest, old_manifest=old_manifest,
-                                  patch=not disable_patching, resume=not force,
-                                  file_prefix_filter=file_prefix_filter,
-                                  file_exclude_filter=file_exclude_filter,
-                                  file_install_tag=file_install_tag,
-                                  processing_optimization=process_opt)
+
+        analysis_kwargs = dict(
+            old_manifest=old_manifest,
+            patch=not disable_patching, resume=not force,
+            file_prefix_filter=file_prefix_filter,
+            file_exclude_filter=file_exclude_filter,
+            file_install_tag=file_install_tag,
+            processing_optimization=process_opt
+        )
+
+        try:
+            anlres = dlm.run_analysis(manifest=new_manifest, **analysis_kwargs, read_files=read_files)
+        except MemoryError:
+            if read_files:
+                raise
+            self.log.warning('Memory error encountered, retrying with file read enabled...')
+            dlm = DLManager(install_path, base_url, resume_file=resume_file, status_q=status_q,
+                        max_shared_memory=max_shm * 1024 * 1024, max_workers=max_workers,
+                        dl_timeout=dl_timeout, bind_ip=bind_ip)
+            anlres = dlm.run_analysis(manifest=new_manifest, **analysis_kwargs, read_files=True)
 
         prereq = None
         if new_manifest.meta.prereq_ids:
