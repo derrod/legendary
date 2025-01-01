@@ -13,6 +13,7 @@ from multiprocessing.shared_memory import SharedMemory
 from queue import Empty
 from sys import exit
 from threading import Condition, Thread
+from tqdm import tqdm
 
 from legendary.downloader.mp.workers import DLWorker, FileWorker
 from legendary.models.downloading import *
@@ -705,6 +706,8 @@ class DLManager(Process):
 
         last_update = time.time()
 
+        progress_bar = tqdm(total=num_chunk_tasks, unit="chunk", dynamic_ncols=True)
+
         while processed_tasks < num_tasks:
             delta = time.time() - last_update
             if not delta:
@@ -724,6 +727,8 @@ class DLManager(Process):
             r_speed = self.bytes_read_since_last / delta
             # c_speed = self.num_processed_since_last / delta
 
+            progress_bar.update(self.num_processed_since_last)
+
             # set temporary counters to 0
             self.bytes_read_since_last = self.bytes_written_since_last = 0
             self.bytes_downloaded_since_last = self.num_processed_since_last = 0
@@ -731,32 +736,8 @@ class DLManager(Process):
             last_update = time.time()
 
             perc = (processed_chunks / num_chunk_tasks) * 100
-            runtime = time.time() - s_time
             total_avail = len(self.sms)
             total_used = (num_shared_memory_segments - total_avail) * (self.analysis.biggest_chunk / 1024 / 1024)
-
-            if runtime and processed_chunks:
-                average_speed = processed_chunks / runtime
-                estimate = (num_chunk_tasks - processed_chunks) / average_speed
-                hours, estimate = int(estimate // 3600), estimate % 3600
-                minutes, seconds = int(estimate // 60), int(estimate % 60)
-
-                rt_hours, runtime = int(runtime // 3600), runtime % 3600
-                rt_minutes, rt_seconds = int(runtime // 60), int(runtime % 60)
-            else:
-                hours = minutes = seconds = 0
-                rt_hours = rt_minutes = rt_seconds = 0
-
-            self.log.info(f'= Progress: {perc:.02f}% ({processed_chunks}/{num_chunk_tasks}), '
-                          f'Running for {rt_hours:02d}:{rt_minutes:02d}:{rt_seconds:02d}, '
-                          f'ETA: {hours:02d}:{minutes:02d}:{seconds:02d}')
-            self.log.info(f' - Downloaded: {total_dl / 1024 / 1024:.02f} MiB, '
-                          f'Written: {total_write / 1024 / 1024:.02f} MiB')
-            self.log.info(f' - Cache usage: {total_used:.02f} MiB, active tasks: {self.active_tasks}')
-            self.log.info(f' + Download\t- {dl_speed / 1024 / 1024:.02f} MiB/s (raw) '
-                          f'/ {dl_unc_speed / 1024 / 1024:.02f} MiB/s (decompressed)')
-            self.log.info(f' + Disk\t- {w_speed / 1024 / 1024:.02f} MiB/s (write) / '
-                          f'{r_speed / 1024 / 1024:.02f} MiB/s (read)')
 
             # send status update to back to instantiator (if queue exists)
             if self.status_queue:
@@ -770,6 +751,7 @@ class DLManager(Process):
 
             time.sleep(self.update_interval)
 
+        progress_bar.close()
         for i in range(self.max_workers):
             self.dl_worker_queue.put_nowait(TerminateWorkerTask())
 

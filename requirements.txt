@@ -1,2 +1,3 @@
 requests<3.0
 filelock
+tqdm==4.67.1

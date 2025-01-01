@@ -38,7 +38,8 @@ setup(
         'requests<3.0',
         'setuptools',
         'wheel',
-        'filelock'
+        'filelock',
+        'tqdm==4.67.1'
     ],
     extras_require=dict(
         webview=['pywebview>=3.4'],
