@@ -12,6 +12,7 @@ from queue import Empty
 import requests
 from requests.adapters import HTTPAdapter, DEFAULT_POOLBLOCK
 
+from legendary.lfs.wine_helpers import case_insensitive_file_search
 from legendary.models.chunk import Chunk
 from legendary.models.downloading import (
     DownloaderTask, DownloaderTaskResult,
@@ -187,11 +188,12 @@ class FileWorker(Process):
                     break
 
                 # make directories if required
-                path = os.path.split(j.filename)[0]
-                if not os.path.exists(os.path.join(self.base_path, path)):
-                    os.makedirs(os.path.join(self.base_path, path))
+                path, filename = os.path.split(j.filename)
+                file_dir = case_insensitive_file_search(os.path.join(self.base_path, path))
+                if not os.path.exists(file_dir):
+                    os.makedirs(file_dir)
 
-                full_path = os.path.join(self.base_path, j.filename)
+                full_path = os.path.join(file_dir, filename)
 
                 if j.flags & TaskFlags.CREATE_EMPTY_FILE:  # just create an empty file
                     open(full_path, 'a').close()
@@ -230,7 +232,8 @@ class FileWorker(Process):
                             continue
 
                     try:
-                        os.rename(os.path.join(self.base_path, j.old_file), full_path)
+                        old_path = case_insensitive_file_search(os.path.join(self.base_path, j.old_file))
+                        os.rename(old_path, full_path)
                     except OSError as e:
                         logger.error(f'Renaming file failed: {e!r}')
                         self.o_q.put(WriterTaskResult(success=False, **j.__dict__))
