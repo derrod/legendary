@@ -1498,7 +1498,7 @@ class LegendaryCore:
 
         dlm = DLManager(install_path, base_url, resume_file=resume_file, status_q=status_q,
                         max_shared_memory=max_shm * 1024 * 1024, max_workers=max_workers,
-                        dl_timeout=dl_timeout, bind_ip=bind_ip)
+                        dl_timeout=dl_timeout, bind_ip=bind_ip, case_insensitive=platform.startswith('Win'))
         anlres = dlm.run_analysis(manifest=new_manifest, old_manifest=old_manifest,
                                   patch=not disable_patching, resume=not force,
                                   file_prefix_filter=file_prefix_filter,
@@ -1697,7 +1697,8 @@ class LegendaryCore:
                     fm.filename for fm in manifest.file_manifest_list.elements if
                     not fm.install_tags or any(t in installed_game.install_tags for t in fm.install_tags)
                 ]
-                if not delete_filelist(installed_game.install_path, filelist, delete_root_directory):
+                if not delete_filelist(installed_game.install_path, filelist, delete_root_directory,
+                                       case_insensitive=installed_game.platform.startswith('Win')):
                     self.log.error(f'Deleting "{installed_game.install_path}" failed, please remove manually.')
             except Exception as e:
                 self.log.error(f'Deleting failed with {e!r}, please remove {installed_game.install_path} manually.')
@@ -1717,7 +1718,10 @@ class LegendaryCore:
             and os.path.exists(os.path.join(installed_game.install_path, fm.filename))
         ]
 
-        if not delete_filelist(installed_game.install_path, filelist):
+        if not delete_filelist(
+                installed_game.install_path, filelist,
+                case_insensitive=installed_game.platform.startswith('Win')
+        ):
             self.log.warning(f'Deleting some deselected files failed, please check/remove manually.')
 
     def prereq_installed(self, app_name):

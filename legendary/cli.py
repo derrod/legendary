@@ -1268,7 +1268,8 @@ class LegendaryCLI:
 
         logger.info(f'Verifying "{igame.title}" version "{manifest.meta.build_version}"')
         repair_file = []
-        for result, path, result_hash, bytes_read in validate_files(igame.install_path, file_list):
+        for result, path, result_hash, bytes_read in validate_files(igame.install_path, file_list,
+                                                                    case_insensitive=igame.platform.startswith('Win')):
             processed += bytes_read
             percentage = (processed / total_size) * 100.0
             num += 1

@@ -148,7 +148,8 @@ class DLWorker(Process):
 
 
 class FileWorker(Process):
-    def __init__(self, queue, out_queue, base_path, shm, cache_path=None, logging_queue=None):
+    def __init__(self, queue, out_queue, base_path, shm, cache_path=None, logging_queue=None,
+                 case_insensitive: bool = True):
         super().__init__(name='FileWorker')
         self.q = queue
         self.o_q = out_queue
@@ -157,6 +158,7 @@ class FileWorker(Process):
         self.shm = SharedMemory(name=shm)
         self.log_level = logging.getLogger().level
         self.logging_queue = logging_queue
+        self.case_insensitive = case_insensitive
 
     def run(self):
         # we have to fix up the logger before we can start
@@ -189,7 +191,9 @@ class FileWorker(Process):
 
                 # make directories if required
                 path, filename = os.path.split(j.filename)
-                file_dir = case_insensitive_file_search(os.path.join(self.base_path, path))
+                file_dir = os.path.join(self.base_path, path)
+                if self.case_insensitive:
+                    file_dir = case_insensitive_file_search(file_dir)
                 if not os.path.exists(file_dir):
                     os.makedirs(file_dir)
 

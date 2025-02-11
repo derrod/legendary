@@ -13,6 +13,7 @@ from typing import List, Iterator
 
 from filelock import FileLock
 
+from legendary.lfs.wine_helpers import case_insensitive_file_search
 from legendary.models.game import VerifyResult
 
 logger = logging.getLogger('LFS Utils')
@@ -34,7 +35,7 @@ def delete_folder(path: str, recursive=True) -> bool:
 
 def delete_filelist(path: str, filenames: List[str],
                     delete_root_directory: bool = False,
-                    silent: bool = False) -> bool:
+                    silent: bool = False, case_insensitive: bool = True) -> bool:
     dirs = set()
     no_error = True
 
@@ -45,7 +46,10 @@ def delete_filelist(path: str, filenames: List[str],
             dirs.add(_dir)
 
         try:
-            os.remove(os.path.join(path, _dir, _fn))
+            full_path = os.path.join(path, _dir, _fn)
+            if case_insensitive:
+                full_path = case_insensitive_file_search(full_path)
+            os.remove(full_path)
         except Exception as e:
             if not silent:
                 logger.error(f'Failed deleting file {filename} with {e!r}')
@@ -61,7 +65,10 @@ def delete_filelist(path: str, filenames: List[str],
     # remove all directories
     for _dir in sorted(dirs, key=len, reverse=True):
         try:
-            os.rmdir(os.path.join(path, _dir))
+            dir_path = os.path.join(path, _dir)
+            if case_insensitive:
+                dir_path = case_insensitive_file_search(dir_path)
+            os.rmdir(dir_path)
         except FileNotFoundError:
             # directory has already been deleted, ignore that
             continue
@@ -81,7 +88,7 @@ def delete_filelist(path: str, filenames: List[str],
 
 
 def validate_files(base_path: str, filelist: List[tuple], hash_type='sha1',
-                   large_file_threshold=1024 * 1024 * 512) -> Iterator[tuple]:
+                   large_file_threshold=1024 * 1024 * 512, case_insensitive: bool = True) -> Iterator[tuple]:
     """
     Validates the files in filelist in path against the provided hashes
 
@@ -89,6 +96,7 @@ def validate_files(base_path: str, filelist: List[tuple], hash_type='sha1',
     :param filelist: list of tuples in format (path, hash [hex])
     :param hash_type: (optional) type of hash, default is sha1
     :param large_file_threshold: (optional) threshold for large files, default is 512 MiB
+    :param case_insensitive: (optional) whether to search for files case insensitively
     :return: yields tuples in format (VerifyResult, path, hash [hex], bytes read)
     """
 
@@ -100,6 +108,8 @@ def validate_files(base_path: str, filelist: List[tuple], hash_type='sha1',
 
     for file_path, file_hash in filelist:
         full_path = os.path.join(base_path, file_path)
+        if case_insensitive:
+            full_path = case_insensitive_file_search(full_path)
         # logger.debug(f'Checking "{file_path}"...')
 
         if not os.path.exists(full_path):
