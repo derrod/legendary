@@ -1447,7 +1447,7 @@ class LegendaryCore:
             if not repair_use_latest and old_manifest:
                 # use installed manifest for repairs instead of updating
                 new_manifest = old_manifest
-                old_manifest = None
+            old_manifest = None
 
             filename = clean_filename(f'{game.app_name}.repair')
             resume_file = os.path.join(self.lgd.get_tmp_path(), filename)
