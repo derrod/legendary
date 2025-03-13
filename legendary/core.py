@@ -399,7 +399,7 @@ class LegendaryCore:
         return self.get_game_and_dlc_list(update_assets=update_assets, platform=platform)[0]
 
     def get_game_and_dlc_list(self, update_assets=True, platform='Windows',
-                              force_refresh=False, skip_ue=True) -> (List[Game], Dict[str, List[Game]]):
+                              force_refresh=False, skip_ue=True) -> tuple[List[Game], Dict[str, List[Game]]]:
         _ret = []
         _dlc = defaultdict(list)
         meta_updated = False
@@ -524,8 +524,7 @@ class LegendaryCore:
             self.log.debug(f'Removing old/unused metadata for "{app_name}"')
             self.lgd.delete_game_meta(app_name)
 
-    def get_non_asset_library_items(self, force_refresh=False,
-                                    skip_ue=True) -> (List[Game], Dict[str, List[Game]]):
+    def get_non_asset_library_items(self, force_refresh=False, skip_ue=True) -> tuple[List[Game], Dict[str, List[Game]]]:
         """
         Gets a list of Games without assets for installation, for instance Games delivered via
         third-party stores that do not have assets for installation
@@ -961,7 +960,7 @@ class LegendaryCore:
 
         return absolute_path
 
-    def check_savegame_state(self, path: str, save: SaveGameFile) -> (SaveGameStatus, (datetime, datetime)):
+    def check_savegame_state(self, path: str, save: SaveGameFile) -> tuple[SaveGameStatus, (datetime, datetime)]:
         latest = 0
         for _dir, _, _files in os.walk(path):
             for _file in _files:
@@ -1331,7 +1330,7 @@ class LegendaryCore:
                          repair: bool = False, repair_use_latest: bool = False,
                          disable_delta: bool = False, override_delta_manifest: str = '',
                          egl_guid: str = '', preferred_cdn: str = None,
-                         disable_https: bool = False, bind_ip: str = None) -> (DLManager, AnalysisResult, ManifestMeta):
+                         disable_https: bool = False, bind_ip: str = None) -> tuple[DLManager, AnalysisResult, ManifestMeta]:
         # load old manifest
         old_manifest = None
 
@@ -1725,7 +1724,7 @@ class LegendaryCore:
         igame.prereq_info['installed'] = True
         self.lgd.set_installed_game(app_name, igame)
 
-    def import_game(self, game: Game, app_path: str, egl_guid='', platform='Windows') -> (Manifest, InstalledGame):
+    def import_game(self, game: Game, app_path: str, egl_guid='', platform='Windows') -> tuple[Manifest, InstalledGame]:
         needs_verify = True
         manifest_data = None
 

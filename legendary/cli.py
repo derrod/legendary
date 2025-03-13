@@ -10,6 +10,8 @@ import shlex
 import subprocess
 import time
 import webbrowser
+import colorama
+from colorama import Fore, Back, Style
 
 from collections import defaultdict, namedtuple
 from logging.handlers import QueueListener
@@ -39,10 +41,11 @@ logger = logging.getLogger('cli')
 
 
 class LegendaryCLI:
+    _clientID = '34a02cf8f4414e29b15921876da36f9a'
     def __init__(self, override_config=None, api_timeout=None):
         self.core = LegendaryCore(override_config, timeout=api_timeout)
         self.logger = logging.getLogger('cli')
-        self.logging_queue = None
+        self.logging_queue = None       
 
     def setup_threaded_logging(self):
         self.logging_queue = MPQueue(-1)
@@ -149,18 +152,23 @@ class LegendaryCLI:
             from legendary.utils.webview_login import webview_available, do_webview_login
 
             if not webview_available or args.no_webview or self.core.webview_killswitch:
-                # unfortunately the captcha stuff makes a complete CLI login flow kinda impossible right now...
-                print('Please login via the epic web login!')
-                url = 'https://legendary.gl/epiclogin'
+                # Captcha Prevents Automated Cli Login Sessions
+                print(Fore.MAGENTA+'Webview login is not available right now, we will need to complete things in your browser')
+                print(Fore.YELLOW + "Make sure you have logged in into your epic games account ")
+                input(Fore.CYAN + "Press any key to continue...")
+                url = f'https://www.epicgames.com/id/api/redirect?clientId={self._clientID}&responseType=code'
                 webbrowser.open(url)
                 print(f'If the web page did not open automatically, please manually open the following URL: {url}')
-                auth_code = input('Please enter the "authorizationCode" value from the JSON response: ')
+                input_code = ''
+                while input_code == '':
+                    input_code = input(Fore.GREEN+'Please enter the authorization code from the JSON in your browser: ')
+                auth_code = input_code
                 auth_code = auth_code.strip()
                 if auth_code[0] == '{':
-                    tmp = json.loads(auth_code)
-                    auth_code = tmp['authorizationCode']
+                   tmp = json.loads(auth_code)
+                   auth_code = tmp['authorizationCode']
                 else:
-                    auth_code = auth_code.strip('"')
+                   auth_code = auth_code.strip('"')
             else:
                 if do_webview_login(callback_code=self.core.auth_ex_token,
                                     user_agent=f'EpicGamesLauncher/{self.core.get_egl_version()}'):
