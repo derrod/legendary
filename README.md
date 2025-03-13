@@ -1,8 +1,13 @@
 # Legendary
-## A free and open-source Epic Games Launcher alternative
+## After the last update of the Epic Games Store login system, The web API for legendary broke because of an extra parameter "redirectURL" resulting in 'Wrong Parameters' error in browser. What I did is just removed the legendary.gl API and made the authentication direct according to community solutions.
+The author is a bit busy and the project is not maintained anymore. I will see if I can provide a local Webserver based API in future updates, so for now just wait.
 ![Logo](https://repository-images.githubusercontent.com/249938026/80b18f80-96c7-11ea-9183-0a8c96e7cada)
 
 [![Discord](https://discordapp.com/api/guilds/695233346627698689/widget.png?style=shield)](https://legendary.gl/discord) [![Twitter Follow](https://img.shields.io/twitter/follow/legendary_gl?label=Follow%20us%20for%20updates%21&style=social)](https://twitter.com/legendary_gl)
+
+You don't have to follow me on X, but you are free to do so. My x is a mess.
+
+[![The X button](https://img.shields.io/twitter/follow/AhanafPranto?style=social)](https://x.com/AhanafPranto)
 
 Legendary is an open-source game launcher that can download and install games from the Epic Games platform on Linux, macOS, and Windows.
 Its name as a tongue-in-cheek play on tiers of [item rarity in many MMORPGs](https://wow.gamepedia.com/Quality).
@@ -75,45 +80,24 @@ To prevent problems with permissions during installation, please upgrade your `p
 
 > **Tip:** You may need to replace `python` in the above command with `python3` on Linux/macOS, or `py -3` on Windows.
 
-#### Installation from PyPI (recommended)
 
-Legendary is available on [PyPI](https://pypi.org/project/legendary-gl/), to install simply run:
-
-```bash
-pip install legendary-gl
-```
-
-Optionally if logging in via an embedded web view is desired also run
-```bash
-pip install legendary-gl[webview]
-```
-On Linux this may also require installing a supported web engine and its python bindings.  
-Ubunutu example:
-```bash
-sudo apt install python3-gi-cairo
-pip install legendary-gl[webview]
-```
-
-Alternatively `pip install legendary-gl[webview_gtk]` or `pip install pywebview[gtk]` will work
-but may require manually installing dependencies needed to build `PyGObject`.
-
-**Note:** Using pywebview's Qt engine may not work correctly. Using pywebview is currently unsupported on macOS.
-
-#### Manually from the repo
+### Manually from the repo (If you want to use my version of application.)
 
 - Install python3.9, setuptools, wheel, and requests
-- Clone the git repository and cd into it
-- Run `pip install .`
-
-#### Ubuntu 20.04 example
-
-Ubuntu 20.04's standard repositories include everything needed to install legendary:
-````bash
+```bash
+# For Ubuntu or Debian based systems
 sudo apt install python3 python3-requests python3-setuptools-git
-git clone https://github.com/derrod/legendary.git
-cd legendary
-pip install .
-````
+# Or for Fedora or CentOS or RHEL based systems
+sudo dnf install python3 python3-requests python3-setuptools-git
+# For Arch based systems
+sudo pacman -S python python-requests python-setuptools-git
+```
+- Clone the repository and install this version of legendary
+```bash
+ git clone https://github.com/AhanafRASHID/legendary_parameter_fix.git
+ cd legendary_parameter_fix
+ pip install .
+```
 
 If the `legendary` executable is not available after installation, you may need to configure your `PATH` correctly. You can do this by running the command: 
 
