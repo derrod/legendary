@@ -1034,11 +1034,9 @@ class LegendaryCore:
             os.makedirs(save_path)
 
         _save_dir = save_dir
-        savegames = self.egs.get_user_cloud_saves(app_name=app_name)
-        files = savegames['files']
+        manifests = self.egs.get_user_cloud_saves(app_name=app_name,manifests=True)
+        files = manifests["files"]
         for fname, f in files.items():
-            if '.manifest' not in fname:
-                continue
             f_parts = fname.split('/')
 
             if manifest_name and f_parts[4] != manifest_name:
@@ -1079,17 +1077,29 @@ class LegendaryCore:
             m = self.load_manifest(r.content)
 
             # download chunks required for extraction
-            chunks = dict()
+            chunkPaths = []
             for chunk in m.chunk_data_list.elements:
-                cpath_p = fname.split('/', 3)[:3]
-                cpath_p.append(chunk.path)
-                cpath = '/'.join(cpath_p)
-                if cpath not in files:
-                    self.log.warning(f'Chunk {cpath} not in file list, save data may be incomplete!')
-                    continue
+                chunkPaths.append(chunk.path)
 
-                self.log.debug(f'Downloading chunk "{cpath}"')
-                r = self.egs.unauth_session.get(files[cpath]['readLink'])
+            chunkSaves = self.egs.get_user_cloud_saves(app_name=app_name, filenames=chunkPaths, manifests=False)
+            chunkFiles = chunkSaves["files"]
+
+            if len(chunkFiles) != len(chunkPaths):
+                self.log.warning(f'Expected {len(chunkPaths)} chunks, but only found {len(chunkFiles)}! Save may be incomplete.')
+                continue
+
+            chunkLinks = [chunkFiles[c]['readLink'] for c in chunkFiles]
+            self.log.info(f'Downloading {len(chunkLinks)} chunks...')
+
+            def log_download(r, *args, **kwargs):
+                self.log.debug(f'Downloaded chunk {'/'.join(urlparse(r.url).path.split('/')[5:])} successfully.')
+
+            # map chunkLinks to self.egs.unauth_future_session.get
+            futures = [self.egs.unauth_future_session.get(link, hooks={'response': log_download}) for link in chunkLinks]
+
+            chunks = dict()
+            for future in futures:
+                r = future.result()
                 if r.status_code != 200:
                     self.log.error(f'Download failed, status code: {r.status_code}')
                     break
