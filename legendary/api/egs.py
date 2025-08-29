@@ -28,10 +28,8 @@ class EPCAPI:
     _ecommerce_host = 'ecommerceintegration-public-service-ecomprod02.ol.epicgames.com'
     _datastorage_host = 'datastorage-public-service-liveegs.live.use1a.on.epicgames.com'
     _library_host = 'library-service.live.use1a.on.epicgames.com'
-    # Using the actual store host with a user-agent newer than 14.0.8 leads to a CF verification page,
-    # but the dedicated graphql host works fine.
-    # _store_gql_host = 'launcher.store.epicgames.com'
-    _store_gql_host = 'graphql.epicgames.com'
+
+    _store_gql_host = 'launcher.store.epicgames.com'
     _artifact_service_host = 'artifact-public-service-prod.beee.live.use1a.on.epicgames.com'
 
     def __init__(self, lc='en', cc='US', timeout=10.0):
