@@ -1304,13 +1304,11 @@ class LegendaryCore:
             r = self.egs.unauth_session.get(uri)
             r.raise_for_status()
             new_manifest_data = r.content
-            base_urls = [r.url.rpartition('/')[0]]
         else:
-            base_urls = []
             with open(uri, 'rb') as f:
                 new_manifest_data = f.read()
 
-        return new_manifest_data, base_urls
+        return new_manifest_data
 
     def get_delta_manifest(self, base_url, old_build_id, new_build_id):
         """Get optimized delta manifest (doesn't seem to exist for most games)"""
@@ -1338,7 +1336,7 @@ class LegendaryCore:
         # load old manifest if we have one
         if override_old_manifest:
             self.log.info(f'Overriding old manifest with "{override_old_manifest}"')
-            old_bytes, _ = self.get_uri_manifest(override_old_manifest)
+            old_bytes = self.get_uri_manifest(override_old_manifest)
             old_manifest = self.load_manifest(old_bytes)
         elif not disable_patching and not force and self.is_installed(game.app_name):
             old_bytes, _base_urls = self.get_installed_manifest(game.app_name)
@@ -1350,24 +1348,20 @@ class LegendaryCore:
             else:
                 old_manifest = self.load_manifest(old_bytes)
 
-        base_urls = game.base_urls
-
         # The EGS client uses plaintext HTTP by default for the purposes of enabling simple DNS based
         # CDN redirection to a (local) cache. In Legendary this will be a config option.
         disable_https = disable_https or self.lgd.config.getboolean('Legendary', 'disable_https', fallback=False)
 
         if override_manifest:
             self.log.info(f'Overriding manifest with "{override_manifest}"')
-            new_manifest_data, _base_urls = self.get_uri_manifest(override_manifest)
-            # if override manifest has a base URL use that instead
-            if _base_urls:
-                base_urls = _base_urls
+            new_manifest_data = self.get_uri_manifest(override_manifest)
+            _, base_urls, _ = self.get_cdn_urls(game, platform)
         else:
             new_manifest_data, base_urls = self.get_cdn_manifest(game, platform, disable_https=disable_https)
-            # overwrite base urls in metadata with current ones to avoid using old/dead CDNs
-            game.base_urls = base_urls
-            # save base urls to game metadata
-            self.lgd.set_game_meta(game.app_name, game)
+        # overwrite base urls in metadata with current ones to avoid using old/dead CDNs
+        game.base_urls = base_urls
+        # save base urls to game metadata
+        self.lgd.set_game_meta(game.app_name, game)
 
         self.log.info('Parsing game manifest...')
         new_manifest = self.load_manifest(new_manifest_data)
@@ -1384,7 +1378,7 @@ class LegendaryCore:
         if old_manifest and new_manifest and not disable_delta:
             if override_delta_manifest:
                 self.log.info(f'Overriding delta manifest with "{override_delta_manifest}"')
-                delta_manifest_data, _ = self.get_uri_manifest(override_delta_manifest)
+                delta_manifest_data = self.get_uri_manifest(override_delta_manifest)
             else:
                 delta_manifest_data = self.get_delta_manifest(base_urls[0],
                                                               old_manifest.meta.build_id,
