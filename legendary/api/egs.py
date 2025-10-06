@@ -2,10 +2,13 @@
 # coding: utf-8
 
 import urllib.parse
+from urllib3.util import Retry
 
 import requests
 import requests.adapters
 import logging
+
+from requests_futures.sessions import FuturesSession
 
 from requests.auth import HTTPBasicAuth
 
@@ -40,8 +43,21 @@ class EPCAPI:
         # increase maximum pool size for multithreaded metadata requests
         self.session.mount('https://', requests.adapters.HTTPAdapter(pool_maxsize=16))
 
+        retries = Retry(
+            total=3,
+            backoff_factor=0.1,
+            status_forcelist=[500, 501, 502, 503, 504],
+            allowed_methods={'GET'}
+        )
+
         self.unauth_session = requests.session()
         self.unauth_session.headers['User-Agent'] = self._user_agent
+
+        self.unauth_session.mount('https://', requests.adapters.HTTPAdapter(pool_connections=16, pool_maxsize=16, max_retries=retries))
+
+        self.unauth_future_session = FuturesSession(session=self.unauth_session,max_workers=16)
+        self.unauth_future_session.headers['User-Agent'] = self._user_agent
+
 
         self._oauth_basic = HTTPBasicAuth(self._user_basic, self._pw_basic)
 
@@ -65,6 +81,7 @@ class EPCAPI:
             self._store_user_agent = f'EpicGamesLauncher/{version}'
             self.session.headers['User-Agent'] = self._user_agent
             self.unauth_session.headers['User-Agent'] = self._user_agent
+            self.unauth_future_session.headers['User-Agent'] = self._user_agent
         # update label
         if label := egs_params['label']:
             self._label = label
