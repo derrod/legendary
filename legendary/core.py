@@ -910,6 +910,11 @@ class LegendaryCore:
             if not wine_pfx:
                 wine_pfx = self.lgd.config.get('default.env', 'WINEPREFIX', fallback=None)
                 wine_pfx = self.lgd.config.get('default', 'wine_prefix', fallback=wine_pfx)
+            # Proton is not officially supported, but people still use it, so look for it
+            if not wine_pfx:
+                proton_pfx = self.lgd.config.get('default.env', 'STEAM_COMPAT_DATA_PATH', fallback=None)
+                if proton_pfx:
+                    wine_pfx = f'{proton_pfx}/pfx'
 
             # If we still didn't find anything, try to read the prefix from the environment variables of this process
             if not wine_pfx and sys_platform == 'darwin':
